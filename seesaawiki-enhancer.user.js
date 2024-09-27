@@ -1062,50 +1062,37 @@
 		return buttonContainer;
 	}
 
-	function jumpToNextDiff(diffEditor, changes) {
+	function jumpToDiff(diffEditor, changes, forward=true) {
 		const modifiedEditor = diffEditor.getModifiedEditor();
 		const currentPosition = modifiedEditor.getPosition();
-		const nextChange = changes.find(
-			(change) =>
-				(change.type === "add" &&
-					change.startLine > currentPosition.lineNumber) ||
-				(change.type === "delete" &&
-					change.startLine >= currentPosition.lineNumber)
-		);
-		if (nextChange) {
-			const jumpLine =
-				nextChange.type === "add"
-					? nextChange.startLine
-					: nextChange.startLine + 1;
-			modifiedEditor.setPosition({ lineNumber: jumpLine, column: 1 });
-			modifiedEditor.revealLineInCenter(jumpLine);
-		}
-	}
 
-	function jumpToPrevDiff(diffEditor, changes) {
-		const modifiedEditor = diffEditor.getModifiedEditor();
-		const currentPosition = modifiedEditor.getPosition();
-		const prevChange = changes
-			.slice()
-			.reverse()
-			.find(
-				(change) =>
-					(change.type === "add" &&
-						change.endLine < currentPosition.lineNumber) ||
-					(change.type === "delete" &&
-						change.startLine < currentPosition.lineNumber)
+		let targetChange;
+		if (forward) {
+			targetChange = changes.find(change =>
+				(change.type === "add" && change.startLine > currentPosition.lineNumber) ||
+				(change.type === "delete" && change.startLine >= currentPosition.lineNumber)
 			);
-		if (prevChange) {
-			const jumpLine =
-				prevChange.type === "add"
-					? prevChange.startLine
-					: prevChange.startLine + 1;
+		} else {
+			targetChange = changes.slice().reverse().find(change =>
+				(change.type === "add" && change.endLine < currentPosition.lineNumber) ||
+				(change.type === "delete" && change.startLine < currentPosition.lineNumber)
+			);
+		}
+
+		if (targetChange) {
+			const jumpLine = targetChange.type === "add" ? targetChange.startLine : targetChange.startLine + 1;
 			modifiedEditor.setPosition({ lineNumber: jumpLine, column: 1 });
-			modifiedEditor.revealLineInCenter(jumpLine);
+			modifiedEditor.revealLineNearTop(jumpLine);
 		}
 	}
 
 	async function initMonacoDiffEditor() {
+		const diffBox = document.querySelector(".diff-box");
+
+		// Hide the original diff box
+		diffBox.style.display = "none";
+		document.getElementsByClassName("information-box")[0].style.display = "none";
+
 		await loadMonacoEditor();
 
 		const diffContent = extractDiffContent();
@@ -1114,7 +1101,6 @@
 		registerSeesaaWikiLanguage();
 
 		const container = createDiffEditorContainer();
-		const diffBox = document.querySelector(".diff-box");
 		diffBox.parentNode.insertBefore(container, diffBox);
 
 		const diffEditor = createMonacoDiffEditor(
@@ -1126,12 +1112,13 @@
 		// const buttonContainer = createJumpButtons(diffEditor, diffContent.changes);
 		// container.appendChild(buttonContainer);
 
-		// diffEditor.addCommand(monaco.KeyCode.RightArrow, () => jumpToNextDiff(diffEditor, changes));
-		// diffEditor.addCommand(monaco.KeyCode.LeftArrow, () => jumpToPrevDiff(diffEditor, changes));
+		diffEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, () => {
+			jumpToDiff(diffEditor, diffContent.changes, true);
+		});
 
-		// Hide the original diff box
-		diffBox.style.display = "none";
-		document.getElementsByClassName("information-box")[0].style.display = "none";
+		diffEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, () => {
+			jumpToDiff(diffEditor, diffContent.changes, false);
+		});
 	}
 
 })();
