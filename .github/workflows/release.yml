@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,10 +18,10 @@ jobs:
       run: |
         VERSION=${GITHUB_REF#refs/tags/v}
         # Update version in user.js
-        sed -i "s/@version .*/@version ${VERSION}/" your-userscript.user.js
+        sed -i "s/@version .*/@version ${VERSION}/" seesaawiki-enhancer.user.js
 
         # Extract meta information from user.js to meta.js
-        awk '/==UserScript==/{flag=1; print; next} /==\/UserScript==/{flag=0; print; exit} flag' your-userscript.user.js > meta.js
+        awk '/==UserScript==/{flag=1; print; next} /==\/UserScript==/{flag=0; print; exit} flag' seesaawiki-enhancer.user.js > seesaawiki-enhancer.meta.js
 
     - name: Commit changes
       run: |
