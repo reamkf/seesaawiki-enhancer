@@ -13,8 +13,7 @@
 // ==/UserScript==
 
 (function () {
-	// DOMContentLoadedより後に実行されるっぽいのでDOMContentLoadedは不要
-
+	// DOMContentLoadedより後に実行される
 
 	class SeesaaWikiDocumentSymbolProvider {
 		constructor(monaco) {
@@ -132,6 +131,11 @@
 
 	if (pageType == WikiPageType.EDIT) {
 		/* ********************************************************************************
+			Replace with Monaco Editor
+		/* ******************************************************************************** */
+		initMonacoEditor();
+
+		/* ********************************************************************************
 			Keep partial edit on login
 		/* ******************************************************************************** */
 		const login = document.getElementsByClassName("login");
@@ -164,12 +168,11 @@
 			}
 		});
 
+		/* ********************************************************************************
+			Adjust editor height
+		/* ******************************************************************************** */
 		addCSS(`
-			/*  Notes:
-				- #content : editor window
-				- .user-area : preview-window
-			*/
-			#content, .user-area {
+			#content, .user-area { /* editor window, preview-window */
 				height: max(calc(100vh - 800px), 500px) !important;
 			}
 
@@ -196,461 +199,12 @@
 			*/
 		`);
 
-		/* ********************************************************************************
-			Replace with Monaco Editor
-		/* ******************************************************************************** */
-
-		function replaceTextareaWithMonaco(_w=window, value="") {
-			_w.monacoEditor = _w.monaco.editor.create(_w.document.getElementById('monaco-editor-container'), {
-                value: value,
-                language: 'seesaawiki',
-                theme: 'seesaawikiTheme',
-				wordWrap: "on",
-                // minimap: { enabled: false },
-                automaticLayout: true,
-				bracketPairColorization: { enabled: true },
-				renderLineHighlight: "all",
-				unicodeHighlight: {
-					ambiguousCharacters: true,
-					invisibleCharacters: false,
-					nonBasicASCII: false
-				}
-            });
-
-			// カスタムキーバインディングの設定
-			_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyB, () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "''", "''");
-			});
-
-			_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyI, () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "'''", "'''");
-			});
-
-			_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyU, () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "%%%", "%%%");
-			});
-
-			_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyD, () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "%%", "%%");
-			});
-
-			_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyK, () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "[[", "]]");
-			});
-
-
-			// 既存のボタンの機能を実装
-			const parentWindow = window.parent;
-			const parentDocument = window.parent.document;
-			const closeItemSearch = () => parentWindow.editor.item_search.hide(parentWindow.editor.item_search);;
-
-			// Undo
-			parentDocument.getElementsByClassName('bt-undo')[0].addEventListener('click', () => {
-				_w.monacoEditor.trigger('source', 'undo');
-			});
-
-			// Redo
-			parentDocument.getElementsByClassName('bt-redo')[0].addEventListener('click', () => {
-				_w.monacoEditor.trigger('source', 'redo');
-			});
-
-			// const fontSizeForm = parentDocument.querySelector('#font_size_box > div.itemsearch_footer > div > div > form');
-			// if(fontSizeForm){
-			// 	fontSizeForm.removeAttribute('onsubmit');
-			// 	fontSizeForm.addEventListener('submit', (e) => {
-			// 		e.preventDefault();
-			// 		const fontSize = fontSizeForm.fontSizeText.value;
-			// 		if(fontSize.match(/\d+/)){
-			// 			wrapSelectedText(_w.monaco, _w.monacoEditor, "&size(" + fontSize + "){", "}");
-			// 			closeItemSearch();
-			// 		} else {
-
-			// 		}
-			// 	});
-			// }
-
-			// Bold
-			parentDocument.getElementById('bold').addEventListener('click', () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "''", "''");
-			});
-
-			// Italic
-			parentDocument.getElementById('italic').addEventListener('click', () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "'''", "'''");
-			});
-
-			// Underline
-			parentDocument.getElementById('underline').addEventListener('click', () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "%%%", "%%%");
-			});
-
-			// List
-			parentDocument.getElementById('ul').addEventListener('click', () => {
-				insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "-", maxLevel=3);
-			});
-
-			// Ordered list
-			parentDocument.getElementById('ol').addEventListener('click', () => {
-				insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "+", maxLevel=3);
-			});
-
-			// Heading
-			parentDocument.getElementById('h2').addEventListener('click', () => {
-				insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "+", maxLevel=3);
-			});
-
-			// Strike
-			parentDocument.getElementById('strike').addEventListener('click', () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "%%", "%%");
-			});
-
-			// Folding (closed)
-			parentDocument.getElementById('toggle_open').addEventListener('click', () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "[+]\n", "\n[END]");
-			});
-
-			// Folding (opened)
-			parentDocument.getElementById('toggle_close').addEventListener('click', () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "[-]\n", "\n[END]");
-			});
-
-			// Quote
-			parentDocument.getElementById('blockquote').addEventListener('click', () => {
-				insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, ">", maxLevel=1);
-			});
-
-
-			// Annotation
-			parentDocument.getElementById('annotation').addEventListener('click', () => {
-				wrapSelectedText(_w.monaco, _w.monacoEditor, "((", "))");
-			});
-		}
-
-		// 選択されたテキストを指定の文字列で囲む関数
-		function wrapSelectedText(monaco, editor, prefix, suffix) {
-			const selection = editor.getSelection();
-			const selectedText = editor.getModel().getValueInRange(selection);
-
-			if (selectedText) {
-				if(selectedText.startsWith(prefix) && selectedText.endsWith(suffix)){
-					editor.executeEdits('', [{
-						range: selection,
-						text: selectedText.slice(prefix.length, selectedText.length-suffix.length),
-					}]);
-				} else {
-					editor.executeEdits('', [{
-						range: selection,
-						text: prefix + selectedText + suffix,
-					}]);
-				}
-			} else {
-				const position = editor.getPosition();
-				editor.executeEdits('', [{
-					range: new monaco.Range(
-						position.lineNumber,
-						position.column,
-						position.lineNumber,
-						position.column
-					),
-					text: prefix + suffix,
-				}]);
-				// カーソルを suffix の前に移動
-				editor.setPosition({
-					lineNumber: position.lineNumber,
-					column: position.column + prefix.length
-				});
-			}
-		}
-
-		// 行の先頭に文字列を挿入する関数
-		function insertAtBeginningOfLine(monaco, editor, prefix, maxLevel=1) {
-			const selection = editor.getSelection();
-			const position = selection.getStartPosition();
-			const line = editor.getModel().getLineContent(position.lineNumber);
-			const regex = new RegExp(`^\\${prefix}{0,${maxLevel}}`);
-			const currentLevel = line.match(regex)[0].length;
-			if(currentLevel < maxLevel){
-				editor.executeEdits('', [{
-					range: new monaco.Range(
-						position.lineNumber,
-						1,
-						position.lineNumber,
-						1
-					),
-					text: prefix,
-				}]);
-			}
-		}
-
-		// メイン処理
-		async function initMonacoEditor() {
-
-			const textarea = document.getElementById("content");
-			if (!textarea) return;
-			textarea.style.display = "none";
-			textarea.readOnly = true;
-
-			const iframe = document.createElement('iframe');
-			iframe.style.width = '100%';
-			iframe.style.height = 'max(calc(100vh - 500px), 500px)';
-
-			// Maximize editor
-			document.getElementById('wide_area_button').addEventListener('click', () => {
-				if(editor.wide_area_mode.is_wide){
-					iframe.style.height = 'max(calc(100vh - 500px), 500px)';
-				} else {
-					iframe.style.height = 'max(calc(100vh - 150px), 500px)';
-				}
-			})
-
-			iframe.style.border = 'none';
-			textarea.parentNode.insertBefore(iframe, textarea);
-			textarea.style.display = 'none';
-
-			const iframeWindow = iframe.contentWindow;
-			const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-
-			iframeDocument.open();
-			iframeDocument.write(`
-				<!DOCTYPE html>
-				<html lang="ja">
-				<head>
-					<meta charset="UTF-8">
-					<meta name="viewport" content="width=device-width, initial-scale=1.0">
-					<title>Seesaa Wiki Enhancer</title>
-					<style>
-						body, html {
-							margin: 0;
-							padding: 0;
-							height: 100%;
-							overflow: hidden;
-							background-color: #1e1e1e;
-							color: #d4d4d4;
-							font-family: Consolas, 'Courier New', monospace;
-							font-size: 14px;
-						}
-						#container {
-							display: flex;
-							height: 100%;
-						}
-						#outline-container {
-							width: 250px;
-							min-width: 250px;
-							height: 100%;
-							overflow-y: auto;
-							border-right: 1px solid #333;
-							box-sizing: border-box;
-							background-color: #252526;
-							display: flex;
-							flex-direction: column;
-						}
-						#outline-label {
-							padding: 10px 10px 5px;
-							font-weight: bold;
-							border-bottom: 1px solid #333;
-							background-color: #2d2d2d;
-							font-size: 14px;
-						}
-						#outline-content {
-							flex-grow: 1;
-							overflow-y: auto;
-							padding: 5px 10px 10px;
-						}
-						#monaco-editor-container {
-							flex-grow: 1;
-							height: 100%;
-							min-width: 0;
-						}
-						.monaco-editor .current-line {
-							border: 2px solid #1073cfff !important;
-							background-color: #1073cf50 !important;
-						}
-						.outline-item {
-							cursor: pointer;
-							padding: 4px 8px 4px 10px;
-							border: 1px solid transparent;
-							border-radius: 3px;
-							position: relative;
-						}
-						.outline-item:hover {
-							border-color: #007acc;
-						}
-						.outline-item.active {
-							border-color: #007acc;
-							background-color: #094771;
-						}
-						.outline-children {
-							padding-left: 10px;
-							border-left: 1px solid #808080;
-							margin-left: 20px;
-						}
-						/* Add a custom scrollbar for the outline view */
-						#outline-content::-webkit-scrollbar {
-							width: 8px;
-						}
-						#outline-content::-webkit-scrollbar-track {
-							background: #1e1e1e;
-						}
-						#outline-content::-webkit-scrollbar-thumb {
-							background-color: #424242;
-							border-radius: 4px;
-						}
-						#outline-content::-webkit-scrollbar-thumb:hover {
-							background-color: #4f4f4f;
-						}
-                </style>
-				</head>
-				<body>
-					<div id="container">
-						<div id="outline-container">
-							<div id="outline-label">OUTLINE</div>
-							<div id="outline-content"></div>
-						</div>
-						<div id="monaco-editor-container"></div>
-					</div>
-					<script>
-						(async () => {
-							await (${loadMonacoEditor.toString()})();
-							window.monaco = monaco;
-
-							${SeesaaWikiDocumentSymbolProvider.toString()}
-
-							(${registerSeesaaWikiLanguage.toString()})();
-
-							${wrapSelectedText.toString()}
-							${insertAtBeginningOfLine.toString()}
-
-							(${replaceTextareaWithMonaco.toString()})(window, \`${textarea.value}\`);
-
-							window.parent.postMessage('monacoReady', '*');
-						})();
-					</script>
-				</body>
-				</html>
-			`);
-			iframeDocument.close();
-
-			// Wait for Monaco init
-			await new Promise((resolve) => {
-				const checkMonaco = () => {
-					if (iframeWindow.monaco) {
-						resolve();
-					} else {
-						setTimeout(checkMonaco, 100);
-					}
-				};
-
-				// Listen for the 'monacoReady' message
-				window.addEventListener('message', (event) => {
-					if (event.data === 'monacoReady') {
-						resolve();
-					}
-				}, { once: true });
-
-				checkMonaco();
-			});
-
-			const monaco = iframeWindow.monaco;
-			const monacoEditor = iframeWindow.monacoEditor;
-
-			const symbolProvider = new SeesaaWikiDocumentSymbolProvider(monaco);
-
-			function updateOutlineView(editor) {
-				const model = editor.getModel();
-
-				// CancellationTokenを使用せずにシンボルを取得
-				let symbols;
-				try {
-					symbols = symbolProvider.provideDocumentSymbols(model);
-				} catch (error) {
-					console.error('Error retrieving document symbols:', error);
-					return;
-				}
-
-				// シンボルが配列でない場合（おそらくPromise）、then メソッドを使用
-				if (symbols && typeof symbols.then === 'function') {
-					symbols.then(renderSymbols).catch(error => {
-						console.error('Error retrieving document symbols:', error);
-					});
-				} else {
-					renderSymbols(symbols, editor);
-				}
-			}
-
-			function renderSymbols(symbols, editor) {
-				const outlineContent = iframeDocument.getElementById('outline-content');
-				outlineContent.innerHTML = '';
-
-				function renderSymbolsRecursive(symbols, container) {
-					symbols.forEach(symbol => {
-						const item = iframeDocument.createElement('div');
-						item.className = 'outline-item';
-						item.textContent = symbol.name;
-						item.onclick = (e) => {
-							e.stopPropagation();
-							// Remove 'active' class from all items
-							outlineContent.querySelectorAll('.outline-item').forEach(el => el.classList.remove('active'));
-							// Add 'active' class to clicked item
-							item.classList.add('active');
-							editor.revealPositionInCenter({ lineNumber: symbol.range.startLineNumber, column: symbol.range.startColumn });
-							editor.setPosition({ lineNumber: symbol.range.startLineNumber, column: symbol.range.startColumn });
-							editor.focus();
-						};
-						container.appendChild(item);
-
-						if (symbol.children && symbol.children.length > 0) {
-							const childrenContainer = iframeDocument.createElement('div');
-							childrenContainer.className = 'outline-children';
-							renderSymbolsRecursive(symbol.children, childrenContainer);
-							container.appendChild(childrenContainer);
-						}
-					});
-				}
-
-				renderSymbolsRecursive(symbols, outlineContent);
-			}
-
-			monacoEditor.onDidChangeModelContent(() => {
-				updateOutlineView(monacoEditor);
-			});
-
-			// 初期アウトラインビューの更新
-			updateOutlineView(monacoEditor);
-
-			// Override form submission
-			const form = textarea.closest('form');
-			form.addEventListener('submit', e => {
-				e.preventDefault();
-				textarea.value = iframeWindow.monacoEditor.getModel().getValue();
-				form.submit();
-			});
-
-			// Override preview button
-			document.querySelectorAll('.preview > a').forEach((preview) => {
-				preview.addEventListener('click', e => {
-					e.preventDefault();
-					textarea.value = iframeWindow.monacoEditor.getModel().getValue();
-					if (window.editor && window.editor.tools && window.editor.tools.toPreview) {
-						window.editor.tools.toPreview();
-					} else {
-						console.warn('editor.tools.toPreview is not available');
-						// Fallback: submit the form
-						form.submit();
-					}
-				});
-			});
-		}
-
-		initMonacoEditor();
-
 	} else if (pageType == WikiPageType.DIFF) {
 		/* ********************************************************************************
 			Replace with Monaco Diff Editor
 		/* ******************************************************************************** */
 		initMonacoDiffEditor();
 	}
-
-
 
 	function addCSS(css){
 		const style = document.createElement("style");
@@ -939,6 +493,448 @@
 		});
 
 		monaco.languages.registerDocumentSymbolProvider('seesaawiki', new SeesaaWikiDocumentSymbolProvider(monaco));
+	}
+
+
+	function replaceTextareaWithMonaco(_w=window, value="") {
+		_w.monacoEditor = _w.monaco.editor.create(_w.document.getElementById('monaco-editor-container'), {
+			value: value,
+			language: 'seesaawiki',
+			theme: 'seesaawikiTheme',
+			wordWrap: "on",
+			// minimap: { enabled: false },
+			automaticLayout: true,
+			bracketPairColorization: { enabled: true },
+			renderLineHighlight: "all",
+			unicodeHighlight: {
+				ambiguousCharacters: true,
+				invisibleCharacters: false,
+				nonBasicASCII: false
+			}
+		});
+
+		// カスタムキーバインディングの設定
+		_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyB, () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "''", "''");
+		});
+
+		_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyI, () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "'''", "'''");
+		});
+
+		_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyU, () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "%%%", "%%%");
+		});
+
+		_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyD, () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "%%", "%%");
+		});
+
+		_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyK, () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "[[", "]]");
+		});
+
+
+		// 既存のボタンの機能を実装
+		const parentWindow = window.parent;
+		const parentDocument = window.parent.document;
+		const closeItemSearch = () => parentWindow.editor.item_search.hide(parentWindow.editor.item_search);;
+
+		// Undo
+		parentDocument.getElementsByClassName('bt-undo')[0].addEventListener('click', () => {
+			_w.monacoEditor.trigger('source', 'undo');
+		});
+
+		// Redo
+		parentDocument.getElementsByClassName('bt-redo')[0].addEventListener('click', () => {
+			_w.monacoEditor.trigger('source', 'redo');
+		});
+
+		// const fontSizeForm = parentDocument.querySelector('#font_size_box > div.itemsearch_footer > div > div > form');
+		// if(fontSizeForm){
+		// 	fontSizeForm.removeAttribute('onsubmit');
+		// 	fontSizeForm.addEventListener('submit', (e) => {
+		// 		e.preventDefault();
+		// 		const fontSize = fontSizeForm.fontSizeText.value;
+		// 		if(fontSize.match(/\d+/)){
+		// 			wrapSelectedText(_w.monaco, _w.monacoEditor, "&size(" + fontSize + "){", "}");
+		// 			closeItemSearch();
+		// 		} else {
+
+		// 		}
+		// 	});
+		// }
+
+		// Bold
+		parentDocument.getElementById('bold').addEventListener('click', () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "''", "''");
+		});
+
+		// Italic
+		parentDocument.getElementById('italic').addEventListener('click', () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "'''", "'''");
+		});
+
+		// Underline
+		parentDocument.getElementById('underline').addEventListener('click', () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "%%%", "%%%");
+		});
+
+		// List
+		parentDocument.getElementById('ul').addEventListener('click', () => {
+			insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "-", maxLevel=3);
+		});
+
+		// Ordered list
+		parentDocument.getElementById('ol').addEventListener('click', () => {
+			insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "+", maxLevel=3);
+		});
+
+		// Heading
+		parentDocument.getElementById('h2').addEventListener('click', () => {
+			insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "+", maxLevel=3);
+		});
+
+		// Strike
+		parentDocument.getElementById('strike').addEventListener('click', () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "%%", "%%");
+		});
+
+		// Folding (closed)
+		parentDocument.getElementById('toggle_open').addEventListener('click', () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "[+]\n", "\n[END]");
+		});
+
+		// Folding (opened)
+		parentDocument.getElementById('toggle_close').addEventListener('click', () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "[-]\n", "\n[END]");
+		});
+
+		// Quote
+		parentDocument.getElementById('blockquote').addEventListener('click', () => {
+			insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, ">", maxLevel=1);
+		});
+
+
+		// Annotation
+		parentDocument.getElementById('annotation').addEventListener('click', () => {
+			wrapSelectedText(_w.monaco, _w.monacoEditor, "((", "))");
+		});
+	}
+
+	// 選択されたテキストを指定の文字列で囲む関数
+	function wrapSelectedText(monaco, editor, prefix, suffix) {
+		const selection = editor.getSelection();
+		const selectedText = editor.getModel().getValueInRange(selection);
+
+		if (selectedText) {
+			if(selectedText.startsWith(prefix) && selectedText.endsWith(suffix)){
+				editor.executeEdits('', [{
+					range: selection,
+					text: selectedText.slice(prefix.length, selectedText.length-suffix.length),
+				}]);
+			} else {
+				editor.executeEdits('', [{
+					range: selection,
+					text: prefix + selectedText + suffix,
+				}]);
+			}
+		} else {
+			const position = editor.getPosition();
+			editor.executeEdits('', [{
+				range: new monaco.Range(
+					position.lineNumber,
+					position.column,
+					position.lineNumber,
+					position.column
+				),
+				text: prefix + suffix,
+			}]);
+			// カーソルを suffix の前に移動
+			editor.setPosition({
+				lineNumber: position.lineNumber,
+				column: position.column + prefix.length
+			});
+		}
+	}
+
+	// 行の先頭に文字列を挿入する関数
+	function insertAtBeginningOfLine(monaco, editor, prefix, maxLevel=1) {
+		const selection = editor.getSelection();
+		const position = selection.getStartPosition();
+		const line = editor.getModel().getLineContent(position.lineNumber);
+		const regex = new RegExp(`^\\${prefix}{0,${maxLevel}}`);
+		const currentLevel = line.match(regex)[0].length;
+		if(currentLevel < maxLevel){
+			editor.executeEdits('', [{
+				range: new monaco.Range(
+					position.lineNumber,
+					1,
+					position.lineNumber,
+					1
+				),
+				text: prefix,
+			}]);
+		}
+	}
+
+	// メイン処理
+	async function initMonacoEditor() {
+
+		const textarea = document.getElementById("content");
+		if (!textarea) return;
+		textarea.style.display = "none";
+		textarea.readOnly = true;
+
+		const iframe = document.createElement('iframe');
+		iframe.style.width = '100%';
+		iframe.style.height = 'max(calc(100vh - 500px), 500px)';
+
+		// Maximize editor
+		document.getElementById('wide_area_button').addEventListener('click', () => {
+			if(editor.wide_area_mode.is_wide){
+				iframe.style.height = 'max(calc(100vh - 500px), 500px)';
+			} else {
+				iframe.style.height = 'max(calc(100vh - 150px), 500px)';
+			}
+		})
+
+		iframe.style.border = 'none';
+		textarea.parentNode.insertBefore(iframe, textarea);
+		textarea.style.display = 'none';
+
+		const iframeWindow = iframe.contentWindow;
+		const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+
+		iframeDocument.open();
+		iframeDocument.write(`
+			<!DOCTYPE html>
+			<html lang="ja">
+			<head>
+				<meta charset="UTF-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<title>Seesaa Wiki Enhancer</title>
+				<style>
+					body, html {
+						margin: 0;
+						padding: 0;
+						height: 100%;
+						overflow: hidden;
+						background-color: #1e1e1e;
+						color: #d4d4d4;
+						font-family: Consolas, 'Courier New', monospace;
+						font-size: 14px;
+					}
+					#container {
+						display: flex;
+						height: 100%;
+					}
+					#outline-container {
+						width: 250px;
+						min-width: 250px;
+						height: 100%;
+						overflow-y: auto;
+						border-right: 1px solid #333;
+						box-sizing: border-box;
+						background-color: #252526;
+						display: flex;
+						flex-direction: column;
+					}
+					#outline-label {
+						padding: 10px 10px 5px;
+						font-weight: bold;
+						border-bottom: 1px solid #333;
+						background-color: #2d2d2d;
+						font-size: 14px;
+					}
+					#outline-content {
+						flex-grow: 1;
+						overflow-y: auto;
+						padding: 5px 10px 10px;
+					}
+					#monaco-editor-container {
+						flex-grow: 1;
+						height: 100%;
+						min-width: 0;
+					}
+					.monaco-editor .current-line {
+						border: 2px solid #1073cfff !important;
+						background-color: #1073cf50 !important;
+					}
+					.outline-item {
+						cursor: pointer;
+						padding: 4px 8px 4px 10px;
+						border: 1px solid transparent;
+						border-radius: 3px;
+						position: relative;
+					}
+					.outline-item:hover {
+						border-color: #007acc;
+					}
+					.outline-item.active {
+						border-color: #007acc;
+						background-color: #094771;
+					}
+					.outline-children {
+						padding-left: 10px;
+						border-left: 1px solid #808080;
+						margin-left: 20px;
+					}
+					/* Add a custom scrollbar for the outline view */
+					#outline-content::-webkit-scrollbar {
+						width: 8px;
+					}
+					#outline-content::-webkit-scrollbar-track {
+						background: #1e1e1e;
+					}
+					#outline-content::-webkit-scrollbar-thumb {
+						background-color: #424242;
+						border-radius: 4px;
+					}
+					#outline-content::-webkit-scrollbar-thumb:hover {
+						background-color: #4f4f4f;
+					}
+			</style>
+			</head>
+			<body>
+				<div id="container">
+					<div id="outline-container">
+						<div id="outline-label">OUTLINE</div>
+						<div id="outline-content"></div>
+					</div>
+					<div id="monaco-editor-container"></div>
+				</div>
+				<script>
+					(async () => {
+						await (${loadMonacoEditor.toString()})();
+						window.monaco = monaco;
+
+						${SeesaaWikiDocumentSymbolProvider.toString()}
+
+						(${registerSeesaaWikiLanguage.toString()})();
+
+						${wrapSelectedText.toString()}
+						${insertAtBeginningOfLine.toString()}
+
+						(${replaceTextareaWithMonaco.toString()})(window, \`${textarea.value}\`);
+
+						window.parent.postMessage('monacoReady', '*');
+					})();
+				</script>
+			</body>
+			</html>
+		`);
+		iframeDocument.close();
+
+		// Wait for Monaco init
+		await new Promise((resolve) => {
+			const checkMonaco = () => {
+				if (iframeWindow.monaco) {
+					resolve();
+				} else {
+					setTimeout(checkMonaco, 100);
+				}
+			};
+
+			// Listen for the 'monacoReady' message
+			window.addEventListener('message', (event) => {
+				if (event.data === 'monacoReady') {
+					resolve();
+				}
+			}, { once: true });
+
+			checkMonaco();
+		});
+
+		const monaco = iframeWindow.monaco;
+		const monacoEditor = iframeWindow.monacoEditor;
+
+		const symbolProvider = new SeesaaWikiDocumentSymbolProvider(monaco);
+
+		function updateOutlineView(editor) {
+			const model = editor.getModel();
+
+			// CancellationTokenを使用せずにシンボルを取得
+			let symbols;
+			try {
+				symbols = symbolProvider.provideDocumentSymbols(model);
+			} catch (error) {
+				console.error('Error retrieving document symbols:', error);
+				return;
+			}
+
+			// シンボルが配列でない場合（おそらくPromise）、then メソッドを使用
+			if (symbols && typeof symbols.then === 'function') {
+				symbols.then(renderSymbols).catch(error => {
+					console.error('Error retrieving document symbols:', error);
+				});
+			} else {
+				renderSymbols(symbols, editor);
+			}
+		}
+
+		function renderSymbols(symbols, editor) {
+			const outlineContent = iframeDocument.getElementById('outline-content');
+			outlineContent.innerHTML = '';
+
+			function renderSymbolsRecursive(symbols, container) {
+				symbols.forEach(symbol => {
+					const item = iframeDocument.createElement('div');
+					item.className = 'outline-item';
+					item.textContent = symbol.name;
+					item.onclick = (e) => {
+						e.stopPropagation();
+						// Remove 'active' class from all items
+						outlineContent.querySelectorAll('.outline-item').forEach(el => el.classList.remove('active'));
+						// Add 'active' class to clicked item
+						item.classList.add('active');
+						editor.revealPositionInCenter({ lineNumber: symbol.range.startLineNumber, column: symbol.range.startColumn });
+						editor.setPosition({ lineNumber: symbol.range.startLineNumber, column: symbol.range.startColumn });
+						editor.focus();
+					};
+					container.appendChild(item);
+
+					if (symbol.children && symbol.children.length > 0) {
+						const childrenContainer = iframeDocument.createElement('div');
+						childrenContainer.className = 'outline-children';
+						renderSymbolsRecursive(symbol.children, childrenContainer);
+						container.appendChild(childrenContainer);
+					}
+				});
+			}
+
+			renderSymbolsRecursive(symbols, outlineContent);
+		}
+
+		monacoEditor.onDidChangeModelContent(() => {
+			updateOutlineView(monacoEditor);
+		});
+
+		// 初期アウトラインビューの更新
+		updateOutlineView(monacoEditor);
+
+		// Override form submission
+		const form = textarea.closest('form');
+		form.addEventListener('submit', e => {
+			e.preventDefault();
+			textarea.value = iframeWindow.monacoEditor.getModel().getValue();
+			form.submit();
+		});
+
+		// Override preview button
+		document.querySelectorAll('.preview > a').forEach((preview) => {
+			preview.addEventListener('click', e => {
+				e.preventDefault();
+				textarea.value = iframeWindow.monacoEditor.getModel().getValue();
+				if (window.editor && window.editor.tools && window.editor.tools.toPreview) {
+					window.editor.tools.toPreview();
+				} else {
+					console.warn('editor.tools.toPreview is not available');
+					// Fallback: submit the form
+					form.submit();
+				}
+			});
+		});
 	}
 
 	function extractDiffContent() {
