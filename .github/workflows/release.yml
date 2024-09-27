@@ -1,0 +1,60 @@
+name: UserScript Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Update version and extract meta information
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        # Update version in user.js
+        sed -i "s/@version .*/@version ${VERSION}/" your-userscript.user.js
+
+        # Extract meta information from user.js to meta.js
+        awk '/==UserScript==/{flag=1; print; next} /==\/UserScript==/{flag=0; print; exit} flag' your-userscript.user.js > meta.js
+
+    - name: Commit changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add seesaawiki-enhancer.user.js seesaawiki-enhancer.meta.js
+        git commit -m "Update version to ${GITHUB_REF#refs/tags/v} and sync meta.js"
+        git push
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Upload UserScript
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./seesaawiki-enhancer.user.js
+        asset_name: seesaawiki-enhancer.user.js
+        asset_content_type: application/javascript
+
+    - name: Upload meta.js
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./seesaawiki-enhancer.meta.js
+        asset_name: seesaawiki-enhancer.meta.js
+        asset_content_type: application/javascript
