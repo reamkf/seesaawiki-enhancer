@@ -31,7 +31,6 @@ jobs:
         git config --local user.name "GitHub Action"
         git add seesaawiki-enhancer.user.js seesaawiki-enhancer.meta.js
         git commit -m "Update version to ${GITHUB_REF#refs/tags/v} and sync meta.js"
-        git push
         git push origin HEAD:refs/heads/main
 
     - name: Create Release
