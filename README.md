@@ -25,13 +25,17 @@
 - その他
   - 編集画面でログインした際、部分編集が保たれるようにします。
 
-## 使用方法
-[Tampermonkey](https://www.tampermonkey.net)に、Releasesの最新の(`seesaawiki-enhancer.user.js`)をインストールしてください。
-
 ## 使用環境
 PC版のみ対応します。モバイル版では動作しません。
 
 ブラウザはChromium系(Google Chrome, Microsoft Edge等)を推奨します。それ以外のブラウザでの動作は確認していません。
+
+## 使用方法
+1. [Tampermonkey](https://www.tampermonkey.net)をインストールする
+2. [最新のRelease](https://github.com/reamkf/seesaawiki-enhancer/releases/latest)の`seesaawiki-enhancer.user.js`([直リンク](https://github.com/reamkf/seesaawiki-enhancer/releases/latest/download/seesaawiki-enhancer.user.js))をクリックする
+3. Tampermonkeyのインストール画面が表示されるので、インストールをクリックする
+
+※ブラウザの開発者モードを有効化する必要がある可能性があります。詳しくは[こちら](https://www.tampermonkey.net/faq.php?locale=ja#Q209)を参照
 
 ## 更新方法
 Tampermonkeyの更新機能に対応しているため、Tampermonkeyの自動更新機能を用いる(推奨)か、スクリプト設定画面から更新を行ってください。
@@ -39,6 +43,7 @@ Tampermonkeyの更新機能に対応しているため、Tampermonkeyの自動�
 ## 今後実装したい機能
 - **元のエディターの画像ピッカーに対応**
 - Snippet機能
+- 画像コピペ機能
 - Completion機能
 - ページ参照(`[[ページ名]]`)やアンカー(`[[#anchor]]`)をCtrl+クリックしてジャンプする機能
 - 画像プレビュー機能
