@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Seesaa Wiki Enhancer
-// @version 0.0.1-test5
+// @version      0.0.1
 // @author       @_ream_kf
 // @namespace    https://seesaawiki.jp/
 // @match        https://seesaawiki.jp/*
