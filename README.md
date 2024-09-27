@@ -57,3 +57,4 @@ Tampermonkeyの更新機能に対応しているため、Tampermonkeyの自動�
 ## 実装予定のない機能
 - Folding Range
   - 実際あんまり使わない割に重くなる気がするので
+- ページをまたいだ連携
