@@ -506,8 +506,8 @@
 			Replace with Monaco Editor
 		/* ******************************************************************************** */
 
-		function replaceTextareaWithMonaco(_window=window, value="") {
-			_window.monacoEditor = _window.monaco.editor.create(_window.document.getElementById('monaco-editor-container'), {
+		function replaceTextareaWithMonaco(_w=window, value="") {
+			_w.monacoEditor = _w.monaco.editor.create(_w.document.getElementById('monaco-editor-container'), {
                 value: value,
                 language: 'seesaawiki',
                 theme: 'seesaawikiTheme',
@@ -516,27 +516,32 @@
                 automaticLayout: true,
 				bracketPairColorization: { enabled: true },
 				renderLineHighlight: "all",
+				unicodeHighlight: {
+					ambiguousCharacters: true,
+					invisibleCharacters: false,
+					nonBasicASCII: false
+				}
             });
 
 			// カスタムキーバインディングの設定
-			_window.monacoEditor.addCommand(_window.monaco.KeyMod.CtrlCmd | _window.monaco.KeyCode.KeyB, () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "''", "''");
+			_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyB, () => {
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "''", "''");
 			});
 
-			_window.monacoEditor.addCommand(_window.monaco.KeyMod.CtrlCmd | _window.monaco.KeyCode.KeyI, () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "'''", "'''");
+			_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyI, () => {
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "'''", "'''");
 			});
 
-			_window.monacoEditor.addCommand(_window.monaco.KeyMod.CtrlCmd | _window.monaco.KeyCode.KeyU, () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "%%%", "%%%");
+			_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyU, () => {
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "%%%", "%%%");
 			});
 
-			_window.monacoEditor.addCommand(_window.monaco.KeyMod.CtrlCmd | _window.monaco.KeyCode.KeyD, () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "%%", "%%");
+			_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyD, () => {
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "%%", "%%");
 			});
 
-			_window.monacoEditor.addCommand(_window.monaco.KeyMod.CtrlCmd | _window.monaco.KeyCode.KeyK, () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "[[", "]]");
+			_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyK, () => {
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "[[", "]]");
 			});
 
 
@@ -547,12 +552,12 @@
 
 			// Undo
 			parentDocument.getElementsByClassName('bt-undo')[0].addEventListener('click', () => {
-				_window.monacoEditor.trigger('source', 'undo');
+				_w.monacoEditor.trigger('source', 'undo');
 			});
 
 			// Redo
 			parentDocument.getElementsByClassName('bt-redo')[0].addEventListener('click', () => {
-				_window.monacoEditor.trigger('source', 'redo');
+				_w.monacoEditor.trigger('source', 'redo');
 			});
 
 			// const fontSizeForm = parentDocument.querySelector('#font_size_box > div.itemsearch_footer > div > div > form');
@@ -562,7 +567,7 @@
 			// 		e.preventDefault();
 			// 		const fontSize = fontSizeForm.fontSizeText.value;
 			// 		if(fontSize.match(/\d+/)){
-			// 			wrapSelectedText(_window.monaco, _window.monacoEditor, "&size(" + fontSize + "){", "}");
+			// 			wrapSelectedText(_w.monaco, _w.monacoEditor, "&size(" + fontSize + "){", "}");
 			// 			closeItemSearch();
 			// 		} else {
 
@@ -572,58 +577,58 @@
 
 			// Bold
 			parentDocument.getElementById('bold').addEventListener('click', () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "''", "''");
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "''", "''");
 			});
 
 			// Italic
 			parentDocument.getElementById('italic').addEventListener('click', () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "'''", "'''");
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "'''", "'''");
 			});
 
 			// Underline
 			parentDocument.getElementById('underline').addEventListener('click', () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "%%%", "%%%");
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "%%%", "%%%");
 			});
 
 			// List
 			parentDocument.getElementById('ul').addEventListener('click', () => {
-				insertAtBeginningOfLine(_window.monaco, _window.monacoEditor, "-", maxLevel=3);
+				insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "-", maxLevel=3);
 			});
 
 			// Ordered list
 			parentDocument.getElementById('ol').addEventListener('click', () => {
-				insertAtBeginningOfLine(_window.monaco, _window.monacoEditor, "+", maxLevel=3);
+				insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "+", maxLevel=3);
 			});
 
 			// Heading
 			parentDocument.getElementById('h2').addEventListener('click', () => {
-				insertAtBeginningOfLine(_window.monaco, _window.monacoEditor, "+", maxLevel=3);
+				insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "+", maxLevel=3);
 			});
 
 			// Strike
 			parentDocument.getElementById('strike').addEventListener('click', () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "%%", "%%");
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "%%", "%%");
 			});
 
 			// Folding (closed)
 			parentDocument.getElementById('toggle_open').addEventListener('click', () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "[+]\n", "\n[END]");
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "[+]\n", "\n[END]");
 			});
 
 			// Folding (opened)
 			parentDocument.getElementById('toggle_close').addEventListener('click', () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "[-]\n", "\n[END]");
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "[-]\n", "\n[END]");
 			});
 
 			// Quote
 			parentDocument.getElementById('blockquote').addEventListener('click', () => {
-				insertAtBeginningOfLine(_window.monaco, _window.monacoEditor, ">", maxLevel=1);
+				insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, ">", maxLevel=1);
 			});
 
 
 			// Annotation
 			parentDocument.getElementById('annotation').addEventListener('click', () => {
-				wrapSelectedText(_window.monaco, _window.monacoEditor, "((", "))");
+				wrapSelectedText(_w.monaco, _w.monacoEditor, "((", "))");
 			});
 		}
 
@@ -1026,6 +1031,11 @@
 				theme: "seesaawikiTheme",
 				wordWrap: "on",
 				scrollBeyondLastLine: false,
+				unicodeHighlight: {
+					ambiguousCharacters: true,
+					invisibleCharacters: false,
+					nonBasicASCII: false
+				}
 			});
 
 			const originalModel = monaco.editor.createModel(oldContent, "seesaawiki");
