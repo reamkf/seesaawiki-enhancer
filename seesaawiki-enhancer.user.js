@@ -941,7 +941,11 @@
 		const diffBox = document.querySelector(".diff-box");
 		if (!diffBox) return null;
 
-		const lines = diffBox.innerHTML.split("\n");
+		let innerHTML = diffBox.innerHTML;
+		innerHTML = innerHTML.replace(/<br>/g, "");
+		innerHTML = decodeHTMLEntities(innerHTML);
+
+		const lines = innerHTML.split("\n");
 		let oldContent = "";
 		let newContent = "";
 		const changes = [];
@@ -967,11 +971,7 @@
 
 		for (const line of lines) {
 			if (line.includes('class="line-add"')) {
-				const cleanLine = decodeHTMLEntities(
-					line
-						.replace(/<span class="line-add">|<\/span>/g, "")
-						.replace(/<br>/g, "")
-				);
+				const cleanLine = line.replace(/<span class="line-add">|<\/span>/g, "");
 				newContent += cleanLine + "\n";
 				if (currentChangeType !== "add") {
 					pushChange();
@@ -980,11 +980,7 @@
 				}
 				newLineNumber++;
 			} else if (line.includes('class="line-delete"')) {
-				const cleanLine = decodeHTMLEntities(
-					line
-						.replace(/<span class="line-delete">|<\/span>/g, "")
-						.replace(/<br>/g, "")
-				);
+				const cleanLine = line.replace(/<span class="line-delete">|<\/span>/g, "");
 				oldContent += cleanLine + "\n";
 				if (currentChangeType !== "delete") {
 					pushChange();
@@ -993,9 +989,8 @@
 				}
 				oldLineNumber++;
 			} else {
-				const cleanLine = decodeHTMLEntities(line.replace(/<br>/g, ""));
-				oldContent += cleanLine + "\n";
-				newContent += cleanLine + "\n";
+				oldContent += line + "\n";
+				newContent += line + "\n";
 				pushChange();
 				oldLineNumber++;
 				newLineNumber++;
