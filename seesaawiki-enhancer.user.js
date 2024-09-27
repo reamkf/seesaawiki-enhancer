@@ -15,108 +15,6 @@
 (function () {
 	// DOMContentLoadedより後に実行されるっぽいのでDOMContentLoadedは不要
 
-	const WikiPageType = {
-		TOP: "TOP",
-		PAGE: "PAGE",
-		EDIT: "EDIT",
-		ATTACHMENT: "ATTACHMENT",
-		LIST: "LIST",
-		DIFF: "DIFF",
-		HISTORY: "HISTORY",
-		SEARCH: "SEARCH",
-	};
-
-	// URLからWikiPageTypeを判定する関数
-	function getWikiPageType(url) {
-		const parsedUrl = new URL(url);
-		const path = parsedUrl.pathname;
-		const searchParams = parsedUrl.searchParams;
-
-		if (path.includes("/d/")) {
-			return WikiPageType.PAGE;
-		} else if (path.includes("/l/")) {
-			return WikiPageType.LIST;
-		} else if (
-			path.includes("/e/add") ||
-			(path.includes("/e/edit") && searchParams.has("id"))
-		) {
-			return WikiPageType.EDIT;
-		} else if (path.includes("/e/attachment")) {
-			return WikiPageType.ATTACHMENT;
-		} else if (path.includes("/diff/")) {
-			return WikiPageType.DIFF;
-		} else if (path.includes("/hist/")) {
-			return WikiPageType.HISTORY;
-		} else if (path.includes("/search") && searchParams.has("keywords")) {
-			return WikiPageType.SEARCH;
-		} else if (path === "/" || path.endsWith("/")) {
-			return WikiPageType.PAGE;
-		}
-
-		return null; // 未知のURL形式の場合
-	}
-
-	const addCSS = (css) => {
-		const style = document.createElement("style");
-		style.innerHTML = css;
-		document.head.append(style);
-	};
-
-	function decodeHTMLEntities(text) {
-		const textarea = document.createElement("textarea");
-		textarea.innerHTML = text;
-		return textarea.value;
-	}
-
-	const _sleep = (time /* in millisec */) =>
-		new Promise((resolve) => setTimeout(resolve, time));
-	const sleep = async (time /* in millisec */) => await _sleep(time);
-
-	function addScript(src, innerHTML) {
-		const script = document.createElement("script");
-		if (script) script.src = src;
-		if (innerHTML) script.innerHTML = innerHTML;
-		document.head.appendChild(script);
-	}
-	// function loadMonacoEditor() {
-	//     return new Promise((resolve) => {
-	// 		const link = document.createElement('link');
-	// 		link.rel = 'stylesheet';
-	// 		link.setAttribute('data-name', 'vs/editor/editor.main');
-	// 		link.href = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/editor/editor.main.css';
-	// 		document.head.appendChild(link);
-
-	// 		addScript('', "var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.50.0/min/vs' } }")
-	//         addScript('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.51.0/min/vs/loader.js');
-	//         addScript('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.51.0/min/vs/editor/editor.main.nls.js');
-	// 		addScript('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.51.0/min/vs/editor/editor.main.js');
-
-	// 		setTimeout(() => {
-	// 			resolve();
-	// 		}, 2000);
-	//     });
-	// }
-	function loadMonacoEditor(ver="0.52.0") {
-		return new Promise((resolve) => {
-			const link = document.createElement("link");
-			link.rel = "stylesheet";
-			link.setAttribute("data-name", "vs/editor/editor.main");
-			link.href = `https://cdn.jsdelivr.net/npm/monaco-editor@${ver}/min/vs/editor/editor.main.css`;
-			document.head.appendChild(link);
-
-			const script = document.createElement("script");
-			script.src = `https://cdn.jsdelivr.net/npm/monaco-editor@${ver}/min/vs/loader.js`;
-			script.onload = () => {
-				require.config({
-					paths: {
-						vs: `https://cdn.jsdelivr.net/npm/monaco-editor@${ver}/min/vs`,
-					},
-				});
-				require(["vs/editor/editor.main"], resolve);
-			};
-			document.head.appendChild(script);
-		});
-	}
 
 	class SeesaaWikiDocumentSymbolProvider {
 		constructor(monaco) {
@@ -188,250 +86,46 @@
 		}
 	}
 
-	function registerSeesaaWikiLanguage() {
-		seesaaWikiLanguage = {
-			tokenizer: {
-				root: [
-				  [/^\/\/.*$/, 'comment'],
-				  [/^(\*)([^*].*)?$/, ['keyword', 'markup.heading.3']],
-				  [/^(\*{2})([^*].*)?$/, ['keyword', 'markup.heading.4']],
-				  [/^(\*{3})([^*].*)?$/, ['keyword', 'markup.heading.5']],
-				  [/(\[\[)([^>]*?)(>{0,3})([^>]*?)(#\w+)?(\]\])/, [
-					'keyword',
-					'markup.underline.link',
-					'keyword',
-					'markup.underline.link',
-					'support.variable',
-					'keyword'
-				  ]],
-				  [/^(\[)(\+|-)(\])(.*)$/, [
-					'keyword',
-					'keyword',
-					'keyword',
-					'markup.bold'
-				  ]],
-				  [/^(\[END\])/, 'keyword'],
-				  [/^(#)(contents)(?:(\()(1|2)(\)))?/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					'constant.numeric',
-					'keyword'
-				  ]],
-				  [/(~~)(~~~)*/, 'keyword.control'],
-				  [/^(=\|)(BOX|AA|AAS|CC|CPP|CS|CYC|JAVA|BSH|CSH|SH|CV|PY|PERL|PL|PM|RB|JS|HTML|XHTML|XML|XSL|LUA|ERLANG|GO|LISP|R|SCALA|SQL|SWIFT|TEX|YAML|AUTO|\(box=(?:textarea|div)\))?(\|)$/, [
-					'keyword',
-					'keyword',
-					'keyword'
-				  ]],
-				  [/^(\|\|=)$/, 'keyword'],
-				  [/(&)(fukidashi)(\()([^,)]*?)(?:(,)(s*)(right))?(\))(\{)([^}]*)(\})/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					'constant.other',
-					'keyword',
-					'keyword',
-					'keyword.control',
-					'keyword',
-					'keyword',
-					{ token: '', next: '@fukidashiContent' },
-					'keyword'
-				  ]],
-				  [/\w+@\w+\.\w+/, 'markup.underline.link'],
-				  [/^(\+{1,3})([^\+].*)?$/, ['keyword', '']],
-				  [/^(\-{1,3})([^\-].*)?$/, ['keyword', '']],
-				  [/(&|#)(ref|attach|attachref)(\()([^,)]*?)(?:(,\s*)(\d*%?)){0,2}(?:(,\s*)(left|right|no_link)){0,2}(\))(?:(\{)([^}]*?)(\}))?/, [
-					'keyword.control',
-					'support.variable',
-					'keyword.control',
-					'markup.underline.link.image',
-					'keyword.control',
-					'constant.numeric',
-					'keyword.control',
-					'keyword.control',
-					'keyword.control',
-					'keyword.control',
-					'',
-					'keyword.control'
-				  ]],
-				  [/^(----)$/, 'keyword.control'],
-				  [/(&)(aname)(\()([^\)]*)(\))/, [
-					'keyword.control',
-					'support.variable',
-					'keyword.control',
-					'constant.other',
-					'keyword.control'
-				  ]],
-				  [/&(\w+|#\d+|#x[\da-fA-F]+);/, 'constant.character.escape'],
-				  [/('')([^']*?)('')/, [
-					'keyword',
-					'markup.bold',
-					'keyword'
-				  ]],
-				  [/(''')([^']*?)(''')/, [
-					'keyword',
-					'markup.italic',
-					'keyword'
-				  ]],
-				  [/(%%%)([^%]*?)(%%%)/, [
-					'keyword',
-					'markup.underline',
-					'keyword'
-				  ]],
-				  [/(%%)([^%]*?)(%%)/, [
-					'keyword',
-					'markup.deleted',
-					'keyword'
-				  ]],
-				  [/(&)(size)(\()(\d+)(\))(\{)([^}]*)(\})/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					'constant.numeric',
-					'keyword',
-					'keyword',
-					{ token: '', next: '@sizeContent' },
-					'keyword'
-				  ]],
-				  [/(&)(color)(\()([^,)]*?)(,?)(s*)([^,)]*?)(\))(\{)([^}]*)(\})/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					'constant.other.colorcode',
-					'keyword',
-					'',
-					'constant.other.colorcode',
-					'keyword',
-					'keyword',
-					{ token: '', next: '@colorContent' },
-					'keyword'
-				  ]],
-				  [/(&)(sup)(\{)([^}]*)(\})/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					{ token: '', next: '@supContent' },
-					'keyword'
-				  ]],
-				  [/(__)(.*)(__)/,
-					['keyword', '', 'keyword']
-				  ],
-				  [/(&)(ruby)(\()([^)]*?)(\))(\{)([^}]*)(\})/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					{ token: '', next: '@rubyBase' },
-					'keyword',
-					'keyword',
-					{ token: '', next: '@rubyText' },
-					'keyword'
-				  ]],
-				],
-				fukidashiContent: [
-				  [/[^}]+/, ''],
-				  [/\}/, { token: 'keyword', next: '@pop' }]
-				],
-				sizeContent: [
-				  [/[^}]+/, ''],
-				  [/\}/, { token: 'keyword', next: '@pop' }]
-				],
-				colorContent: [
-				  [/[^}]+/, ''],
-				  [/\}/, { token: 'keyword', next: '@pop' }]
-				],
-				supContent: [
-				  [/[^}]+/, ''],
-				  [/\}/, { token: 'keyword', next: '@pop' }]
-				],
-				rubyBase: [
-				  [/[^)]+/, ''],
-				  [/\)/, { token: 'keyword', next: '@pop' }]
-				],
-				rubyText: [
-				  [/[^}]+/, ''],
-				  [/\}/, { token: 'keyword', next: '@pop' }]
-				]
-			  }
-			};
+	const WikiPageType = {
+		TOP: "TOP",
+		PAGE: "PAGE",
+		EDIT: "EDIT",
+		ATTACHMENT: "ATTACHMENT",
+		LIST: "LIST",
+		DIFF: "DIFF",
+		HISTORY: "HISTORY",
+		SEARCH: "SEARCH",
+	};
 
-		// Monaco Editorに言語を登録
-		monaco.languages.register({
-			id: "seesaawiki",
-			extensions: [".seesaawiki"],
-			aliases: ["Seesaa Wiki", "ssw"],
-		});
+	// URLからWikiPageTypeを判定する関数
+	function getWikiPageType(url) {
+		const parsedUrl = new URL(url);
+		const path = parsedUrl.pathname;
+		const searchParams = parsedUrl.searchParams;
 
-		languageConfiguration = {
-			comments: {
-				lineComment: "//",
-			},
-			brackets: [
-				["{", "}"],
-				["[", "]"],
-				["(", ")"],
-				["[[", "]]"],  // WikiのリンクのブラケットRef
-				["&", ";"],    // HTMLエンティティのための疑似的な括弧
-			],
-			autoClosingPairs: [
-				{ open: "{", close: "}" },
-				{ open: "[", close: "]" },
-				{ open: "(", close: ")" },
-				{ open: "[[", close: "]]" },
-				{ open: "'", close: "'", notIn: ["string", "comment"] },
-				{ open: "'''", close: "'''", notIn: ["string", "comment"] },
-				{ open: "%%", close: "%%", notIn: ["string", "comment"] },
-				{ open: "%%%", close: "%%%", notIn: ["string", "comment"] },
-			],
-			surroundingPairs: [
-				{ open: "{", close: "}" },
-				{ open: "[", close: "]" },
-				{ open: "(", close: ")" },
-				{ open: "[[", close: "]]" },
-				{ open: "'", close: "'" },
-				{ open: "'''", close: "'''" },
-				{ open: "%%", close: "%%" },
-				{ open: "%%%", close: "%%" },
-			]
-		};
-		monaco.languages.setLanguageConfiguration("seesaawiki", languageConfiguration);
+		if (path.includes("/d/")) {
+			return WikiPageType.PAGE;
+		} else if (path.includes("/l/")) {
+			return WikiPageType.LIST;
+		} else if (
+			path.includes("/e/add") ||
+			(path.includes("/e/edit") && searchParams.has("id"))
+		) {
+			return WikiPageType.EDIT;
+		} else if (path.includes("/e/attachment")) {
+			return WikiPageType.ATTACHMENT;
+		} else if (path.includes("/diff/")) {
+			return WikiPageType.DIFF;
+		} else if (path.includes("/hist/")) {
+			return WikiPageType.HISTORY;
+		} else if (path.includes("/search") && searchParams.has("keywords")) {
+			return WikiPageType.SEARCH;
+		} else if (path === "/" || path.endsWith("/")) {
+			return WikiPageType.PAGE;
+		}
 
-		// シンタックスハイライトの定義を設定
-		// const oldInclude = Array.prototype.include;
-		// @ts-ignore
-		// delete Array.prototype.include;
-		monaco.languages.setMonarchTokensProvider("seesaawiki", seesaaWikiLanguage);
-		// Array.prototype.include = oldInclude;
-
-		monaco.editor.defineTheme('seesaawikiTheme', {
-			base: 'vs-dark',
-			inherit: true,
-			rules: [
-				{ token: 'markup.heading.3', foreground: '569CD6', fontStyle: 'bold' },
-				{ token: 'markup.heading.4', foreground: '569CD6', fontStyle: 'bold' },
-				{ token: 'markup.heading.5', foreground: '569CD6', fontStyle: 'bold' },
-				{ token: 'markup.underline.link', fontStyle: 'underline' },
-				{ token: 'keyword.control', foreground: 'C586C0' },
-				{ token: 'keyword', foreground: '569CD6' },
-				{ token: 'markup.bold', fontStyle: 'bold', foreground: '569CD6' },
-				{ token: 'markup.italic', fontStyle: 'italic' },
-				{ token: 'markup.underline', fontStyle: 'underline' },
-				{ token: 'markup.deleted', fontStyle: 'line-through' },
-				{ token: 'constant.numeric', foreground: '0000FF' },
-				{ token: 'constant.character.escape', foreground: 'FF00FF' },
-				{ token: 'support.variable', foreground: '569CD6' },
-				{ token: 'constant.other.colorcode', foreground: '2E8B57' },
-				{ token: 'markup.underline.link.image', foreground: '4169E1', fontStyle: 'underline' },
-			],
-			colors: {
-                'editorStickyScroll.background': '#332765',
-                'editorStickyScrollHover.background': '#504083',
-            }
-		});
-
-		monaco.languages.registerDocumentSymbolProvider('seesaawiki', new SeesaaWikiDocumentSymbolProvider(monaco));
+		return null; // 未知のURL形式の場合
 	}
-
 
 	const url = location.href;
 	const pageType = getWikiPageType(url);
@@ -953,208 +647,500 @@
 		/* ********************************************************************************
 			Replace with Monaco Diff Editor
 		/* ******************************************************************************** */
-		function extractDiffContent() {
-			const diffBox = document.querySelector(".diff-box");
-			if (!diffBox) return null;
-
-			const lines = diffBox.innerHTML.split("\n");
-			let oldContent = "";
-			let newContent = "";
-			const changes = [];
-			let oldLineNumber = 1;
-			let newLineNumber = 1;
-			let currentChangeStart = null;
-			let currentChangeType = null;
-
-			function pushChange() {
-				if (currentChangeStart !== null) {
-					changes.push({
-						startLine: currentChangeStart,
-						endLine:
-							currentChangeType === "add"
-								? newLineNumber - 1
-								: oldLineNumber - 1,
-						type: currentChangeType,
-					});
-					currentChangeStart = null;
-					currentChangeType = null;
-				}
-			}
-
-			for (const line of lines) {
-				if (line.includes('class="line-add"')) {
-					const cleanLine = decodeHTMLEntities(
-						line
-							.replace(/<span class="line-add">|<\/span>/g, "")
-							.replace(/<br>/g, "")
-					);
-					newContent += cleanLine + "\n";
-					if (currentChangeType !== "add") {
-						pushChange();
-						currentChangeStart = newLineNumber;
-						currentChangeType = "add";
-					}
-					newLineNumber++;
-				} else if (line.includes('class="line-delete"')) {
-					const cleanLine = decodeHTMLEntities(
-						line
-							.replace(/<span class="line-delete">|<\/span>/g, "")
-							.replace(/<br>/g, "")
-					);
-					oldContent += cleanLine + "\n";
-					if (currentChangeType !== "delete") {
-						pushChange();
-						currentChangeStart = oldLineNumber;
-						currentChangeType = "delete";
-					}
-					oldLineNumber++;
-				} else {
-					const cleanLine = decodeHTMLEntities(line.replace(/<br>/g, ""));
-					oldContent += cleanLine + "\n";
-					newContent += cleanLine + "\n";
-					pushChange();
-					oldLineNumber++;
-					newLineNumber++;
-				}
-			}
-			pushChange();
-
-			return { oldContent, newContent, changes };
-		}
-
-		function createMonacoDiffEditor(container, oldContent, newContent) {
-			const diffEditor = monaco.editor.createDiffEditor(container, {
-				readOnly: true,
-				renderSideBySide: false,
-				automaticLayout: true,
-				// minimap: { enabled: false },
-				theme: "seesaawikiTheme",
-				wordWrap: "on",
-				scrollBeyondLastLine: false,
-				unicodeHighlight: {
-					ambiguousCharacters: true,
-					invisibleCharacters: false,
-					nonBasicASCII: false
-				}
-			});
-
-			const originalModel = monaco.editor.createModel(oldContent, "seesaawiki");
-			const modifiedModel = monaco.editor.createModel(newContent, "seesaawiki");
-
-			diffEditor.setModel({
-				original: originalModel,
-				modified: modifiedModel,
-			});
-
-			return diffEditor;
-		}
-
-		function createDiffEditorContainer() {
-			const container = document.createElement("div");
-			container.id = "monaco-editor-container";
-			container.style.width = "100%";
-			container.style.height = "max(calc(100vh - 350px), 500px)";
-			container.style.marginBottom = "20px";
-			container.style.position = "relative";
-			container.style.border = "1px solid #ccc";
-
-			return container;
-		}
-
-		function createJumpButtons(diffEditor, changes) {
-			const buttonContainer = document.createElement("div");
-			buttonContainer.style.position = "absolute";
-			buttonContainer.style.top = "10px";
-			buttonContainer.style.right = "10px";
-			buttonContainer.style.zIndex = "1000";
-
-			const nextDiffButton = document.createElement("button");
-			nextDiffButton.textContent = "↓";
-			nextDiffButton.style.marginLeft = "5px";
-			nextDiffButton.onclick = () => jumpToNextDiff(diffEditor, changes);
-
-			const prevDiffButton = document.createElement("button");
-			prevDiffButton.textContent = "↑";
-			prevDiffButton.onclick = () => jumpToPrevDiff(diffEditor, changes);
-
-			buttonContainer.appendChild(prevDiffButton);
-			buttonContainer.appendChild(nextDiffButton);
-
-			return buttonContainer;
-		}
-
-		function jumpToNextDiff(diffEditor, changes) {
-			const modifiedEditor = diffEditor.getModifiedEditor();
-			const currentPosition = modifiedEditor.getPosition();
-			const nextChange = changes.find(
-				(change) =>
-					(change.type === "add" &&
-						change.startLine > currentPosition.lineNumber) ||
-					(change.type === "delete" &&
-						change.startLine >= currentPosition.lineNumber)
-			);
-			if (nextChange) {
-				const jumpLine =
-					nextChange.type === "add"
-						? nextChange.startLine
-						: nextChange.startLine + 1;
-				modifiedEditor.setPosition({ lineNumber: jumpLine, column: 1 });
-				modifiedEditor.revealLineInCenter(jumpLine);
-			}
-		}
-
-		function jumpToPrevDiff(diffEditor, changes) {
-			const modifiedEditor = diffEditor.getModifiedEditor();
-			const currentPosition = modifiedEditor.getPosition();
-			const prevChange = changes
-				.slice()
-				.reverse()
-				.find(
-					(change) =>
-						(change.type === "add" &&
-							change.endLine < currentPosition.lineNumber) ||
-						(change.type === "delete" &&
-							change.startLine < currentPosition.lineNumber)
-				);
-			if (prevChange) {
-				const jumpLine =
-					prevChange.type === "add"
-						? prevChange.startLine
-						: prevChange.startLine + 1;
-				modifiedEditor.setPosition({ lineNumber: jumpLine, column: 1 });
-				modifiedEditor.revealLineInCenter(jumpLine);
-			}
-		}
-
-		async function initMonacoDiffEditor() {
-			await loadMonacoEditor();
-
-			const diffContent = extractDiffContent();
-			if (!diffContent) return;
-
-			registerSeesaaWikiLanguage();
-
-			const container = createDiffEditorContainer();
-			const diffBox = document.querySelector(".diff-box");
-			diffBox.parentNode.insertBefore(container, diffBox);
-
-			const diffEditor = createMonacoDiffEditor(
-				container,
-				diffContent.oldContent,
-				diffContent.newContent
-			);
-
-			// const buttonContainer = createJumpButtons(diffEditor, diffContent.changes);
-			// container.appendChild(buttonContainer);
-
-			// diffEditor.addCommand(monaco.KeyCode.RightArrow, () => jumpToNextDiff(diffEditor, changes));
-			// diffEditor.addCommand(monaco.KeyCode.LeftArrow, () => jumpToPrevDiff(diffEditor, changes));
-
-			// Hide the original diff box
-			diffBox.style.display = "none";
-			document.getElementsByClassName("information-box")[0].style.display = "none";
-		}
-
 		initMonacoDiffEditor();
 	}
+
+
+
+	function addCSS(css){
+		const style = document.createElement("style");
+		style.innerHTML = css;
+		document.head.append(style);
+	}
+
+	function decodeHTMLEntities(text) {
+		const textarea = document.createElement("textarea");
+		textarea.innerHTML = text;
+		return textarea.value;
+	}
+
+	const _sleep = (time /* in millisec */) =>
+		new Promise((resolve) => setTimeout(resolve, time));
+	const sleep = async (time /* in millisec */) => await _sleep(time);
+
+	function addScript(src, innerHTML) {
+		const script = document.createElement("script");
+		if (script) script.src = src;
+		if (innerHTML) script.innerHTML = innerHTML;
+		document.head.appendChild(script);
+	}
+
+	function loadMonacoEditor(ver="0.52.0") {
+		return new Promise((resolve) => {
+			const link = document.createElement("link");
+			link.rel = "stylesheet";
+			link.setAttribute("data-name", "vs/editor/editor.main");
+			link.href = `https://cdn.jsdelivr.net/npm/monaco-editor@${ver}/min/vs/editor/editor.main.css`;
+			document.head.appendChild(link);
+
+			const script = document.createElement("script");
+			script.src = `https://cdn.jsdelivr.net/npm/monaco-editor@${ver}/min/vs/loader.js`;
+			script.onload = () => {
+				require.config({
+					paths: {
+						vs: `https://cdn.jsdelivr.net/npm/monaco-editor@${ver}/min/vs`,
+					},
+				});
+				require(["vs/editor/editor.main"], resolve);
+			};
+			document.head.appendChild(script);
+		});
+	}
+
+	function registerSeesaaWikiLanguage() {
+		seesaaWikiLanguage = {
+			tokenizer: {
+				root: [
+				  [/^\/\/.*$/, 'comment'],
+				  [/^(\*)([^*].*)?$/, ['keyword', 'markup.heading.3']],
+				  [/^(\*{2})([^*].*)?$/, ['keyword', 'markup.heading.4']],
+				  [/^(\*{3})([^*].*)?$/, ['keyword', 'markup.heading.5']],
+				  [/(\[\[)([^>]*?)(>{0,3})([^>]*?)(#\w+)?(\]\])/, [
+					'keyword',
+					'markup.underline.link',
+					'keyword',
+					'markup.underline.link',
+					'support.variable',
+					'keyword'
+				  ]],
+				  [/^(\[)(\+|-)(\])(.*)$/, [
+					'keyword',
+					'keyword',
+					'keyword',
+					'markup.bold'
+				  ]],
+				  [/^(\[END\])/, 'keyword'],
+				  [/^(#)(contents)(?:(\()(1|2)(\)))?/, [
+					'keyword.control',
+					'support.variable',
+					'keyword',
+					'constant.numeric',
+					'keyword'
+				  ]],
+				  [/(~~)(~~~)*/, 'keyword.control'],
+				  [/^(=\|)(BOX|AA|AAS|CC|CPP|CS|CYC|JAVA|BSH|CSH|SH|CV|PY|PERL|PL|PM|RB|JS|HTML|XHTML|XML|XSL|LUA|ERLANG|GO|LISP|R|SCALA|SQL|SWIFT|TEX|YAML|AUTO|\(box=(?:textarea|div)\))?(\|)$/, [
+					'keyword',
+					'keyword',
+					'keyword'
+				  ]],
+				  [/^(\|\|=)$/, 'keyword'],
+				  [/(&)(fukidashi)(\()([^,)]*?)(?:(,)(s*)(right))?(\))(\{)([^}]*)(\})/, [
+					'keyword.control',
+					'support.variable',
+					'keyword',
+					'constant.other',
+					'keyword',
+					'keyword',
+					'keyword.control',
+					'keyword',
+					'keyword',
+					{ token: '', next: '@fukidashiContent' },
+					'keyword'
+				  ]],
+				  [/\w+@\w+\.\w+/, 'markup.underline.link'],
+				  [/^(\+{1,3})([^\+].*)?$/, ['keyword', '']],
+				  [/^(\-{1,3})([^\-].*)?$/, ['keyword', '']],
+				  [/(&|#)(ref|attach|attachref)(\()([^,)]*?)(?:(,\s*)(\d*%?)){0,2}(?:(,\s*)(left|right|no_link)){0,2}(\))(?:(\{)([^}]*?)(\}))?/, [
+					'keyword.control',
+					'support.variable',
+					'keyword.control',
+					'markup.underline.link.image',
+					'keyword.control',
+					'constant.numeric',
+					'keyword.control',
+					'keyword.control',
+					'keyword.control',
+					'keyword.control',
+					'',
+					'keyword.control'
+				  ]],
+				  [/^(----)$/, 'keyword.control'],
+				  [/(&)(aname)(\()([^\)]*)(\))/, [
+					'keyword.control',
+					'support.variable',
+					'keyword.control',
+					'constant.other',
+					'keyword.control'
+				  ]],
+				  [/&(\w+|#\d+|#x[\da-fA-F]+);/, 'constant.character.escape'],
+				  [/('')([^']*?)('')/, [
+					'keyword',
+					'markup.bold',
+					'keyword'
+				  ]],
+				  [/(''')([^']*?)(''')/, [
+					'keyword',
+					'markup.italic',
+					'keyword'
+				  ]],
+				  [/(%%%)([^%]*?)(%%%)/, [
+					'keyword',
+					'markup.underline',
+					'keyword'
+				  ]],
+				  [/(%%)([^%]*?)(%%)/, [
+					'keyword',
+					'markup.deleted',
+					'keyword'
+				  ]],
+				  [/(&)(size)(\()(\d+)(\))(\{)([^}]*)(\})/, [
+					'keyword.control',
+					'support.variable',
+					'keyword',
+					'constant.numeric',
+					'keyword',
+					'keyword',
+					{ token: '', next: '@sizeContent' },
+					'keyword'
+				  ]],
+				  [/(&)(color)(\()([^,)]*?)(,?)(s*)([^,)]*?)(\))(\{)([^}]*)(\})/, [
+					'keyword.control',
+					'support.variable',
+					'keyword',
+					'constant.other.colorcode',
+					'keyword',
+					'',
+					'constant.other.colorcode',
+					'keyword',
+					'keyword',
+					{ token: '', next: '@colorContent' },
+					'keyword'
+				  ]],
+				  [/(&)(sup)(\{)([^}]*)(\})/, [
+					'keyword.control',
+					'support.variable',
+					'keyword',
+					{ token: '', next: '@supContent' },
+					'keyword'
+				  ]],
+				  [/(__)(.*)(__)/,
+					['keyword', '', 'keyword']
+				  ],
+				  [/(&)(ruby)(\()([^)]*?)(\))(\{)([^}]*)(\})/, [
+					'keyword.control',
+					'support.variable',
+					'keyword',
+					{ token: '', next: '@rubyBase' },
+					'keyword',
+					'keyword',
+					{ token: '', next: '@rubyText' },
+					'keyword'
+				  ]],
+				],
+				fukidashiContent: [
+				  [/[^}]+/, ''],
+				  [/\}/, { token: 'keyword', next: '@pop' }]
+				],
+				sizeContent: [
+				  [/[^}]+/, ''],
+				  [/\}/, { token: 'keyword', next: '@pop' }]
+				],
+				colorContent: [
+				  [/[^}]+/, ''],
+				  [/\}/, { token: 'keyword', next: '@pop' }]
+				],
+				supContent: [
+				  [/[^}]+/, ''],
+				  [/\}/, { token: 'keyword', next: '@pop' }]
+				],
+				rubyBase: [
+				  [/[^)]+/, ''],
+				  [/\)/, { token: 'keyword', next: '@pop' }]
+				],
+				rubyText: [
+				  [/[^}]+/, ''],
+				  [/\}/, { token: 'keyword', next: '@pop' }]
+				]
+			  }
+			};
+
+		// Monaco Editorに言語を登録
+		monaco.languages.register({
+			id: "seesaawiki",
+			extensions: [".seesaawiki"],
+			aliases: ["Seesaa Wiki", "ssw"],
+		});
+
+		languageConfiguration = {
+			comments: {
+				lineComment: "//",
+			},
+			brackets: [
+				["{", "}"],
+				["[", "]"],
+				["(", ")"],
+				["[[", "]]"],  // WikiのリンクのブラケットRef
+				["&", ";"],    // HTMLエンティティのための疑似的な括弧
+			],
+			autoClosingPairs: [
+				{ open: "{", close: "}" },
+				{ open: "[", close: "]" },
+				{ open: "(", close: ")" },
+				{ open: "[[", close: "]]" },
+				{ open: "'", close: "'", notIn: ["string", "comment"] },
+				{ open: "'''", close: "'''", notIn: ["string", "comment"] },
+				{ open: "%%", close: "%%", notIn: ["string", "comment"] },
+				{ open: "%%%", close: "%%%", notIn: ["string", "comment"] },
+			],
+			surroundingPairs: [
+				{ open: "{", close: "}" },
+				{ open: "[", close: "]" },
+				{ open: "(", close: ")" },
+				{ open: "[[", close: "]]" },
+				{ open: "'", close: "'" },
+				{ open: "'''", close: "'''" },
+				{ open: "%%", close: "%%" },
+				{ open: "%%%", close: "%%" },
+			]
+		};
+		monaco.languages.setLanguageConfiguration("seesaawiki", languageConfiguration);
+
+		// シンタックスハイライトの定義を設定
+		// const oldInclude = Array.prototype.include;
+		// @ts-ignore
+		// delete Array.prototype.include;
+		monaco.languages.setMonarchTokensProvider("seesaawiki", seesaaWikiLanguage);
+		// Array.prototype.include = oldInclude;
+
+		monaco.editor.defineTheme('seesaawikiTheme', {
+			base: 'vs-dark',
+			inherit: true,
+			rules: [
+				{ token: 'markup.heading.3', foreground: '569CD6', fontStyle: 'bold' },
+				{ token: 'markup.heading.4', foreground: '569CD6', fontStyle: 'bold' },
+				{ token: 'markup.heading.5', foreground: '569CD6', fontStyle: 'bold' },
+				{ token: 'markup.underline.link', fontStyle: 'underline' },
+				{ token: 'keyword.control', foreground: 'C586C0' },
+				{ token: 'keyword', foreground: '569CD6' },
+				{ token: 'markup.bold', fontStyle: 'bold', foreground: '569CD6' },
+				{ token: 'markup.italic', fontStyle: 'italic' },
+				{ token: 'markup.underline', fontStyle: 'underline' },
+				{ token: 'markup.deleted', fontStyle: 'line-through' },
+				{ token: 'constant.numeric', foreground: '0000FF' },
+				{ token: 'constant.character.escape', foreground: 'FF00FF' },
+				{ token: 'support.variable', foreground: '569CD6' },
+				{ token: 'constant.other.colorcode', foreground: '2E8B57' },
+				{ token: 'markup.underline.link.image', foreground: '4169E1', fontStyle: 'underline' },
+			],
+			colors: {
+                'editorStickyScroll.background': '#332765',
+                'editorStickyScrollHover.background': '#504083',
+            }
+		});
+
+		monaco.languages.registerDocumentSymbolProvider('seesaawiki', new SeesaaWikiDocumentSymbolProvider(monaco));
+	}
+
+	function extractDiffContent() {
+		const diffBox = document.querySelector(".diff-box");
+		if (!diffBox) return null;
+
+		const lines = diffBox.innerHTML.split("\n");
+		let oldContent = "";
+		let newContent = "";
+		const changes = [];
+		let oldLineNumber = 1;
+		let newLineNumber = 1;
+		let currentChangeStart = null;
+		let currentChangeType = null;
+
+		function pushChange() {
+			if (currentChangeStart !== null) {
+				changes.push({
+					startLine: currentChangeStart,
+					endLine:
+						currentChangeType === "add"
+							? newLineNumber - 1
+							: oldLineNumber - 1,
+					type: currentChangeType,
+				});
+				currentChangeStart = null;
+				currentChangeType = null;
+			}
+		}
+
+		for (const line of lines) {
+			if (line.includes('class="line-add"')) {
+				const cleanLine = decodeHTMLEntities(
+					line
+						.replace(/<span class="line-add">|<\/span>/g, "")
+						.replace(/<br>/g, "")
+				);
+				newContent += cleanLine + "\n";
+				if (currentChangeType !== "add") {
+					pushChange();
+					currentChangeStart = newLineNumber;
+					currentChangeType = "add";
+				}
+				newLineNumber++;
+			} else if (line.includes('class="line-delete"')) {
+				const cleanLine = decodeHTMLEntities(
+					line
+						.replace(/<span class="line-delete">|<\/span>/g, "")
+						.replace(/<br>/g, "")
+				);
+				oldContent += cleanLine + "\n";
+				if (currentChangeType !== "delete") {
+					pushChange();
+					currentChangeStart = oldLineNumber;
+					currentChangeType = "delete";
+				}
+				oldLineNumber++;
+			} else {
+				const cleanLine = decodeHTMLEntities(line.replace(/<br>/g, ""));
+				oldContent += cleanLine + "\n";
+				newContent += cleanLine + "\n";
+				pushChange();
+				oldLineNumber++;
+				newLineNumber++;
+			}
+		}
+		pushChange();
+
+		return { oldContent, newContent, changes };
+	}
+
+	function createMonacoDiffEditor(container, oldContent, newContent) {
+		const diffEditor = monaco.editor.createDiffEditor(container, {
+			readOnly: true,
+			renderSideBySide: false,
+			automaticLayout: true,
+			// minimap: { enabled: false },
+			theme: "seesaawikiTheme",
+			wordWrap: "on",
+			scrollBeyondLastLine: false,
+			unicodeHighlight: {
+				ambiguousCharacters: true,
+				invisibleCharacters: false,
+				nonBasicASCII: false
+			}
+		});
+
+		const originalModel = monaco.editor.createModel(oldContent, "seesaawiki");
+		const modifiedModel = monaco.editor.createModel(newContent, "seesaawiki");
+
+		diffEditor.setModel({
+			original: originalModel,
+			modified: modifiedModel,
+		});
+
+		return diffEditor;
+	}
+
+	function createDiffEditorContainer() {
+		const container = document.createElement("div");
+		container.id = "monaco-editor-container";
+		container.style.width = "100%";
+		container.style.height = "max(calc(100vh - 350px), 500px)";
+		container.style.marginBottom = "20px";
+		container.style.position = "relative";
+		container.style.border = "1px solid #ccc";
+
+		return container;
+	}
+
+	function createJumpButtons(diffEditor, changes) {
+		const buttonContainer = document.createElement("div");
+		buttonContainer.style.position = "absolute";
+		buttonContainer.style.top = "10px";
+		buttonContainer.style.right = "10px";
+		buttonContainer.style.zIndex = "1000";
+
+		const nextDiffButton = document.createElement("button");
+		nextDiffButton.textContent = "↓";
+		nextDiffButton.style.marginLeft = "5px";
+		nextDiffButton.onclick = () => jumpToNextDiff(diffEditor, changes);
+
+		const prevDiffButton = document.createElement("button");
+		prevDiffButton.textContent = "↑";
+		prevDiffButton.onclick = () => jumpToPrevDiff(diffEditor, changes);
+
+		buttonContainer.appendChild(prevDiffButton);
+		buttonContainer.appendChild(nextDiffButton);
+
+		return buttonContainer;
+	}
+
+	function jumpToNextDiff(diffEditor, changes) {
+		const modifiedEditor = diffEditor.getModifiedEditor();
+		const currentPosition = modifiedEditor.getPosition();
+		const nextChange = changes.find(
+			(change) =>
+				(change.type === "add" &&
+					change.startLine > currentPosition.lineNumber) ||
+				(change.type === "delete" &&
+					change.startLine >= currentPosition.lineNumber)
+		);
+		if (nextChange) {
+			const jumpLine =
+				nextChange.type === "add"
+					? nextChange.startLine
+					: nextChange.startLine + 1;
+			modifiedEditor.setPosition({ lineNumber: jumpLine, column: 1 });
+			modifiedEditor.revealLineInCenter(jumpLine);
+		}
+	}
+
+	function jumpToPrevDiff(diffEditor, changes) {
+		const modifiedEditor = diffEditor.getModifiedEditor();
+		const currentPosition = modifiedEditor.getPosition();
+		const prevChange = changes
+			.slice()
+			.reverse()
+			.find(
+				(change) =>
+					(change.type === "add" &&
+						change.endLine < currentPosition.lineNumber) ||
+					(change.type === "delete" &&
+						change.startLine < currentPosition.lineNumber)
+			);
+		if (prevChange) {
+			const jumpLine =
+				prevChange.type === "add"
+					? prevChange.startLine
+					: prevChange.startLine + 1;
+			modifiedEditor.setPosition({ lineNumber: jumpLine, column: 1 });
+			modifiedEditor.revealLineInCenter(jumpLine);
+		}
+	}
+
+	async function initMonacoDiffEditor() {
+		await loadMonacoEditor();
+
+		const diffContent = extractDiffContent();
+		if (!diffContent) return;
+
+		registerSeesaaWikiLanguage();
+
+		const container = createDiffEditorContainer();
+		const diffBox = document.querySelector(".diff-box");
+		diffBox.parentNode.insertBefore(container, diffBox);
+
+		const diffEditor = createMonacoDiffEditor(
+			container,
+			diffContent.oldContent,
+			diffContent.newContent
+		);
+
+		// const buttonContainer = createJumpButtons(diffEditor, diffContent.changes);
+		// container.appendChild(buttonContainer);
+
+		// diffEditor.addCommand(monaco.KeyCode.RightArrow, () => jumpToNextDiff(diffEditor, changes));
+		// diffEditor.addCommand(monaco.KeyCode.LeftArrow, () => jumpToPrevDiff(diffEditor, changes));
+
+		// Hide the original diff box
+		diffBox.style.display = "none";
+		document.getElementsByClassName("information-box")[0].style.display = "none";
+	}
+
 })();
