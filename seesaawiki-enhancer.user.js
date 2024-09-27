@@ -6,6 +6,7 @@
 // @match        https://cms.wiki.seesaa.jp/cms/*
 // @icon         https://www.google.com/s2/favicons?domain=seesaawiki.jp
 // @grant        none
+// @license      MIT
 // ==/UserScript==
 
 (function () {
