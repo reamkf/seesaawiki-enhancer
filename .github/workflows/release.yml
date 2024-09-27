@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Update version and extract meta information
       run: |
@@ -30,6 +32,7 @@ jobs:
         git add seesaawiki-enhancer.user.js seesaawiki-enhancer.meta.js
         git commit -m "Update version to ${GITHUB_REF#refs/tags/v} and sync meta.js"
         git push
+        git push origin HEAD:refs/heads/main
 
     - name: Create Release
       id: create_release
