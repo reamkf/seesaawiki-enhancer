@@ -494,6 +494,131 @@
 		});
 
 		monaco.languages.registerDocumentSymbolProvider('seesaawiki', new SeesaaWikiDocumentSymbolProvider(monaco));
+
+
+		// 色名をRGB値に変換する関数
+		function colorNameToRGB(colorName) {
+			const canvas = document.createElement('canvas');
+			canvas.width = canvas.height = 1;
+			const ctx = canvas.getContext('2d');
+			ctx.fillStyle = colorName;
+			ctx.fillRect(0, 0, 1, 1);
+			const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+			return { red: r / 255, green: g / 255, blue: b / 255, alpha: 1 };
+		}
+
+		// 16進数の色コードをRGB値に変換する関数
+		function hexToRGB(hex) {
+			hex = hex.replace(/^#/, '');
+			let alpha = 1;
+
+			if (hex.length === 3) {
+				hex = hex.split('').map(char => char + char).join('');
+			} else if (hex.length === 8) {
+				alpha = parseInt(hex.slice(6, 8), 16) / 255;
+				hex = hex.slice(0, 6);
+			}
+
+			const bigint = parseInt(hex, 16);
+			const r = (bigint >> 16) & 255;
+			const g = (bigint >> 8) & 255;
+			const b = bigint & 255;
+
+			return { red: r / 255, green: g / 255, blue: b / 255, alpha: alpha };
+		}
+
+		// 色文字列をRGB値に変換する関数
+		function parseColor(color) {
+			if (!color) return null;
+			color = color.trim();
+			if (color.startsWith('#')) {
+				return hexToRGB(color);
+			} else {
+				return colorNameToRGB(color);
+			}
+		}
+
+		function rgbToHex(r, g, b) {
+			return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+		}
+
+		// カラープロバイダーの定義
+		const seesaaWikiColorProvider = {
+			provideDocumentColors: function(model, token) {
+				const text = model.getValue();
+				const colorRepresentationRegex = "#[0-9A-Fa-f]{3}|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|[a-zA-Z]+";
+				const colorRegex = new RegExp(`(&color\\(|#color\\(|color\\(|bgcolor\\()\\s*(${colorRepresentationRegex})?\\s*,?\\s*(${colorRepresentationRegex})?\\s*\\)`, 'g');
+				let match;
+				const colors = [];
+
+				while ((match = colorRegex.exec(text)) !== null) {
+					const fullMatch = match[0];
+					const prefix = match[1];
+					const firstColor = match[2];
+					const secondColor = match[3];
+
+					if (prefix === '&color(' || prefix === '#color(') {
+						if (firstColor) {
+							const firstColorStart = match.index + prefix.length;
+							const firstColorEnd = firstColorStart + firstColor.length;
+							colors.push({
+								range: {
+									startLineNumber: model.getPositionAt(firstColorStart).lineNumber,
+									startColumn: model.getPositionAt(firstColorStart).column,
+									endLineNumber: model.getPositionAt(firstColorEnd).lineNumber,
+									endColumn: model.getPositionAt(firstColorEnd).column
+								},
+								color: parseColor(firstColor)
+							});
+						}
+						if (secondColor) {
+							const secondColorStart = fullMatch.lastIndexOf(secondColor);
+							const secondColorEnd = secondColorStart + secondColor.length;
+							colors.push({
+								range: {
+									startLineNumber: model.getPositionAt(match.index + secondColorStart).lineNumber,
+									startColumn: model.getPositionAt(match.index + secondColorStart).column,
+									endLineNumber: model.getPositionAt(match.index + secondColorEnd).lineNumber,
+									endColumn: model.getPositionAt(match.index + secondColorEnd).column
+								},
+								color: parseColor(secondColor)
+							});
+						}
+					} else {
+						// color() or bgcolor()
+						const colorValue = firstColor || secondColor;
+						if (colorValue) {
+							const colorStart = fullMatch.indexOf(colorValue);
+							const colorEnd = colorStart + colorValue.length;
+							colors.push({
+								range: {
+									startLineNumber: model.getPositionAt(match.index + colorStart).lineNumber,
+									startColumn: model.getPositionAt(match.index + colorStart).column,
+									endLineNumber: model.getPositionAt(match.index + colorEnd).lineNumber,
+									endColumn: model.getPositionAt(match.index + colorEnd).column
+								},
+								color: parseColor(colorValue)
+							});
+						}
+					}
+				}
+
+				return colors;
+			},
+
+			provideColorPresentations: function(model, colorInfo, token) {
+				const newColor = rgbToHex(
+					Math.round(colorInfo.color.red * 255),
+					Math.round(colorInfo.color.green * 255),
+					Math.round(colorInfo.color.blue * 255)
+				);
+
+				return [{ label: newColor }];
+			}
+		};
+
+		// カラープロバイダーの登録
+		monaco.languages.registerColorProvider('seesaawiki', seesaaWikiColorProvider);
 	}
 
 
