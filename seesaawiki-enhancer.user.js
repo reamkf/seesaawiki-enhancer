@@ -661,6 +661,39 @@
 		});
 
 
+		_w.monacoEditor.addCommand(_w.monaco.KeyCode.Enter, () => {
+			const model = _w.monacoEditor.getModel();
+			const position = _w.monacoEditor.getPosition();
+			const lineContent = model.getLineContent(position.lineNumber);
+
+			const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(\s*)([^-]*)$/);
+			if (bulletMatch) {
+				const [, bullet, space, content] = bulletMatch;
+				if (content.trim() === '') {
+					// 空の箇条書きの場合、箇条書きを削除
+					_w.monacoEditor.executeEdits('', [{
+						range: new _w.monaco.Range(position.lineNumber, 1, position.lineNumber, position.column),
+						text: ''
+					}]);
+				} else {
+					// 次の行に同じ箇条書きを追加
+					const nextLineContent = bullet;
+					_w.monacoEditor.executeEdits('', [{
+						range: new _w.monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+						text: '\n' + nextLineContent
+					}]);
+					_w.monacoEditor.setPosition({
+						lineNumber: position.lineNumber + 1,
+						column: nextLineContent.length + 1
+					});
+				}
+			} else {
+				// 通常の改行
+				_w.monacoEditor.trigger('keyboard', 'type', { text: '\n' });
+			}
+		});
+
+
 		// 既存のボタンの機能を実装
 		const parentWindow = window.parent;
 		const parentDocument = window.parent.document;
