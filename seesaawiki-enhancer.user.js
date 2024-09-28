@@ -253,172 +253,6 @@
 	}
 
 	function registerSeesaaWikiLanguage() {
-		seesaaWikiLanguage = {
-			tokenizer: {
-				root: [
-				  [/^\/\/.*$/, 'comment'],
-				  [/^(\*)([^*].*)?$/, ['keyword', 'markup.heading.3']],
-				  [/^(\*{2})([^*].*)?$/, ['keyword', 'markup.heading.4']],
-				  [/^(\*{3})([^*].*)?$/, ['keyword', 'markup.heading.5']],
-				  [/(\[\[)([^>]*?)(>{0,3})([^>]*?)(#\w+)?(\]\])/, [
-					'keyword',
-					'markup.underline.link',
-					'keyword',
-					'markup.underline.link',
-					'support.variable',
-					'keyword'
-				  ]],
-				  [/^(\[)(\+|-)(\])(.*)$/, [
-					'keyword',
-					'keyword',
-					'keyword',
-					'markup.bold'
-				  ]],
-				  [/^(\[END\])/, 'keyword'],
-				  [/^(#)(contents)(?:(\()(1|2)(\)))?/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					'constant.numeric',
-					'keyword'
-				  ]],
-				  [/(~~)(~~~)*/, 'keyword.control'],
-				  [/^(=\|)(BOX|AA|AAS|CC|CPP|CS|CYC|JAVA|BSH|CSH|SH|CV|PY|PERL|PL|PM|RB|JS|HTML|XHTML|XML|XSL|LUA|ERLANG|GO|LISP|R|SCALA|SQL|SWIFT|TEX|YAML|AUTO|\(box=(?:textarea|div)\))?(\|)$/, [
-					'keyword',
-					'keyword',
-					'keyword'
-				  ]],
-				  [/^(\|\|=)$/, 'keyword'],
-				  [/(&)(fukidashi)(\()([^,)]*?)(?:(,)(s*)(right))?(\))(\{)([^}]*)(\})/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					'constant.other',
-					'keyword',
-					'keyword',
-					'keyword.control',
-					'keyword',
-					'keyword',
-					{ token: '', next: '@fukidashiContent' },
-					'keyword'
-				  ]],
-				  [/\w+@\w+\.\w+/, 'markup.underline.link'],
-				  [/^(\+{1,3})([^\+].*)?$/, ['keyword', '']],
-				  [/^(\-{1,3})([^\-].*)?$/, ['keyword', '']],
-				  [/(&|#)(ref|attach|attachref)(\()([^,)]*?)(?:(,\s*)(\d*%?)){0,2}(?:(,\s*)(left|right|no_link)){0,2}(\))(?:(\{)([^}]*?)(\}))?/, [
-					'keyword.control',
-					'support.variable',
-					'keyword.control',
-					'markup.underline.link.image',
-					'keyword.control',
-					'constant.numeric',
-					'keyword.control',
-					'keyword.control',
-					'keyword.control',
-					'keyword.control',
-					'',
-					'keyword.control'
-				  ]],
-				  [/^(----)$/, 'keyword.control'],
-				  [/(&)(aname)(\()([^\)]*)(\))/, [
-					'keyword.control',
-					'support.variable',
-					'keyword.control',
-					'constant.other',
-					'keyword.control'
-				  ]],
-				  [/&(\w+|#\d+|#x[\da-fA-F]+);/, 'constant.character.escape'],
-				  [/('')([^']*?)('')/, [
-					'keyword',
-					'markup.bold',
-					'keyword'
-				  ]],
-				  [/(''')([^']*?)(''')/, [
-					'keyword',
-					'markup.italic',
-					'keyword'
-				  ]],
-				  [/(%%%)([^%]*?)(%%%)/, [
-					'keyword',
-					'markup.underline',
-					'keyword'
-				  ]],
-				  [/(%%)([^%]*?)(%%)/, [
-					'keyword',
-					'markup.deleted',
-					'keyword'
-				  ]],
-				  [/(&)(size)(\()(\d+)(\))(\{)([^}]*)(\})/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					'constant.numeric',
-					'keyword',
-					'keyword',
-					{ token: '', next: '@sizeContent' },
-					'keyword'
-				  ]],
-				  [/(&)(color)(\()([^,)]*?)(,?)(s*)([^,)]*?)(\))(\{)([^}]*)(\})/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					'constant.other.colorcode',
-					'keyword',
-					'',
-					'constant.other.colorcode',
-					'keyword',
-					'keyword',
-					{ token: '', next: '@colorContent' },
-					'keyword'
-				  ]],
-				  [/(&)(sup)(\{)([^}]*)(\})/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					{ token: '', next: '@supContent' },
-					'keyword'
-				  ]],
-				  [/(__)(.*)(__)/,
-					['keyword', '', 'keyword']
-				  ],
-				  [/(&)(ruby)(\()([^)]*?)(\))(\{)([^}]*)(\})/, [
-					'keyword.control',
-					'support.variable',
-					'keyword',
-					{ token: '', next: '@rubyBase' },
-					'keyword',
-					'keyword',
-					{ token: '', next: '@rubyText' },
-					'keyword'
-				  ]],
-				],
-				fukidashiContent: [
-				  [/[^}]+/, ''],
-				  [/\}/, { token: 'keyword', next: '@pop' }]
-				],
-				sizeContent: [
-				  [/[^}]+/, ''],
-				  [/\}/, { token: 'keyword', next: '@pop' }]
-				],
-				colorContent: [
-				  [/[^}]+/, ''],
-				  [/\}/, { token: 'keyword', next: '@pop' }]
-				],
-				supContent: [
-				  [/[^}]+/, ''],
-				  [/\}/, { token: 'keyword', next: '@pop' }]
-				],
-				rubyBase: [
-				  [/[^)]+/, ''],
-				  [/\)/, { token: 'keyword', next: '@pop' }]
-				],
-				rubyText: [
-				  [/[^}]+/, ''],
-				  [/\}/, { token: 'keyword', next: '@pop' }]
-				]
-			  }
-			};
-
 		// Monaco Editorに言語を登録
 		monaco.languages.register({
 			id: "seesaawiki",
@@ -434,7 +268,7 @@
 				["{", "}"],
 				["[", "]"],
 				["(", ")"],
-				["[[", "]]"],  // WikiのリンクのブラケットRef
+				["[[", "]]"],
 				["&", ";"],    // HTMLエンティティのための疑似的な括弧
 			],
 			autoClosingPairs: [
@@ -458,14 +292,222 @@
 				{ open: "%%%", close: "%%" },
 			]
 		};
+
 		monaco.languages.setLanguageConfiguration("seesaawiki", languageConfiguration);
 
-		// シンタックスハイライトの定義を設定
-		// const oldInclude = Array.prototype.include;
-		// @ts-ignore
-		// delete Array.prototype.include;
+		seesaaWikiLanguage = {
+			tokenizer: {
+				root: [
+					// Comment
+					[/^\/\/.*$/, 'comment'],
+
+					// Headings
+					[/^(\*)(?!\*)(.*)$/, ['keyword', 'markup.heading.3']],
+					[/^(\*{2})(?!\*)(.*)$/, ['keyword', 'markup.heading.4']],
+					[/^(\*{3})(?!\*)(.*)$/, ['keyword', 'markup.heading.5']],
+
+					// Links
+					[/(\[\[)([^>]*?)(>{0,3})([^>]*?)(#\w+)?(\]\])/, [
+						'keyword',
+						'markup.underline.link',
+						'keyword',
+						'markup.underline.link',
+						'support.variable',
+						'keyword'
+					]],
+
+					// Refs
+					[/(&|#)(ref|attach|attachref)(\()([^,)]*?)(?:(,\s*)(\d*%?)){0,2}(?:(,\s*)(left|right|no_link)){0,2}(\))(?:(\{)([^}]*?)(\}))?/, [
+						'keyword.control',
+						'support.variable',
+						'keyword.control',
+						'markup.underline.link.image',
+						'keyword.control',
+						'constant.numeric',
+						'keyword.control',
+						'keyword.control',
+						'keyword.control',
+						'keyword.control',
+						'',
+						'keyword.control'
+					]],
+
+					// Bold
+					[/('')([^']*?)('')/, [
+						'keyword',
+						'markup.bold',
+						'keyword'
+					]],
+
+					// Italic
+					[/(''')([^']*?)(''')/, [
+						'keyword',
+						'markup.italic',
+						'keyword'
+					]],
+
+					// Underline
+					[/(%%%)([^%]*?)(%%%)/, [
+						'keyword',
+						'markup.underline',
+						'keyword'
+					]],
+
+					// Strike
+					[/(%%)([^%]*?)(%%)/, [
+						'keyword',
+						'markup.deleted',
+						'keyword'
+					]],
+
+					// Font size
+					[/(&)(size)(\()(\d+)(\))(\{)([^}]*)(\})/, [
+						'keyword.control',
+						'support.variable',
+						'keyword',
+						'constant.numeric',
+						'keyword',
+						'keyword',
+						{ token: '', next: '@sizeContent' },
+						'keyword'
+					]],
+
+					// Font color
+					[/(&)(color)(\()([^,)]*?)(,?)(s*)([^,)]*?)(\))(\{)([^}]*)(\})/, [
+						'keyword.control',
+						'support.variable',
+						'keyword',
+						'constant.other.colorcode',
+						'keyword',
+						'',
+						'constant.other.colorcode',
+						'keyword',
+						'keyword',
+						{ token: '', next: '@colorContent' },
+						'keyword'
+					]],
+
+					// Foidings
+					[/^(\[)(\+|-)(\])(.*)$/, [
+						'keyword',
+						'keyword',
+						'keyword',
+						'markup.bold'
+					]],
+					[/^(\[END\])/, 'keyword'],
+
+					// Table of contents
+					[/^(#)(contents)(?:(\()(1|2)(\)))?/, [
+						'keyword.control',
+						'support.variable',
+						'keyword',
+						'constant.numeric',
+						'keyword'
+					]],
+
+					// New Line
+					[/(~~)(~~~)*/, 'keyword.control'],
+					[/^(=\|)(BOX|AA|AAS|CC|CPP|CS|CYC|JAVA|BSH|CSH|SH|CV|PY|PERL|PL|PM|RB|JS|HTML|XHTML|XML|XSL|LUA|ERLANG|GO|LISP|R|SCALA|SQL|SWIFT|TEX|YAML|AUTO|\(box=(?:textarea|div)\))?(\|)$/, [
+						'keyword',
+						'keyword',
+						'keyword'
+					]],
+
+					// Pre
+					[/^(\|\|=)$/, 'keyword'],
+
+					// Email
+					[/\w+@\w+\.\w+/, 'markup.underline.link'],
+
+					// List
+					[/^(\+{1,3})([^\+].*)?$/, ['keyword', '']],
+					[/^(\-{1,3})([^\-].*)?$/, ['keyword', '']],
+
+
+					// Horizon
+					[/^(----)$/, 'keyword.control'],
+
+					// Anchor
+					[/(&)(aname)(\()([^\)]*)(\))/, [
+						'keyword.control',
+						'support.variable',
+						'keyword.control',
+						'constant.other',
+						'keyword.control'
+					]],
+
+					// HTML Entities
+					[/&(\w+|#\d+|#x[\da-fA-F]+);/, 'constant.character.escape'],
+
+					// Super
+					[/(&)(sup)(\{)([^}]*)(\})/, [
+						'keyword.control',
+						'support.variable',
+						'keyword',
+						{ token: '', next: '@supContent' },
+						'keyword'
+					]],
+
+					// Sub
+					[/(__)(.*)(__)/,
+						['keyword', '', 'keyword']
+					],
+
+					// Fukidashi
+					[/(&)(fukidashi)(\()([^,)]*?)(?:(,)(s*)(right))?(\))(\{)([^}]*)(\})/, [
+						'keyword.control',
+						'support.variable',
+						'keyword',
+						'constant.other',
+						'keyword',
+						'keyword',
+						'keyword.control',
+						'keyword',
+						'keyword',
+						{ token: '', next: '@fukidashiContent' },
+						'keyword'
+					]],
+
+					// Ruby
+					[/(&)(ruby)(\()([^)]*?)(\))(\{)([^}]*)(\})/, [
+						'keyword.control',
+						'support.variable',
+						'keyword',
+						{ token: '', next: '@rubyBase' },
+						'keyword',
+						'keyword',
+						{ token: '', next: '@rubyText' },
+						'keyword'
+					]],
+				],
+				fukidashiContent: [
+					[/[^}]+/, ''],
+					[/\}/, { token: 'keyword', next: '@pop' }]
+				],
+				sizeContent: [
+					[/[^}]+/, ''],
+					[/\}/, { token: 'keyword', next: '@pop' }]
+				],
+				colorContent: [
+					[/[^}]+/, ''],
+					[/\}/, { token: 'keyword', next: '@pop' }]
+				],
+				supContent: [
+					[/[^}]+/, ''],
+					[/\}/, { token: 'keyword', next: '@pop' }]
+				],
+				rubyBase: [
+					[/[^)]+/, ''],
+					[/\)/, { token: 'keyword', next: '@pop' }]
+				],
+				rubyText: [
+					[/[^}]+/, ''],
+					[/\}/, { token: 'keyword', next: '@pop' }]
+				]
+			}
+		};
+
 		monaco.languages.setMonarchTokensProvider("seesaawiki", seesaaWikiLanguage);
-		// Array.prototype.include = oldInclude;
 
 		monaco.editor.defineTheme('seesaawikiTheme', {
 			base: 'vs-dark',
@@ -481,16 +523,25 @@
 				{ token: 'markup.italic', fontStyle: 'italic' },
 				{ token: 'markup.underline', fontStyle: 'underline' },
 				{ token: 'markup.deleted', fontStyle: 'line-through' },
-				{ token: 'constant.numeric', foreground: '0000FF' },
-				{ token: 'constant.character.escape', foreground: 'FF00FF' },
-				{ token: 'support.variable', foreground: '569CD6' },
-				{ token: 'constant.other.colorcode', foreground: '2E8B57' },
-				{ token: 'markup.underline.link.image', foreground: '4169E1', fontStyle: 'underline' },
+				{ token: 'constant.numeric', foreground: 'B5CEA8' },
+				{ token: 'constant.character.escape', foreground: 'D7BA7D' },
+				{ token: 'support.variable', foreground: 'FF0000' },
+				{ token: 'constant.other.colorcode', foreground: 'CE9178' },
+				{ token: 'markup.underline.link.image', foreground: '4EC9B0', fontStyle: 'underline' },
+				{ token: 'entity.name.function', foreground: 'DCDCAA' },
+				{ token: 'support.function', foreground: 'DCDCAA' },
+				{ token: 'variable.other.constant', foreground: '4FC1FF' },
+				{ token: 'variable.other.enummember', foreground: '4FC1FF' },
+				{ token: 'entity.name.type', foreground: '4EC9B0' },
+				{ token: 'entity.name.class', foreground: '4EC9B0' },
+				{ token: 'support.type', foreground: '4EC9B0' },
+				{ token: 'support.class', foreground: '4EC9B0' },
+				{ token: 'variable.other', foreground: '9CDCFE' },
 			],
 			colors: {
-                'editorStickyScroll.background': '#332765',
-                'editorStickyScrollHover.background': '#504083',
-            }
+				'editorStickyScroll.background': '#332765',
+				'editorStickyScrollHover.background': '#504083',
+			}
 		});
 
 		monaco.languages.registerDocumentSymbolProvider('seesaawiki', new SeesaaWikiDocumentSymbolProvider(monaco));
@@ -617,7 +668,6 @@
 			}
 		};
 
-		// カラープロバイダーの登録
 		monaco.languages.registerColorProvider('seesaawiki', seesaaWikiColorProvider);
 	}
 
@@ -997,7 +1047,7 @@
 
 		// Heading
 		parentDocument.getElementById('h2').addEventListener('click', () => {
-			insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "*", maxLevel=3);
+			insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "+", maxLevel=3);
 		});
 
 		// Strike
@@ -1355,11 +1405,16 @@
 
 		const itemSearchTemplateTextArea = document.querySelector('textarea#itemsearch_results.template');
 		if (itemSearchTemplateTextArea) {
+			// 現在の値を取得
 			let content = itemSearchTemplateTextArea.value;
 
+			// editor.buffer.savePoint(); を削除
 			content = content.replace(/editor\.buffer\.savePoint\(\);/g, '');
+
+			// editor.item_search.insertString(*); を window.monacoInsertString(*) に置換
 			content = content.replace(/editor\.item_search\.insertString\((.*?)\);/g, 'window.monacoInsertString($1);');
 
+			// 修正した内容をテキストエリアに設定
 			itemSearchTemplateTextArea.value = content;
 		}
 	}
