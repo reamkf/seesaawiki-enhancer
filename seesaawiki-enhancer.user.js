@@ -623,7 +623,7 @@
 
 
 	function replaceTextareaWithMonaco(_w=window, value="") {
-		_w.monacoEditor = _w.monaco.editor.create(_w.document.getElementById('monaco-editor-container'), {
+		const monacoEditor = _w.monaco.editor.create(_w.document.getElementById('monaco-editor-container'), {
 			value: value,
 			language: 'seesaawiki',
 			theme: 'seesaawikiTheme',
@@ -636,10 +636,30 @@
 				ambiguousCharacters: true,
 				invisibleCharacters: false,
 				nonBasicASCII: false
-			}
+			},
+			'find': { return: false }
 		});
+		_w.monacoEditor = monacoEditor;
 
 		// カスタムキーバインディングの設定
+		const focusContextKey = monacoEditor.createContextKey('editorFocus', false);
+
+		function updateFocusContext() {
+			const hasFocus = monacoEditor.hasTextFocus();
+			focusContextKey.set(hasFocus);
+			console.log('Editor focus state:', hasFocus);
+		}
+
+		monacoEditor.onDidFocusEditorText(() => {
+			updateFocusContext();
+		});
+
+		monacoEditor.onDidBlurEditorText(() => {
+			updateFocusContext();
+		});
+
+		updateFocusContext();
+
 		_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyB, () => {
 			wrapSelectedText(_w.monaco, _w.monacoEditor, "''", "''");
 		});
@@ -661,21 +681,45 @@
 		});
 
 
+		function getTableCellRanges(_w=window, lineNumber) {
+			const model = _w.monacoEditor.getModel();
+			const lineContent = model.getLineContent(lineNumber);
+
+			const tableMatch = lineContent.match(/^\|([^|]*\|)+c?$/);
+			if (tableMatch) {
+				const cellContents = lineContent.split('|'); // 先頭の左と末尾の右もセルとして扱う
+				const cellRanges = [];
+
+				let cellStart = 1;  // '|' の左から開始
+				let cellEnd;
+
+				for (let i = 0; i < cellContents.length; i++) {
+					cellEnd = cellStart + cellContents[i].length  // 次の '|' の前まで
+
+					cellRanges.push(new _w.monaco.Range(
+						lineNumber,
+						cellStart,
+						lineNumber,
+						cellEnd
+					));
+
+					cellStart = cellEnd + 1;  // 次のセルの開始位置（'|' の位置）
+				}
+
+				return cellRanges;
+			} else return null;
+		}
+
 		_w.monacoEditor.addCommand(_w.monaco.KeyCode.Enter, () => {
 			const model = _w.monacoEditor.getModel();
 			const position = _w.monacoEditor.getPosition();
 			const lineContent = model.getLineContent(position.lineNumber);
 
-			const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(\s*)([^-]*)$/);
+			// 箇条書きの処理
+			const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(?!-)(.*)$/);
 			if (bulletMatch) {
-				const [, bullet, space, content] = bulletMatch;
-				if (content.trim() === '') {
-					// 空の箇条書きの場合、箇条書きを削除
-					_w.monacoEditor.executeEdits('', [{
-						range: new _w.monaco.Range(position.lineNumber, 1, position.lineNumber, position.column),
-						text: ''
-					}]);
-				} else {
+				const [, bullet, content] = bulletMatch;
+				if (content.trim() != '') {
 					// 次の行に同じ箇条書きを追加
 					const nextLineContent = bullet;
 					_w.monacoEditor.executeEdits('', [{
@@ -686,12 +730,214 @@
 						lineNumber: position.lineNumber + 1,
 						column: nextLineContent.length + 1
 					});
+				} else {
+					// 空の箇条書きの場合、箇条書きを削除
+					_w.monacoEditor.executeEdits('', [{
+						range: new _w.monaco.Range(position.lineNumber, 1, position.lineNumber, position.column),
+						text: ''
+					}]);
 				}
-			} else {
-				// 通常の改行
-				_w.monacoEditor.trigger('keyboard', 'type', { text: '\n' });
+				return;
 			}
-		});
+
+
+			// テーブルの処理
+			const cellRanges = getTableCellRanges(_w, position.lineNumber);
+
+			if (cellRanges) {
+				if(position.column === lineContent.length + 1){ // カーソルが末尾の場合
+					// 次の行に新しい行を追加
+					const nextLineContent = '|'.repeat(cellRanges.length - 1);
+
+					if(nextLineContent != lineContent){ // 行が空ではない場合
+						// 次の行に新しい行を追加
+						_w.monacoEditor.executeEdits('', [{
+							range: new _w.monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+							text: '\n' + nextLineContent
+						}]);
+						_w.monacoEditor.setPosition({
+							lineNumber: position.lineNumber + 1,
+							column: 2
+						});
+					} else { // 空の行の場合
+						// テーブルを削除
+						_w.monacoEditor.executeEdits('', [{
+							range: new _w.monaco.Range(position.lineNumber, 1, position.lineNumber, position.column),
+							text: ''
+						}]);
+					}
+				} else {
+					// 下のセルを選択
+					const nextLineNumber = position.lineNumber + 1;
+					if (nextLineNumber <= model.getLineCount()) {
+						const nextCellRanges = getTableCellRanges(_w, nextLineNumber);
+						const currentCellIndex = cellRanges.findIndex((cell) => cell.containsPosition(position)); // 見つからなかった場合は-1
+						if(nextCellRanges && nextCellRanges.length - 1 >= currentCellIndex){
+							const targetRange = nextCellRanges[currentCellIndex];
+							_w.monacoEditor.setSelection(targetRange);
+							_w.monacoEditor.revealPositionInCenterIfOutsideViewport(targetRange.getStartPosition());
+						}
+					}
+				}
+				return;
+			}
+
+			// 引用の処理
+			if(lineContent.startsWith('>') || lineContent.startsWith(' ')){
+				const content = lineContent.slice(1).trim();
+				if(content != ''){
+					// 次の行に新しい行を追加
+					_w.monacoEditor.executeEdits('', [{
+						range: new _w.monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+						text: '\n' + lineContent[0]
+					}]);
+					_w.monacoEditor.setPosition({
+						lineNumber: position.lineNumber + 1,
+						column: 2
+					});
+				} else {
+					_w.monacoEditor.executeEdits('', [{
+						range: new _w.monaco.Range(position.lineNumber, 1, position.lineNumber, position.column),
+						text: ''
+					}]);
+				}
+
+				return;
+			}
+
+			// 通常の改行
+			_w.monacoEditor.trigger('keyboard', 'type', { text: '\n' });
+		}, 'editorFocus');
+
+		_w.monacoEditor.addCommand(_w.monaco.KeyMod.Shift | _w.monaco.KeyCode.Enter, () => {
+			const position = _w.monacoEditor.getPosition();
+
+			// テーブルの処理
+			const cellRanges = getTableCellRanges(_w, position.lineNumber);
+
+			if (cellRanges) {
+				// 上のセルを選択
+				const prevLineNumber = position.lineNumber - 1;
+				if (prevLineNumber > 0) {
+					const prevCellRanges = getTableCellRanges(_w, prevLineNumber);
+					const currentCellIndex = cellRanges.findIndex((cell) => cell.containsPosition(position)); // 見つからなかった場合は-1
+					if(prevCellRanges && prevCellRanges.length - 1 >= currentCellIndex){
+						const targetRange = prevCellRanges[currentCellIndex];
+						_w.monacoEditor.setSelection(targetRange);
+						_w.monacoEditor.revealPositionInCenterIfOutsideViewport(targetRange.getStartPosition());
+					}
+				}
+				return;
+			}
+
+			// 通常の改行
+			_w.monacoEditor.trigger('keyboard', 'type', { text: '\n' });
+		}, 'editorFocus');
+
+		 // Tabキーの機能
+		_w.monacoEditor.addCommand(_w.monaco.KeyCode.Tab, () => {
+			const model = _w.monacoEditor.getModel();
+			const position = _w.monacoEditor.getPosition();
+			const lineContent = model.getLineContent(position.lineNumber);
+
+			// 箇条書きの処理
+			const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(?!-)(.*)$/);
+			if (bulletMatch) {
+				const [, bullet, content] = bulletMatch;
+				if(bullet.length < 3){
+					// インデントを増やす
+					_w.monacoEditor.executeEdits('', [{
+						range: new _w.monaco.Range(position.lineNumber, 1, position.lineNumber, 1),
+						text: bullet[0]
+					}]);
+				}
+				return;
+			}
+
+			// テーブルの処理
+			const cellRanges = getTableCellRanges(_w, position.lineNumber);
+			if (cellRanges) {
+				const currentCellIndex = cellRanges.findIndex((cell) => cell.containsPosition(position)); // 見つからなかった場合は-1
+
+				if (currentCellIndex !== -1) {
+					let targetRange;
+					if (currentCellIndex < cellRanges.length - 1) {
+						// 次のセルが同じ行にある場合
+						targetRange = cellRanges[currentCellIndex + 1];
+					} else {
+						// 次の行の最初のセルに移動
+						const nextLineNumber = position.lineNumber + 1;
+						if (nextLineNumber <= model.getLineCount()) {
+							const nextCellRanges = getTableCellRanges(_w, nextLineNumber);
+							if(nextCellRanges){
+								targetRange = nextCellRanges[0];
+							}
+						}
+					}
+
+					if (targetRange) {
+						_w.monacoEditor.setSelection(targetRange);
+						_w.monacoEditor.revealPositionInCenterIfOutsideViewport(targetRange.getStartPosition());
+					}
+				}
+				return;
+			}
+
+			// 通常のタブ挿入
+			_w.monacoEditor.trigger('keyboard', 'tab', {});
+		}, 'editorFocus');
+
+		_w.monacoEditor.addCommand(_w.monaco.KeyMod.Shift | _w.monaco.KeyCode.Tab, () => {
+			const model = _w.monacoEditor.getModel();
+			const position = _w.monacoEditor.getPosition();
+			const lineContent = model.getLineContent(position.lineNumber);
+
+			// 箇条書きの処理
+			const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(\s*)([^-]*)$/);
+			if (bulletMatch) {
+				const [, bullet, space, content] = bulletMatch;
+				if (bullet.length > 1) {
+					// インデントを減らす
+					_w.monacoEditor.executeEdits('', [{
+						range: new _w.monaco.Range(position.lineNumber, 1, position.lineNumber, 2),
+						text: ''
+					}]);
+				}
+				return;
+			}
+
+			// テーブルの処理
+			const cellRanges = getTableCellRanges(_w, position.lineNumber);
+			if (cellRanges) {
+				const currentCellIndex = cellRanges.findIndex((cell) => cell.containsPosition(position)); // 見つからなかった場合は-1
+
+				if (currentCellIndex !== -1) {
+					let targetRange;
+					if (currentCellIndex > 0) {
+						// 前のセルが同じ行にある場合
+						targetRange = cellRanges[currentCellIndex - 1];
+					} else {
+						// 前の行の最後のセルに移動
+						const prevLineNumber = position.lineNumber - 1;
+						if (prevLineNumber > 0) {
+							const prevCellRanges = getTableCellRanges(_w, prevLineNumber);
+							if(prevCellRanges){
+								targetRange = prevCellRanges[prevCellRanges.length - 1];
+							}
+						}
+					}
+
+					if (targetRange) {
+						_w.monacoEditor.setSelection(targetRange);
+						_w.monacoEditor.revealPositionInCenterIfOutsideViewport(targetRange.getStartPosition());
+					}
+				}
+				return;
+			}
+
+			// 通常の逆タブ
+			_w.monacoEditor.trigger('keyboard', 'outdent', {});
+		}, 'editorFocus');
 
 
 		// 既存のボタンの機能を実装
@@ -1007,6 +1253,8 @@
 
 		const monaco = iframeWindow.monaco;
 		const monacoEditor = iframeWindow.monacoEditor;
+		window.monaco = monaco;
+		window.monacoEditor = monacoEditor;
 
 		const symbolProvider = new SeesaaWikiDocumentSymbolProvider(monaco);
 
