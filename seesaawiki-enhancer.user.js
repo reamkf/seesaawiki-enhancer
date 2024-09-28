@@ -24,17 +24,18 @@
 			const documentSymbols = [];
 			let symbol;
 			const lastUnclosedHeadingSymbol = [null, null, null];
+			const headingRegex = /^\*{0,3}/;
 
-			for (let lineNum = 0; lineNum < model.getLineCount(); lineNum++) {
-				const lineContent = model.getLineContent(lineNum + 1);
-				const headingMatch = lineContent.match(/^\*{0,3}/);
+			for (let lineIndex = 1; lineIndex <= model.getLineCount(); lineIndex++) {
+				const lineContent = model.getLineContent(lineIndex);
+				const headingMatch = lineContent.match(headingRegex);
 				const headingLevel = headingMatch && headingMatch[0].length || 0;
 
 				if (headingLevel) {
 					const range = {
-						startLineNumber: lineNum + 1,
+						startLineNumber: lineIndex,
 						startColumn: 1,
-						endLineNumber: lineNum + 1,
+						endLineNumber: lineIndex,
 						endColumn: lineContent.length + 1
 					};
 
@@ -50,8 +51,8 @@
 					// Close opened deeper headings
 					for (let level = headingLevel; level <= 3; level++) {
 						if (lastUnclosedHeadingSymbol[level - 1] !== null) {
-							lastUnclosedHeadingSymbol[level - 1].range.endLineNumber = lineNum;
-							lastUnclosedHeadingSymbol[level - 1].range.endColumn = model.getLineMaxColumn(lineNum);
+							lastUnclosedHeadingSymbol[level - 1].range.endLineNumber = lineIndex - 1;
+							lastUnclosedHeadingSymbol[level - 1].range.endColumn = model.getLineMaxColumn(lineIndex - 1);
 							lastUnclosedHeadingSymbol[level - 1] = null;
 						}
 					}
