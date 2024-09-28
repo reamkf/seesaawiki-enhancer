@@ -997,7 +997,7 @@
 
 		// Heading
 		parentDocument.getElementById('h2').addEventListener('click', () => {
-			insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "+", maxLevel=3);
+			insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, "*", maxLevel=3);
 		});
 
 		// Strike
@@ -1342,6 +1342,26 @@
 				}
 			});
 		});
+
+		window.monacoInsertString = (str, selected=true) => {
+			const monacoEditor = window.monacoEditor;
+			const position = monacoEditor.getPosition();
+			const range = new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column);
+			monacoEditor.executeEdits('', [{
+				range: selected ? monacoEditor.getSelection() : range,
+				text: str,
+			}]);
+		};
+
+		const itemSearchTemplateTextArea = document.querySelector('textarea#itemsearch_results.template');
+		if (itemSearchTemplateTextArea) {
+			let content = itemSearchTemplateTextArea.value;
+
+			content = content.replace(/editor\.buffer\.savePoint\(\);/g, '');
+			content = content.replace(/editor\.item_search\.insertString\((.*?)\);/g, 'window.monacoInsertString($1);');
+
+			itemSearchTemplateTextArea.value = content;
+		}
 	}
 
 	function extractDiffContent() {
