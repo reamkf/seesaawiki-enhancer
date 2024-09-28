@@ -36,9 +36,9 @@ PC版のみ対応します。モバイル版では動作しません。
 
 ブラウザはChromium系(Google Chrome, Microsoft Edge等)を推奨します。それ以外のブラウザでの動作は確認していません。
 
-## 使用方法
+## インストール方法
 1. [Tampermonkey](https://www.tampermonkey.net)をインストールする
-2. [最新のRelease](https://github.com/reamkf/seesaawiki-enhancer/releases/latest)の`seesaawiki-enhancer.user.js`([直リンク](https://github.com/reamkf/seesaawiki-enhancer/releases/latest/download/seesaawiki-enhancer.user.js))をクリックする
+2. [最新のRelease](https://github.com/reamkf/seesaawiki-enhancer/releases/latest)の`seesaawiki-enhancer.user.js` [[直リンク]](https://github.com/reamkf/seesaawiki-enhancer/releases/latest/download/seesaawiki-enhancer.user.js) をクリックする
 3. Tampermonkeyのインストール画面が表示されるので、インストールをクリックする
 
 ※ブラウザの開発者モードを有効化する必要がある可能性があります。詳しくは[こちら](https://www.tampermonkey.net/faq.php?locale=ja#Q209)を参照
