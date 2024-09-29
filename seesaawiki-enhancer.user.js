@@ -269,7 +269,7 @@
 				["[", "]"],
 				["(", ")"],
 				["[[", "]]"],
-				["&", ";"],    // HTMLエンティティのための疑似的な括弧
+				// ["&", ";"],    // HTMLエンティティのための疑似的な括弧
 			],
 			autoClosingPairs: [
 				{ open: "{", close: "}" },
@@ -302,208 +302,186 @@
 					[/^\/\/.*$/, 'comment'],
 
 					// Headings
-					[/^(\*)(?!\*)(.*)$/, ['keyword', 'markup.heading.3']],
+					[/^(\*)(?!\*)(.*)$/,    ['keyword', 'markup.heading.3']],
 					[/^(\*{2})(?!\*)(.*)$/, ['keyword', 'markup.heading.4']],
 					[/^(\*{3})(?!\*)(.*)$/, ['keyword', 'markup.heading.5']],
 
 					// Links
-					[/(\[\[)([^>]*?)(>{0,3})([^>]*?)(#\w+)?(\]\])/, [
-						'keyword',
-						'markup.underline.link',
-						'keyword',
-						'markup.underline.link',
-						'support.variable',
-						'keyword'
-					]],
+					[/\[\[/, {token: 'delimiter.square', bracket: '@open', next: '@links'}],
 
 					// Refs
-					[/(&|#)(ref|attach|attachref)(\()([^,)]*?)(?:(,\s*)(\d*%?)){0,2}(?:(,\s*)(left|right|no_link)){0,2}(\))(?:(\{)([^}]*?)(\}))?/, [
-						'keyword.control',
-						'support.variable',
-						'keyword.control',
-						'markup.underline.link.image',
-						'keyword.control',
-						'constant.numeric',
-						'keyword.control',
-						'keyword.control',
-						'keyword.control',
-						'keyword.control',
-						'',
-						'keyword.control'
-					]],
+					[/(&|#)(ref|attachref)(\()/, ['keyword.control', 'keyword', { token: 'delimiter.curly', bracket: '@open', next: '@ref' }]],
 
 					// Bold
-					[/('')([^']*?)('')/, [
-						'keyword',
-						'markup.bold',
-						'keyword'
-					]],
-
-					// Italic
-					[/(''')([^']*?)(''')/, [
-						'keyword',
-						'markup.italic',
-						'keyword'
-					]],
+					[/('')([^']*?)('')/, ['keyword', {token: 'markup.bold', next: '@root'}, 'keyword']],
 
 					// Underline
-					[/(%%%)([^%]*?)(%%%)/, [
-						'keyword',
-						'markup.underline',
-						'keyword'
-					]],
+					[/(%%%)([^%]*?)(%%%)/, ['keyword', {token: 'markup.underline', next: '@root'}, 'keyword']],
+
+					// Italic
+					[/(''')([^']*?)(''')/, ['keyword', {token: 'markup.italic', next: '@root'}, 'keyword']],
 
 					// Strike
-					[/(%%)([^%]*?)(%%)/, [
-						'keyword',
-						'markup.deleted',
-						'keyword'
-					]],
+					[/(%%)([^%]*?)(%%)/, ['keyword', {token: 'markup.deleted', next: '@root'}, 'keyword']],
 
 					// Font size
-					[/(&)(size)(\()(\d+)(\))(\{)([^}]*)(\})/, [
-						'keyword.control',
-						'support.variable',
-						'keyword',
-						'constant.numeric',
-						'keyword',
-						'keyword',
-						{ token: '', next: '@sizeContent' },
-						'keyword'
+					[/(&|#)(size)(\()(\d+)(\))(\{)/, [
+						'keyword.control', 'keyword',
+						{ token: 'delimiter.parenthesis', bracket: '@open'},
+						'number',
+						{ token: 'delimiter.parenthesis', bracket: '@close'},
+						{ token: 'delimiter.curly', bracket: '@open', next: '@root'},
 					]],
 
 					// Font color
-					[/(&)(color)(\()([^,)]*?)(,?)(s*)([^,)]*?)(\))(\{)([^}]*)(\})/, [
-						'keyword.control',
-						'support.variable',
-						'keyword',
-						'constant.other.colorcode',
-						'keyword',
-						'',
-						'constant.other.colorcode',
-						'keyword',
-						'keyword',
-						{ token: '', next: '@colorContent' },
-						'keyword'
-					]],
+					// [/(&)(color)(\()([^,)]*?)(,?)(s*)([^,)]*?)(\))(\{)([^}]*)(\})/, [
+					// 	'keyword.control',
+					// 	'support.variable',
+					// 	'keyword',
+					// 	'constant.other.colorcode',
+					// 	'keyword',
+					// 	'',
+					// 	'constant.other.colorcode',
+					// 	'keyword',
+					// 	'keyword',
+					// 	{ token: '', next: '@colorContent' },
+					// 	'keyword'
+					// ]],
 
-					// Foidings
-					[/^(\[)(\+|-)(\])(.*)$/, [
-						'keyword',
-						'keyword',
-						'keyword',
-						'markup.bold'
-					]],
-					[/^(\[END\])/, 'keyword'],
+					// Pop }
+					[/\[}/, {token: 'delimiter.curly', bracket: '@close', next: '@pop'}],
 
-					// Table of contents
-					[/^(#)(contents)(?:(\()(1|2)(\)))?/, [
-						'keyword.control',
-						'support.variable',
-						'keyword',
-						'constant.numeric',
-						'keyword'
-					]],
+				// 	// Foidings
+				// 	[/^(\[)(\+|-)(\])(.*)$/, [
+				// 		'keyword',
+				// 		'keyword',
+				// 		'keyword',
+				// 		'markup.bold'
+				// 	]],
+				// 	[/^(\[END\])/, 'keyword'],
 
-					// New Line
-					[/(~~)(~~~)*/, 'keyword.control'],
-					[/^(=\|)(BOX|AA|AAS|CC|CPP|CS|CYC|JAVA|BSH|CSH|SH|CV|PY|PERL|PL|PM|RB|JS|HTML|XHTML|XML|XSL|LUA|ERLANG|GO|LISP|R|SCALA|SQL|SWIFT|TEX|YAML|AUTO|\(box=(?:textarea|div)\))?(\|)$/, [
-						'keyword',
-						'keyword',
-						'keyword'
-					]],
+				// 	// Table of contents
+				// 	[/^(#)(contents)(?:(\()(1|2)(\)))?/, [
+				// 		'keyword.control',
+				// 		'support.variable',
+				// 		'keyword',
+				// 		'constant.numeric',
+				// 		'keyword'
+				// 	]],
 
-					// Pre
-					[/^(\|\|=)$/, 'keyword'],
+				// 	// New Line
+				// 	[/(~~)(~~~)*/, 'keyword.control'],
+				// 	[/^(=\|)(BOX|AA|AAS|CC|CPP|CS|CYC|JAVA|BSH|CSH|SH|CV|PY|PERL|PL|PM|RB|JS|HTML|XHTML|XML|XSL|LUA|ERLANG|GO|LISP|R|SCALA|SQL|SWIFT|TEX|YAML|AUTO|\(box=(?:textarea|div)\))?(\|)$/, [
+				// 		'keyword',
+				// 		'keyword',
+				// 		'keyword'
+				// 	]],
 
-					// Email
-					[/\w+@\w+\.\w+/, 'markup.underline.link'],
+				// 	// Pre
+				// 	[/^(\|\|=)$/, 'keyword'],
 
-					// List
-					[/^(\+{1,3})([^\+].*)?$/, ['keyword', '']],
-					[/^(\-{1,3})([^\-].*)?$/, ['keyword', '']],
+				// 	// Email
+				// 	[/\w+@\w+\.\w+/, 'markup.underline.link'],
+
+				// 	// List
+				// 	[/^(\+{1,3})([^\+].*)?$/, ['keyword', '']],
+				// 	[/^(\-{1,3})([^\-].*)?$/, ['keyword', '']],
 
 
-					// Horizon
-					[/^(----)$/, 'keyword.control'],
+				// 	// Horizon
+				// 	[/^(----)$/, 'keyword.control'],
 
-					// Anchor
-					[/(&)(aname)(\()([^\)]*)(\))/, [
-						'keyword.control',
-						'support.variable',
-						'keyword.control',
-						'constant.other',
-						'keyword.control'
-					]],
+				// 	// Anchor
+				// 	[/(&)(aname)(\()([^\)]*)(\))/, [
+				// 		'keyword.control',
+				// 		'support.variable',
+				// 		'keyword.control',
+				// 		'constant.other',
+				// 		'keyword.control'
+				// 	]],
 
-					// HTML Entities
-					[/&(\w+|#\d+|#x[\da-fA-F]+);/, 'constant.character.escape'],
+				// 	// HTML Entities
+				// 	[/&(\w+|#\d+|#x[\da-fA-F]+);/, 'constant.character.escape'],
 
-					// Super
-					[/(&)(sup)(\{)([^}]*)(\})/, [
-						'keyword.control',
-						'support.variable',
-						'keyword',
-						{ token: '', next: '@supContent' },
-						'keyword'
-					]],
+				// 	// Super
+				// 	[/(&)(sup)(\{)([^}]*)(\})/, [
+				// 		'keyword.control',
+				// 		'support.variable',
+				// 		'keyword',
+				// 		{ token: '', next: '@supContent' },
+				// 		'keyword'
+				// 	]],
 
-					// Sub
-					[/(__)(.*)(__)/,
-						['keyword', '', 'keyword']
-					],
+				// 	// Sub
+				// 	[/(__)(.*)(__)/,
+				// 		['keyword', '', 'keyword']
+				// 	],
 
-					// Fukidashi
-					[/(&)(fukidashi)(\()([^,)]*?)(?:(,)(s*)(right))?(\))(\{)([^}]*)(\})/, [
-						'keyword.control',
-						'support.variable',
-						'keyword',
-						'constant.other',
-						'keyword',
-						'keyword',
-						'keyword.control',
-						'keyword',
-						'keyword',
-						{ token: '', next: '@fukidashiContent' },
-						'keyword'
-					]],
+				// 	// Fukidashi
+				// 	[/(&)(fukidashi)(\()([^,)]*?)(?:(,)(s*)(right))?(\))(\{)([^}]*)(\})/, [
+				// 		'keyword.control',
+				// 		'support.variable',
+				// 		'keyword',
+				// 		'constant.other',
+				// 		'keyword',
+				// 		'keyword',
+				// 		'keyword.control',
+				// 		'keyword',
+				// 		'keyword',
+				// 		{ token: '', next: '@fukidashiContent' },
+				// 		'keyword'
+				// 	]],
 
-					// Ruby
-					[/(&)(ruby)(\()([^)]*?)(\))(\{)([^}]*)(\})/, [
-						'keyword.control',
-						'support.variable',
-						'keyword',
-						{ token: '', next: '@rubyBase' },
-						'keyword',
-						'keyword',
-						{ token: '', next: '@rubyText' },
-						'keyword'
-					]],
+				// 	// Ruby
+				// 	[/(&)(ruby)(\()([^)]*?)(\))(\{)([^}]*)(\})/, [
+				// 		'keyword.control',
+				// 		'support.variable',
+				// 		'keyword',
+				// 		{ token: '', next: '@rubyBase' },
+				// 		'keyword',
+				// 		'keyword',
+				// 		{ token: '', next: '@rubyText' },
+				// 		'keyword'
+				// 	]],
 				],
-				fukidashiContent: [
-					[/[^}]+/, ''],
-					[/\}/, { token: 'keyword', next: '@pop' }]
+				links: [
+					[/\]\]/, { token: 'delimiter.square', bracket: '@close', next: '@pop'}],
+					[/>{1,3}/, 'delimiter.angle'],
+					[/https?:\/\/[^\s>\]]+/, 'string.url'],
+					[/#[a-zA-Z0-1\-_\.:]+/, 'support.variable.italic'],
+					[/[^#>\]]+/, 'markup.underline.link']
 				],
-				sizeContent: [
-					[/[^}]+/, ''],
-					[/\}/, { token: 'keyword', next: '@pop' }]
+				ref: [
+					[/\)/, { token: 'delimiter.curly', bracket: '@close', next: '@pop' }],
+					[/,/, 'delimiter'],
+					[/(\d+%?)/, 'number'],
+					[/(https?:\/\/[^\s,)]+)/, 'string.url'],
+					[/(left|right|no_link)/, 'keyword.parameter'],
 				],
-				colorContent: [
-					[/[^}]+/, ''],
-					[/\}/, { token: 'keyword', next: '@pop' }]
-				],
-				supContent: [
-					[/[^}]+/, ''],
-					[/\}/, { token: 'keyword', next: '@pop' }]
-				],
-				rubyBase: [
-					[/[^)]+/, ''],
-					[/\)/, { token: 'keyword', next: '@pop' }]
-				],
-				rubyText: [
-					[/[^}]+/, ''],
-					[/\}/, { token: 'keyword', next: '@pop' }]
-				]
+				// fukidashiContent: [
+				// 	[/[^}]+/, ''],
+				// 	[/\}/, { token: 'keyword', next: '@pop' }]
+				// ],
+				// sizeContent: [
+				// 	[/[^}]+/, ''],
+				// 	[/\}/, { token: 'keyword', next: '@pop' }]
+				// ],
+				// colorContent: [
+				// 	[/[^}]+/, ''],
+				// 	[/\}/, { token: 'keyword', next: '@pop' }]
+				// ],
+				// supContent: [
+				// 	[/[^}]+/, ''],
+				// 	[/\}/, { token: 'keyword', next: '@pop' }]
+				// ],
+				// rubyBase: [
+				// 	[/[^)]+/, ''],
+				// 	[/\)/, { token: 'keyword', next: '@pop' }]
+				// ],
+				// rubyText: [
+				// 	[/[^}]+/, ''],
+				// 	[/\}/, { token: 'keyword', next: '@pop' }]
+				// ]
 			}
 		};
 
@@ -522,10 +500,11 @@
 				{ token: 'markup.bold', fontStyle: 'bold', foreground: '569CD6' },
 				{ token: 'markup.italic', fontStyle: 'italic' },
 				{ token: 'markup.underline', fontStyle: 'underline' },
-				{ token: 'markup.deleted', fontStyle: 'line-through' },
+				{ token: 'markup.deleted', fontStyle: 'strikethrough' },
 				{ token: 'constant.numeric', foreground: 'B5CEA8' },
 				{ token: 'constant.character.escape', foreground: 'D7BA7D' },
 				{ token: 'support.variable', foreground: 'FF0000' },
+				{ token: 'support.variable.italic', foreground: '569CD6', fontStyle: 'italic' },
 				{ token: 'constant.other.colorcode', foreground: 'CE9178' },
 				{ token: 'markup.underline.link.image', foreground: '4EC9B0', fontStyle: 'underline' },
 				{ token: 'entity.name.function', foreground: 'DCDCAA' },

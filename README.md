@@ -54,8 +54,6 @@ PC版のみ対応します。モバイル版では動作しません。
 Tampermonkeyの更新機能に対応しているため、Tampermonkeyの自動更新機能を用いる(推奨)か、スクリプト設定画面から更新を行ってください。
 
 ## 既知の問題
-- 一部シンタックスハイライトが正常に表示されない
-- コンソールに`Uncaught Error: Cannot read properties of undefined (reading 'length')`が出る
 - `Tab`でIntelisenseの候補を選択できない
 - 元のエディターのツールバーの一部が機能しない
   - → 現状対応予定なし。人力で書いてください。
@@ -63,6 +61,7 @@ Tampermonkeyの更新機能に対応しているため、Tampermonkeyの自動�
   - → これはMonaco Editorの(デフォルト設定での)仕様です。処理が重くなるのを避けるために、解析する量に上限を設けています。
 
 ## 今後実装したい機能
+- より多くのシンタックスへのシンタックスハイライト対応
 - Snippet機能
 - 画像コピペ機能
 - Completion機能
