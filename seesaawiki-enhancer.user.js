@@ -671,23 +671,23 @@
 		_w.monacoEditor = monacoEditor;
 
 		// カスタムキーバインディングの設定
-		const focusContextKey = monacoEditor.createContextKey('editorFocus', false);
+		// const focusContextKey = monacoEditor.createContextKey('editorFocus', false);
 
-		function updateFocusContext() {
-			const hasFocus = monacoEditor.hasTextFocus();
-			focusContextKey.set(hasFocus);
-			console.log('Editor focus state:', hasFocus);
-		}
+		// function updateFocusContext() {
+		// 	const hasFocus = monacoEditor.hasTextFocus();
+		// 	focusContextKey.set(hasFocus);
+		// 	console.log('Editor focus state:', hasFocus);
+		// }
 
-		monacoEditor.onDidFocusEditorText(() => {
-			updateFocusContext();
-		});
+		// monacoEditor.onDidFocusEditorText(() => {
+		// 	updateFocusContext();
+		// });
 
-		monacoEditor.onDidBlurEditorText(() => {
-			updateFocusContext();
-		});
+		// monacoEditor.onDidBlurEditorText(() => {
+		// 	updateFocusContext();
+		// });
 
-		updateFocusContext();
+		// updateFocusContext();
 
 		_w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyB, () => {
 			wrapSelectedText(_w.monaco, _w.monacoEditor, "''", "''");
@@ -836,7 +836,7 @@
 
 			// 通常の改行
 			_w.monacoEditor.trigger('keyboard', 'type', { text: '\n' });
-		}, 'editorFocus');
+		}, 'editorTextFocus && !editorReadonly && !editorTabMovesFocus && !suggestWidgetHasFocusedSuggestion && !suggestWidgetVisible');
 
 		_w.monacoEditor.addCommand(_w.monaco.KeyMod.Shift | _w.monaco.KeyCode.Enter, () => {
 			const position = _w.monacoEditor.getPosition();
@@ -861,7 +861,7 @@
 
 			// 通常の改行
 			_w.monacoEditor.trigger('keyboard', 'type', { text: '\n' });
-		}, 'editorFocus');
+		}, 'editorTextFocus && !editorReadonly && !editorTabMovesFocus && !suggestWidgetHasFocusedSuggestion && !suggestWidgetVisible');
 
 		 // Tabキーの機能
 		_w.monacoEditor.addCommand(_w.monaco.KeyCode.Tab, () => {
@@ -914,7 +914,7 @@
 
 			// 通常のタブ挿入
 			_w.monacoEditor.trigger('keyboard', 'tab', {});
-		}, 'editorFocus');
+		}, 'editorTextFocus && !editorReadonly && !editorTabMovesFocus && !suggestWidgetHasFocusedSuggestion && !suggestWidgetVisible');
 
 		_w.monacoEditor.addCommand(_w.monaco.KeyMod.Shift | _w.monaco.KeyCode.Tab, () => {
 			const model = _w.monacoEditor.getModel();
@@ -966,7 +966,7 @@
 
 			// 通常の逆タブ
 			_w.monacoEditor.trigger('keyboard', 'outdent', {});
-		}, 'editorFocus');
+		}, 'editorTextFocus && !editorReadonly && !editorTabMovesFocus && !suggestWidgetHasFocusedSuggestion && !suggestWidgetVisible');
 
 
 		// 既存のボタンの機能を実装
