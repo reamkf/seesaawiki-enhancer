@@ -299,7 +299,7 @@
 
 		seesaaWikiLanguage = {
 			anchorName: /[a-zA-Z0-1\-_\.:]+/,
-			tableParams: /center|left|right|(?:color|bgcolor|size|w|h)\(.*?\):?/,
+			tableParams: /(?:center|left|right|(?:color|bgcolor|size|w|h)\(.*?\)):?/,
 			tokenizer: {
 				root: [
 					// Comment
