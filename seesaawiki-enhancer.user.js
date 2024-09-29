@@ -662,7 +662,7 @@
 			bracketPairColorization: { enabled: true },
 			renderLineHighlight: "all",
 			unicodeHighlight: {
-				ambiguousCharacters: true,
+				ambiguousCharacters: false,
 				invisibleCharacters: false,
 				nonBasicASCII: false
 			},
@@ -1472,7 +1472,7 @@
 			wordWrap: "on",
 			scrollBeyondLastLine: false,
 			unicodeHighlight: {
-				ambiguousCharacters: true,
+				ambiguousCharacters: false,
 				invisibleCharacters: false,
 				nonBasicASCII: false
 			}
