@@ -269,6 +269,7 @@
 				["[", "]"],
 				["(", ")"],
 				["[[", "]]"],
+				// ["|", "|"],
 				// ["&", ";"],    // HTMLエンティティのための疑似的な括弧
 			],
 			autoClosingPairs: [
@@ -290,12 +291,15 @@
 				{ open: "'''", close: "'''" },
 				{ open: "%%", close: "%%" },
 				{ open: "%%%", close: "%%" },
+				{ open: "|", close: "|" },
 			]
 		};
 
 		monaco.languages.setLanguageConfiguration("seesaawiki", languageConfiguration);
 
 		seesaaWikiLanguage = {
+			anchorName: /[a-zA-Z0-1\-_\.:]+/,
+			tableParams: /center|left|right|(?:color|bgcolor|size|w|h)\(.*?\):?/,
 			tokenizer: {
 				root: [
 					// Comment
@@ -330,78 +334,62 @@
 						{ token: 'delimiter.parenthesis', bracket: '@open'},
 						'number',
 						{ token: 'delimiter.parenthesis', bracket: '@close'},
-						{ token: 'delimiter.curly', bracket: '@open', next: '@root'},
+						{ token: 'delimiter.curly', bracket: '@open', next: '@rootCloseCurlyBracket'},
 					]],
 
 					// Font color
-					// [/(&)(color)(\()([^,)]*?)(,?)(s*)([^,)]*?)(\))(\{)([^}]*)(\})/, [
-					// 	'keyword.control',
-					// 	'support.variable',
+					[/(&|#)(color)(\()(#[0-9A-Fa-f]{3}|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|[a-zA-Z]+)(\))(\{)/, [
+						'keyword.control', 'keyword',
+						{ token: 'delimiter.parenthesis', bracket: '@open'},
+						'constant.other.colorcode',
+						{ token: 'delimiter.parenthesis', bracket: '@close'},
+						{ token: 'delimiter.curly', bracket: '@open', next: '@root'},
+					]],
+
+					// Foidings
+					[/^\[(?:\+|-)\]/, { token: 'keyword.control', bracket: '@open', next: '@root'}],
+					[/^\[END\]/, { token: 'keyword.control', bracket: '@close', next: '@pop'}],
+
+					// Table of contents
+					[/^(#)(contents)(\()(1|2)(\))/, ['keyword.control', 'keyword', {token: 'delimiter.parenthesis', bracket: '@open'}, 'number', {token: 'delimiter.parenthesis', bracket: '@close'}]],
+					[/^(#)(contents)/, ['keyword.control', 'keyword']],
+
+					// New Line
+					[/~~(?:~~~)*/, 'keyword.control'],
+
+					// Table
+					// [/^\|(?=.*\|c?$)/, 'keyword.control', '@root'],
+					[/^\|/, {token: 'keyword.control', bracket: '@open', next: '@table'}],
+
+					// // Code block
+					// [/^(=\|)(BOX|AA|AAS|CC|CPP|CS|CYC|JAVA|BSH|CSH|SH|CV|PY|PERL|PL|PM|RB|JS|HTML|XHTML|XML|XSL|LUA|ERLANG|GO|LISP|R|SCALA|SQL|SWIFT|TEX|YAML|AUTO|\(box=(?:textarea|div)\))?(\|)$/, [
 					// 	'keyword',
-					// 	'constant.other.colorcode',
 					// 	'keyword',
-					// 	'',
-					// 	'constant.other.colorcode',
-					// 	'keyword',
-					// 	'keyword',
-					// 	{ token: '', next: '@colorContent' },
 					// 	'keyword'
 					// ]],
 
-					// Pop }
-					[/\[}/, {token: 'delimiter.curly', bracket: '@close', next: '@pop'}],
+					// 	// Pre
+					// 	[/^(\|\|=)$/, 'keyword'],
 
-				// 	// Foidings
-				// 	[/^(\[)(\+|-)(\])(.*)$/, [
-				// 		'keyword',
-				// 		'keyword',
-				// 		'keyword',
-				// 		'markup.bold'
-				// 	]],
-				// 	[/^(\[END\])/, 'keyword'],
+					// Email
+					[/\w+@\w+\.\w+/, 'markup.underline.link'],
 
-				// 	// Table of contents
-				// 	[/^(#)(contents)(?:(\()(1|2)(\)))?/, [
-				// 		'keyword.control',
-				// 		'support.variable',
-				// 		'keyword',
-				// 		'constant.numeric',
-				// 		'keyword'
-				// 	]],
-
-				// 	// New Line
-				// 	[/(~~)(~~~)*/, 'keyword.control'],
-				// 	[/^(=\|)(BOX|AA|AAS|CC|CPP|CS|CYC|JAVA|BSH|CSH|SH|CV|PY|PERL|PL|PM|RB|JS|HTML|XHTML|XML|XSL|LUA|ERLANG|GO|LISP|R|SCALA|SQL|SWIFT|TEX|YAML|AUTO|\(box=(?:textarea|div)\))?(\|)$/, [
-				// 		'keyword',
-				// 		'keyword',
-				// 		'keyword'
-				// 	]],
-
-				// 	// Pre
-				// 	[/^(\|\|=)$/, 'keyword'],
-
-				// 	// Email
-				// 	[/\w+@\w+\.\w+/, 'markup.underline.link'],
-
-				// 	// List
-				// 	[/^(\+{1,3})([^\+].*)?$/, ['keyword', '']],
-				// 	[/^(\-{1,3})([^\-].*)?$/, ['keyword', '']],
+					// List
+					[/^(\+{1,3})(?!\+)/, ['keyword']],
+					[/^(\-{1,3})(?!\-)/, ['keyword']],
 
 
-				// 	// Horizon
-				// 	[/^(----)$/, 'keyword.control'],
+					// Horizon
+					[/^----$/, 'keyword.control'],
 
-				// 	// Anchor
-				// 	[/(&)(aname)(\()([^\)]*)(\))/, [
-				// 		'keyword.control',
-				// 		'support.variable',
-				// 		'keyword.control',
-				// 		'constant.other',
-				// 		'keyword.control'
-				// 	]],
+					// Anchor
+					[/(&)(aname)(\()(@anchorName)(\))/, [
+						'keyword.control', 'keyword',
+						{token: 'delimiter.parenthesis', bracket: '@open'}, 'support.variable.italic', {token: 'delimiter.parenthesis', bracket: '@close'}
+					]],
 
-				// 	// HTML Entities
-				// 	[/&(\w+|#\d+|#x[\da-fA-F]+);/, 'constant.character.escape'],
+					// HTML Entities
+					[/&(?:\w+|#\d+|#x[\da-fA-F]+);/, 'constant.character.escape'],
 
 				// 	// Super
 				// 	[/(&)(sup)(\{)([^}]*)(\})/, [
@@ -444,11 +432,20 @@
 				// 		'keyword'
 				// 	]],
 				],
+				rootCloseCurlyBracket: [
+					[/\}/, {token: 'delimiter.curly', bracket: '@close', next: '@pop'}],
+					{include: '@root'}
+				],
+				rootCloseTable: [
+					[/\|$/, {token: 'keyword.control', bracket: '@close', next: '@pop'}],
+					[/\|/, {token: 'keyword.control', bracket: '@close', next: '@pop'}],
+					{include: '@root'}
+				],
 				links: [
 					[/\]\]/, { token: 'delimiter.square', bracket: '@close', next: '@pop'}],
 					[/>{1,3}/, 'delimiter.angle'],
 					[/https?:\/\/[^\s>\]]+/, 'string.url'],
-					[/#[a-zA-Z0-1\-_\.:]+/, 'support.variable.italic'],
+					[/#@anchorName/, 'support.variable.italic'],
 					[/[^#>\]]+/, 'markup.underline.link']
 				],
 				ref: [
@@ -458,30 +455,18 @@
 					[/(https?:\/\/[^\s,)]+)/, 'string.url'],
 					[/(left|right|no_link)/, 'keyword.parameter'],
 				],
-				// fukidashiContent: [
-				// 	[/[^}]+/, ''],
-				// 	[/\}/, { token: 'keyword', next: '@pop' }]
-				// ],
-				// sizeContent: [
-				// 	[/[^}]+/, ''],
-				// 	[/\}/, { token: 'keyword', next: '@pop' }]
-				// ],
-				// colorContent: [
-				// 	[/[^}]+/, ''],
-				// 	[/\}/, { token: 'keyword', next: '@pop' }]
-				// ],
-				// supContent: [
-				// 	[/[^}]+/, ''],
-				// 	[/\}/, { token: 'keyword', next: '@pop' }]
-				// ],
-				// rubyBase: [
-				// 	[/[^)]+/, ''],
-				// 	[/\)/, { token: 'keyword', next: '@pop' }]
-				// ],
-				// rubyText: [
-				// 	[/[^}]+/, ''],
-				// 	[/\}/, { token: 'keyword', next: '@pop' }]
-				// ]
+				table: [
+					[/\|c?$/, {token: 'keyword.control', bracket: '@close', next: '@pop'}],
+					[/\|/, {token: 'keyword.control', bracket: '@close'}],
+					[/@tableParams/, 'keyword.parameter'],
+					[/(r)(\[)/, ['keyword.control', {token: 'keyword.control',  next: '@tableRowCondig'}]],
+					[/!|~|>|\^/, 'keyword.parameter'],
+					{include: '@rootCloseTable'}
+				],
+				tableRowCondig: [
+					[/\]:?/, {token: 'keyword.control', bracket: '@close', next: '@pop'}],
+					[/@tableParams/, 'keyword.parameter'],
+				]
 			}
 		};
 
@@ -497,6 +482,8 @@
 				{ token: 'markup.underline.link', fontStyle: 'underline' },
 				{ token: 'keyword.control', foreground: 'C586C0' },
 				{ token: 'keyword', foreground: '569CD6' },
+				{ token: 'table', background: 'FF0000',  },
+				{ token: 'table.c', foreground: 'C586C0' },
 				{ token: 'markup.bold', fontStyle: 'bold', foreground: '569CD6' },
 				{ token: 'markup.italic', fontStyle: 'italic' },
 				{ token: 'markup.underline', fontStyle: 'underline' },
