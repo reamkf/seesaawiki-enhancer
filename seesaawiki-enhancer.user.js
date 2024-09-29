@@ -784,10 +784,10 @@
 							range: new _w.monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
 							text: '\n' + nextLineContent
 						}]);
-						_w.monacoEditor.setPosition({
-							lineNumber: position.lineNumber + 1,
-							column: 2
-						});
+						// _w.monacoEditor.setPosition({
+						// 	lineNumber: position.lineNumber + 1,
+						// 	column: 2
+						// });
 					} else { // 空の行の場合
 						// テーブルを削除
 						_w.monacoEditor.executeEdits('', [{
