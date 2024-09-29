@@ -563,8 +563,9 @@
 		const seesaaWikiColorProvider = {
 			provideDocumentColors: function(model, token) {
 				const text = model.getValue();
-				const colorRepresentationRegex = "#[0-9A-Fa-f]{3}|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|[a-zA-Z]+";
-				const colorRegex = new RegExp(`(&color\\(|#color\\(|color\\(|bgcolor\\()\\s*(${colorRepresentationRegex})?\\s*,?\\s*(${colorRepresentationRegex})?\\s*\\)`, 'g');
+				const hexRegex = '[0-9A-Fa-f]';
+				const colorRepresentationRegex = `#${hexRegex}{8}|#${hexRegex}{6}|#${hexRegex}{3}|[a-zA-Z]+`;
+				const colorRegex = new RegExp(`(&color\\(|#color\\(|color\\(|bgcolor\\()\\s*(${colorRepresentationRegex})?\\s*(?:,\\s*(${colorRepresentationRegex})\\s*)?\\)`, 'g');
 				let match;
 				const colors = [];
 
