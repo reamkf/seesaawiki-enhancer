@@ -655,7 +655,8 @@
 				invisibleCharacters: false,
 				nonBasicASCII: false
 			},
-			'find': { return: false }
+			'find': { return: false },
+			"wordSeparators": "./\\()\"'-:,.;<>~!@#$%^&*|+=[]{}`~?。．、，　：；（）「」［］｛｝《》！？＜＞てにをはがのともへでや",
 		});
 		_w.monacoEditor = monacoEditor;
 
@@ -1426,7 +1427,8 @@
 				ambiguousCharacters: false,
 				invisibleCharacters: false,
 				nonBasicASCII: false
-			}
+			},
+			"wordSeparators": "./\\()\"'-:,.;<>~!@#$%^&*|+=[]{}`~?。．、，　：；（）「」［］｛｝《》！？＜＞てにをはがのともへでや",
 		});
 
 		const originalModel = monaco.editor.createModel(oldContent, "seesaawiki");
