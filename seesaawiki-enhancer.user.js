@@ -1410,7 +1410,7 @@
 					endLine:
 						currentChangeType === "add"
 							? newLineNumber - 1
-							: oldLineNumber - 1,
+							: newLineNumber - 1,
 					type: currentChangeType,
 				});
 				currentChangeStart = null;
@@ -1433,7 +1433,7 @@
 				oldContent += cleanLine + "\n";
 				if (currentChangeType !== "delete") {
 					pushChange();
-					currentChangeStart = oldLineNumber;
+					currentChangeStart = newLineNumber;
 					currentChangeType = "delete";
 				}
 				oldLineNumber++;
@@ -1489,52 +1489,6 @@
 		return diffEditor;
 	}
 
-	function createJumpButtons(diffEditor, changes) {
-		const buttonContainer = document.createElement("div");
-		buttonContainer.style.position = "absolute";
-		buttonContainer.style.top = "10px";
-		buttonContainer.style.right = "10px";
-		buttonContainer.style.zIndex = "1000";
-
-		const nextDiffButton = document.createElement("button");
-		nextDiffButton.textContent = "↓";
-		nextDiffButton.style.marginLeft = "5px";
-		nextDiffButton.onclick = () => jumpToNextDiff(diffEditor, changes);
-
-		const prevDiffButton = document.createElement("button");
-		prevDiffButton.textContent = "↑";
-		prevDiffButton.onclick = () => jumpToPrevDiff(diffEditor, changes);
-
-		buttonContainer.appendChild(prevDiffButton);
-		buttonContainer.appendChild(nextDiffButton);
-
-		return buttonContainer;
-	}
-
-	function jumpToDiff(diffEditor, changes, forward=true) {
-		const modifiedEditor = diffEditor.getModifiedEditor();
-		const currentPosition = modifiedEditor.getPosition();
-
-		let targetChange;
-		if (forward) {
-			targetChange = changes.find(change =>
-				(change.type === "add" && change.startLine > currentPosition.lineNumber) ||
-				(change.type === "delete" && change.startLine >= currentPosition.lineNumber)
-			);
-		} else {
-			targetChange = changes.slice().reverse().find(change =>
-				(change.type === "add" && change.endLine < currentPosition.lineNumber) ||
-				(change.type === "delete" && change.startLine < currentPosition.lineNumber)
-			);
-		}
-
-		if (targetChange) {
-			const jumpLine = targetChange.type === "add" ? targetChange.startLine : targetChange.startLine + 1;
-			modifiedEditor.setPosition({ lineNumber: jumpLine, column: 1 });
-			modifiedEditor.revealLineNearTop(jumpLine);
-		}
-	}
-
 	async function initMonacoDiffEditor() {
 		const diffBox = document.querySelector(".diff-box");
 
@@ -1558,16 +1512,11 @@
 			diffContent.newContent
 		);
 
-		// const buttonContainer = createJumpButtons(diffEditor, diffContent.changes);
-		// container.appendChild(buttonContainer);
+		window.monacoEditor = diffEditor;
 
-		diffEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, () => {
-			jumpToDiff(diffEditor, diffContent.changes, true);
-		});
 
-		diffEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, () => {
-			jumpToDiff(diffEditor, diffContent.changes, false);
-		});
+		diffEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, () => diffEditor.goToDiff('next'));
+		diffEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, () => diffEditor.goToDiff('previous'));
 	}
 
 })();
