@@ -1391,63 +1391,13 @@
 		if (!diffBox) return null;
 
 		let innerHTML = diffBox.innerHTML;
-		innerHTML = innerHTML.replace(/<br>/g, "");
+		innerHTML = innerHTML.replace(/<br>|<\/span>/g, "");
 		innerHTML = decodeHTMLEntities(innerHTML);
 
-		const lines = innerHTML.split("\n");
-		let oldContent = "";
-		let newContent = "";
-		const changes = [];
-		let oldLineNumber = 1;
-		let newLineNumber = 1;
-		let currentChangeStart = null;
-		let currentChangeType = null;
+		const oldContent = innerHTML.replace(/<span class="line-add">.*?\n|<span class="line-delete">/g, "")
+		const newContent = innerHTML.replace(/<span class="line-delete">.*?\n|<span class="line-add">/g, "")
 
-		function pushChange() {
-			if (currentChangeStart !== null) {
-				changes.push({
-					startLine: currentChangeStart,
-					endLine:
-						currentChangeType === "add"
-							? newLineNumber - 1
-							: newLineNumber - 1,
-					type: currentChangeType,
-				});
-				currentChangeStart = null;
-				currentChangeType = null;
-			}
-		}
-
-		for (const line of lines) {
-			if (line.includes('class="line-add"')) {
-				const cleanLine = line.replace(/<span class="line-add">|<\/span>/g, "");
-				newContent += cleanLine + "\n";
-				if (currentChangeType !== "add") {
-					pushChange();
-					currentChangeStart = newLineNumber;
-					currentChangeType = "add";
-				}
-				newLineNumber++;
-			} else if (line.includes('class="line-delete"')) {
-				const cleanLine = line.replace(/<span class="line-delete">|<\/span>/g, "");
-				oldContent += cleanLine + "\n";
-				if (currentChangeType !== "delete") {
-					pushChange();
-					currentChangeStart = newLineNumber;
-					currentChangeType = "delete";
-				}
-				oldLineNumber++;
-			} else {
-				oldContent += line + "\n";
-				newContent += line + "\n";
-				pushChange();
-				oldLineNumber++;
-				newLineNumber++;
-			}
-		}
-		pushChange();
-
-		return { oldContent, newContent, changes };
+		return { oldContent, newContent };
 	}
 
 	function createDiffEditorContainer() {
