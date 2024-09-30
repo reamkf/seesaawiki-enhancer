@@ -1450,6 +1450,18 @@
 		return { oldContent, newContent, changes };
 	}
 
+	function createDiffEditorContainer() {
+		const container = document.createElement("div");
+		container.id = "monaco-editor-container";
+		container.style.width = "100%";
+		container.style.height = "max(calc(100vh - 350px), 500px)";
+		container.style.marginBottom = "20px";
+		container.style.position = "relative";
+		container.style.border = "1px solid #ccc";
+
+		return container;
+	}
+
 	function createMonacoDiffEditor(container, oldContent, newContent) {
 		const diffEditor = monaco.editor.createDiffEditor(container, {
 			readOnly: true,
@@ -1475,18 +1487,6 @@
 		});
 
 		return diffEditor;
-	}
-
-	function createDiffEditorContainer() {
-		const container = document.createElement("div");
-		container.id = "monaco-editor-container";
-		container.style.width = "100%";
-		container.style.height = "max(calc(100vh - 350px), 500px)";
-		container.style.marginBottom = "20px";
-		container.style.position = "relative";
-		container.style.border = "1px solid #ccc";
-
-		return container;
 	}
 
 	function createJumpButtons(diffEditor, changes) {
