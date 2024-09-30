@@ -334,17 +334,11 @@
 						{ token: 'delimiter.parenthesis', bracket: '@open'},
 						'number',
 						{ token: 'delimiter.parenthesis', bracket: '@close'},
-						{ token: 'delimiter.curly', bracket: '@open', next: '@rootCloseCurlyBracket'},
+						{ token: 'delimiter.curly', bracket: '@open', next: '@root'},
 					]],
 
 					// Font color
-					[/(&|#)(color)(\()(#[0-9A-Fa-f]{3}|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|[a-zA-Z]+)(\))(\{)/, [
-						'keyword.control', 'keyword',
-						{ token: 'delimiter.parenthesis', bracket: '@open'},
-						'constant.other.colorcode',
-						{ token: 'delimiter.parenthesis', bracket: '@close'},
-						{ token: 'delimiter.curly', bracket: '@open', next: '@root'},
-					]],
+					[/(&|#)(color)(\()/, ['keyword.control', 'keyword', { token: 'delimiter.parenthesis', bracket: '@open', next: '@color'}]],
 
 					// Foidings
 					[/^\[(?:\+|-)\]/, { token: 'keyword.control', bracket: '@open', next: '@root'}],
@@ -454,6 +448,13 @@
 					[/(\d+%?)/, 'number'],
 					[/(https?:\/\/[^\s,)]+)/, 'string.url'],
 					[/(left|right|no_link)/, 'keyword.parameter'],
+				],
+				color: [
+					[/#[0-9A-Fa-f]{3}|#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|[a-zA-Z]+/, 'contant.other.colorcode'],
+					[/\)/, { token: 'delimiter.curly', bracket: '@close' }],
+					[/\{/, { token: 'delimiter.curly', bracket: '@open', next: '@root'}],
+					[/,/, 'delimiter'],
+					[/\s+/, ''],
 				],
 				table: [
 					[/\|c?$/, {token: 'keyword.control', bracket: '@close', next: '@pop'}],
