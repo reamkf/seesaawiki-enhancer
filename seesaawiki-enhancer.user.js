@@ -640,7 +640,7 @@
 
 
 		// アンカーリンクを検出する正規表現
-		const anchorLinkRegex = /\[\[(?:#([a-zA-Z0-9\-_\.:]+)|\S+>#([a-zA-Z0-9\-_\.:]+))\]\]/g;
+		const anchorLinkRegex = /\[\[(?:#([a-zA-Z0-9\-_\.:]+)|\S+?>#([a-zA-Z0-9\-_\.:]+))\]\]/g;
 
 		// アンカーを検出する正規表現
 		const anchorRegex = /&aname\(([a-zA-Z0-9\-_\.:]+)\)/;
