@@ -637,6 +637,136 @@
 		};
 
 		monaco.languages.registerColorProvider('seesaawiki', seesaaWikiColorProvider);
+
+
+		// アンカーリンクを検出する正規表現
+		const anchorLinkRegex = /\[\[(?:#([a-zA-Z0-9\-_\.:]+)|\S+>#([a-zA-Z0-9\-_\.:]+))\]\]/g;
+
+		// アンカーを検出する正規表現
+		const anchorRegex = /&aname\(([a-zA-Z0-9\-_\.:]+)\)/;
+
+		// DocumentLinkProviderを定義
+		const linkProvider = {
+			provideLinks: (model) => {
+				const links = [];
+				const text = model.getValue();
+				let match;
+
+				anchorLinkRegex.lastIndex = 0;
+				while ((match = anchorLinkRegex.exec(text)) !== null) {
+					const anchorName = match[1] || match[2];
+
+					links.push({
+						range: {
+							startLineNumber: model.getPositionAt(match.index).lineNumber,
+							startColumn: model.getPositionAt(match.index).column,
+							endLineNumber: model.getPositionAt(match.index + match[0].length).lineNumber,
+							endColumn: model.getPositionAt(match.index + match[0].length).column
+						},
+						// url: `#${anchorName}`,
+						anchorName: anchorName,
+						tooltip: `Jump to #${anchorName}`
+					});
+				}
+
+				return { links };
+			},
+			resolveLink: function(link, token) {
+				const anchorName = link.anchorName;
+				// const anchorName = JSON.parse(decodeURIComponent(link.url.split('?')[1]));
+				const editor = monaco.editor.getEditors()[0];
+				const model = editor.getModel();
+				const text = model.getValue();
+				const anchorMatch = text.match(new RegExp(`&aname\\(${anchorName}\\)`));
+
+				if (anchorMatch) {
+					const anchorIndex = anchorMatch.index;
+					const anchorPosition = model.getPositionAt(anchorIndex);
+
+					// URIにフラグメント識別子を追加して位置を指定
+					const uri = model.uri.with({
+						fragment: `${anchorPosition.lineNumber},${anchorPosition.column}`
+					});
+
+					return {
+						range: {
+							startLineNumber: anchorPosition.lineNumber,
+							startColumn: anchorPosition.column,
+							endLineNumber: anchorPosition.lineNumber,
+							endColumn: anchorPosition.column + anchorMatch[0].length
+						},
+						url: uri
+					};
+				}
+
+				return null;
+			}
+		};
+
+		// // DocumentLinkProviderを登録
+		monaco.languages.registerLinkProvider('seesaawiki', linkProvider);
+
+
+		// Definition Providerを登録
+		// monaco.languages.registerDefinitionProvider('seesaawiki', {
+			// provideDefinition: function(model, position, token) {
+				// // const wordInfo = model.getWordAtPosition(position);
+				// // if (!wordInfo) return;
+
+				// // const line = model.getLineContent(position.lineNumber);
+				// // // const lineUntilCursor = line.substring(0, position.column);
+				// // const lineUntilCursor = line
+
+				// // const lastLinkMatch = lineUntilCursor.match(anchorLinkRegex);
+				// // if (!lastLinkMatch) return;
+
+				// // const anchorName = lastLinkMatch[1] || lastLinkMatch[2];
+				// // console.log(1);
+				// // const text = model.getValue();
+				// // const anchorMatch = text.match(new RegExp(`&aname\\(${anchorName}\\)`));
+
+				// // if (anchorMatch) {
+				// // 	const anchorIndex = anchorMatch.index;
+				// // 	const anchorPosition = model.getPositionAt(anchorIndex);
+
+				// // 	const uri = model.uri.with({
+				// // 		fragment: `${anchorPosition.lineNumber},${anchorPosition.column}`
+				// // 	});
+
+				// // 	return {
+				// // 		uri: uri,
+				// // 		range: { // 定義のrange
+				// // 			startLineNumber: anchorPosition.lineNumber,
+				// // 			startColumn: anchorPosition.column,
+				// // 			endLineNumber: anchorPosition.lineNumber,
+				// // 			endColumn: anchorPosition.column + anchorMatch[0].length
+				// // 		}
+				// // 	};
+				// // }
+			// }
+		// });
+
+		// アンカーリンクにホバー効果を追加
+		// monaco.languages.registerHoverProvider('seesaawiki', {
+		// 	provideHover: function(model, position, token) {
+		// 		const wordInfo = model.getWordAtPosition(position);
+		// 		if (!wordInfo) return;
+
+		// 		const line = model.getLineContent(position.lineNumber);
+		// 		const lineUntilCursor = line.substring(0, position.column);
+
+		// 		const lastLinkMatch = lineUntilCursor.match(anchorLinkRegex);
+		// 		if (!lastLinkMatch) return;
+
+		// 		const anchorName = lastLinkMatch[1] || lastLinkMatch[2];
+
+		// 		return {
+		// 			contents: [
+		// 				{ value: `Jump to anchor: #${anchorName}` }
+		// 			]
+		// 		};
+		// 	}
+		// });
 	}
 
 
