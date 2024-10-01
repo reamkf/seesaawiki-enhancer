@@ -1637,7 +1637,7 @@
 						${insertAtBeginningOfLine.toString()}
 						${encodeEUCJP.toString()}
 
-						(${replaceTextareaWithMonaco.toString()})(window, \`${textarea.value}\`);
+						(${replaceTextareaWithMonaco.toString()})(window);
 
 						window.parent.postMessage('monacoReady', '*');
 					})();
@@ -1671,6 +1671,8 @@
 		const monacoEditor = iframeWindow.monacoEditor;
 		window.monaco = monaco;
 		window.monacoEditor = monacoEditor;
+
+		monacoEditor.setValue(textarea.value);
 
 		const symbolProvider = new SeesaaWikiDocumentSymbolProvider(monaco);
 
