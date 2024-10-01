@@ -460,6 +460,7 @@
 
 
 	function encodeEUCJP(str) {
+		const Encoding = window.parent && window.parent.Encoding || Encoding;
         const eucjpArray = Encoding.convert(Encoding.stringToCode(str), 'EUCJP', 'UNICODE');
         let result = '';
         for (let i = 0; i < eucjpArray.length; i++) {
@@ -876,61 +877,89 @@
 
 		monaco.languages.registerColorProvider('seesaawiki', seesaaWikiColorProvider);
 
+		const linkRegex = /\[\[(?:.+?>)??([^>]+?)\]\]/g;
+		const ancorNameRegex = /^(#[a-zA-Z0-9\-_\.:]+)$/;
+		const pageNameWithAncorRegex = /^(.*?)(#[a-zA-Z0-9\-_\.:]+)$/;
+
 		// DocumentLinkProviderを定義
 		const linkProvider = {
 			provideLinks: (model) => {
 				const links = [];
 				const text = model.getValue();
-				let match;
+				const matches = text.matchAll(linkRegex);
 
-				const anchorLinkRegex = /\[\[(?:#([a-zA-Z0-9\-_\.:]+)|\S+?>#([a-zA-Z0-9\-_\.:]+))\]\]/g;
+				for (const match of matches) {
+					const linkTargetText = match[1];
+					const range = {
+						startLineNumber: model.getPositionAt(match.index).lineNumber,
+						startColumn: model.getPositionAt(match.index).column,
+						endLineNumber: model.getPositionAt(match.index + match[0].length).lineNumber,
+						endColumn: model.getPositionAt(match.index + match[0].length).column
+					};
 
-				while ((match = anchorLinkRegex.exec(text)) !== null) {
-					const anchorName = match[1] || match[2];
-
-					links.push({
-						range: {
-							startLineNumber: model.getPositionAt(match.index).lineNumber,
-							startColumn: model.getPositionAt(match.index).column,
-							endLineNumber: model.getPositionAt(match.index + match[0].length).lineNumber,
-							endColumn: model.getPositionAt(match.index + match[0].length).column
-						},
-						// url: `#${anchorName}`,
-						anchorName: anchorName,
-						tooltip: `Jump to #${anchorName}`
-					});
+					let uri;
+					if(linkTargetText.match(/^https?:\/\//)){
+						links.push({
+							range: range,
+							url: linkTargetText,
+							tooltip: `Open ${linkTargetText}`
+						});
+					} else if(linkTargetText.match(ancorNameRegex)){
+						const anchorName = linkTargetText.substring(1);
+						links.push({
+							range: range,
+							anchorName: anchorName,
+							tooltip: `Jump to &aname(${anchorName})`
+						});
+					} else {
+						const anchorNameMatch = linkTargetText.match(pageNameWithAncorRegex);
+						let pageName, anchorName;
+						if(anchorNameMatch){
+							pageName = anchorNameMatch[1];
+							anchorName = anchorNameMatch[2];
+						} else {
+							pageName = linkTargetText;
+							anchorName = '';
+						}
+						const uri = getWikiPageUrl(pageName) + anchorName;
+						links.push({
+							range: range,
+							url: uri,
+							tooltip: `Open ${linkTargetText}`
+						});
+					}
 				}
 
 				return { links };
 			},
 			resolveLink: function(link, token) {
 				const anchorName = link.anchorName;
-				// const anchorName = JSON.parse(decodeURIComponent(link.url.split('?')[1]));
-				const editor = monaco.editor.getEditors()[0];
-				const model = editor.getModel();
-				const text = model.getValue();
-				const anchorMatch = text.match(new RegExp(`&aname\\(${anchorName}\\)`));
+				if(anchorName){
+					const editor = monaco.editor.getEditors()[0];
+					const model = editor.getModel();
+					const text = model.getValue();
+					const anchorMatch = text.match(new RegExp(`&aname\\(${anchorName}\\)`));
 
-				if (anchorMatch) {
-					const anchorIndex = anchorMatch.index;
-					const anchorPosition = model.getPositionAt(anchorIndex);
+					if (anchorMatch) {
+						const anchorIndex = anchorMatch.index;
+						const anchorPosition = model.getPositionAt(anchorIndex);
 
-					// URIにフラグメント識別子を追加して位置を指定
-					const uri = model.uri.with({
-						fragment: `${anchorPosition.lineNumber},${anchorPosition.column}`
-					});
+						// URIにフラグメント識別子を追加して位置を指定
+						const uri = model.uri.with({
+							fragment: `${anchorPosition.lineNumber},${anchorPosition.column}`
+						});
 
-					return {
-						range: {
-							startLineNumber: anchorPosition.lineNumber,
-							startColumn: anchorPosition.column,
-							endLineNumber: anchorPosition.lineNumber,
-							endColumn: anchorPosition.column + anchorMatch[0].length
-						},
-						url: uri
-					};
-				}
-
+						return {
+							range: {
+								startLineNumber: anchorPosition.lineNumber,
+								startColumn: anchorPosition.column,
+								endLineNumber: anchorPosition.lineNumber,
+								endColumn: anchorPosition.column + anchorMatch[0].length
+							},
+							url: uri
+						};
+					}
+				} else return {	url: link.url };
 				return null;
 			}
 		};
@@ -1599,8 +1628,14 @@
 
 						(${registerSeesaaWikiLanguage.toString()})();
 
+						${convertCharRef.toString()};
+						${getWikiPageUrl.toString()};
+
+						const wikiId = '${wikiId}';
+
 						${wrapSelectedText.toString()}
 						${insertAtBeginningOfLine.toString()}
+						${encodeEUCJP.toString()}
 
 						(${replaceTextareaWithMonaco.toString()})(window, \`${textarea.value}\`);
 
