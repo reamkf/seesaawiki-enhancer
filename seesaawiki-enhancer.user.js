@@ -2,12 +2,17 @@
 // @name         Seesaa Wiki Enhancer
 // @version      0.0.1
 // @author       @_ream_kf
-// @namespace    https://seesaawiki.jp/
 // @match        https://seesaawiki.jp/*
-// @match        https://cms.wiki.seesaa.jp/cms/*
+// @match        https://*.memo.wiki/*
+// @match        https://*.game-info.wiki/*
+// @match        https://*.sokuhou.wiki/*
+// @match        https://*.chronicle.wiki/*
+// @match        https://*.playing.wiki/*
+// //@match        https://cms.wiki.seesaa.jp/cms/*
 // @icon         https://www.google.com/s2/favicons?domain=seesaawiki.jp
 // @updateURL    https://github.com/reamkf/seesaawiki-enhancer/releases/latest/download/seesaawiki-enhancer.meta.js
 // @downloadURL  https://github.com/reamkf/seesaawiki-enhancer/releases/latest/download/seesaawiki-enhancer.user.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/encoding-japanese/2.0.0/encoding.min.js
 // @grant        none
 // @license      MIT
 // ==/UserScript==
@@ -97,38 +102,11 @@
 		SEARCH: "SEARCH",
 	};
 
-	// URLからWikiPageTypeを判定する関数
-	function getWikiPageType(url) {
-		const parsedUrl = new URL(url);
-		const path = parsedUrl.pathname;
-		const searchParams = parsedUrl.searchParams;
-
-		if (path.includes("/d/")) {
-			return WikiPageType.PAGE;
-		} else if (path.includes("/l/")) {
-			return WikiPageType.LIST;
-		} else if (
-			path.includes("/e/add") ||
-			(path.includes("/e/edit") && searchParams.has("id"))
-		) {
-			return WikiPageType.EDIT;
-		} else if (path.includes("/e/attachment")) {
-			return WikiPageType.ATTACHMENT;
-		} else if (path.includes("/diff/")) {
-			return WikiPageType.DIFF;
-		} else if (path.includes("/hist/")) {
-			return WikiPageType.HISTORY;
-		} else if (path.includes("/search") && searchParams.has("keywords")) {
-			return WikiPageType.SEARCH;
-		} else if (path === "/" || path.endsWith("/")) {
-			return WikiPageType.PAGE;
-		}
-
-		return null; // 未知のURL形式の場合
-	}
-
 	const url = location.href;
 	const pageType = getWikiPageType(url);
+	const wikiId = getWikiId(url);
+	window.wikiId = wikiId;
+	window.getWikiPageUrl = getWikiPageUrl;
 
 	if (pageType == WikiPageType.EDIT) {
 		/* ********************************************************************************
@@ -213,6 +191,263 @@
 		document.head.append(style);
 	}
 
+	function addScript(src, innerHTML) {
+		const script = document.createElement("script");
+		if (script) script.src = src;
+		if (innerHTML) script.innerHTML = innerHTML;
+		document.head.appendChild(script);
+	}
+
+
+
+	// URLからWikiPageTypeを判定する関数
+	function getWikiPageType(url) {
+		const parsedUrl = new URL(url);
+		const path = parsedUrl.pathname;
+		const searchParams = parsedUrl.searchParams;
+
+		if (path.includes("/d/")) {
+			return WikiPageType.PAGE;
+		} else if (path.includes("/l/")) {
+			return WikiPageType.LIST;
+		} else if (
+			path.includes("/e/add") ||
+			(path.includes("/e/edit") && searchParams.has("id"))
+		) {
+			return WikiPageType.EDIT;
+		} else if (path.includes("/e/attachment")) {
+			return WikiPageType.ATTACHMENT;
+		} else if (path.includes("/diff/")) {
+			return WikiPageType.DIFF;
+		} else if (path.includes("/hist/")) {
+			return WikiPageType.HISTORY;
+		} else if (path.includes("/search") && searchParams.has("keywords")) {
+			return WikiPageType.SEARCH;
+		} else if (path === "/" || path.endsWith("/")) {
+			return WikiPageType.PAGE;
+		}
+
+		return null; // 未知のURL形式の場合
+	}
+
+	function getWikiId(url){
+		const patterns = [
+			/^https:\/\/seesaawiki\.jp\/([^\/]+)/,
+			/^https:\/\/([^\.]+)\.(memo|game-info|sokuhou|chronicle|playing)\.wiki\//,
+		];
+
+		for (const pattern of patterns) {
+			const match = url.match(pattern);
+			if (match && match[1]) {
+				return match[1];
+			}
+		}
+
+		return null; // URLが一致しない場合は
+	}
+
+	function convertCharRef(str, reverse=false){
+		const charRefTable = [
+			['\u2474', '&#9332;'],
+			['\u2475', '&#9333;'],
+			['\u2476', '&#9334;'],
+			['\u2477', '&#9335;'],
+			['\u2478', '&#9336;'],
+			['\u2479', '&#9337;'],
+			['\u247A', '&#9338;'],
+			['\u247B', '&#9339;'],
+			['\u247C', '&#9340;'],
+			['\u247D', '&#9341;'],
+			['\u247E', '&#9342;'],
+			['\u247F', '&#9343;'],
+			['\u2480', '&#9344;'],
+			['\u2481', '&#9345;'],
+			['\u2482', '&#9346;'],
+			['\u2483', '&#9347;'],
+			['\u2484', '&#9348;'],
+			['\u2485', '&#9349;'],
+			['\u2486', '&#9350;'],
+			['\u2487', '&#9351;'],
+			['\u2488', '&#9352;'],
+			['\u2489', '&#9353;'],
+			['\u248A', '&#9354;'],
+			['\u248B', '&#9355;'],
+			['\u248C', '&#9356;'],
+			['\u248D', '&#9357;'],
+			['\u248E', '&#9358;'],
+			['\u248F', '&#9359;'],
+			['\u2490', '&#9360;'],
+			['\u2491', '&#9361;'],
+			['\u2492', '&#9362;'],
+			['\u2493', '&#9363;'],
+			['\u2494', '&#9364;'],
+			['\u2495', '&#9365;'],
+			['\u2496', '&#9366;'],
+			['\u2497', '&#9367;'],
+			['\u2498', '&#9368;'],
+			['\u2499', '&#9369;'],
+			['\u249A', '&#9370;'],
+			['\u249B', '&#9371;'],
+			['\u249C', '&#9372;'],
+			['\u249D', '&#9373;'],
+			['\u249E', '&#9374;'],
+			['\u249F', '&#9375;'],
+			['\u24A0', '&#9376;'],
+			['\u24A1', '&#9377;'],
+			['\u24A2', '&#9378;'],
+			['\u24A3', '&#9379;'],
+			['\u24A4', '&#9380;'],
+			['\u24A5', '&#9381;'],
+			['\u24A6', '&#9382;'],
+			['\u24A7', '&#9383;'],
+			['\u24A8', '&#9384;'],
+			['\u24A9', '&#9385;'],
+			['\u24AA', '&#9386;'],
+			['\u24AB', '&#9387;'],
+			['\u24AC', '&#9388;'],
+			['\u24AD', '&#9389;'],
+			['\u24AE', '&#9390;'],
+			['\u24AF', '&#9391;'],
+			['\u24B0', '&#9392;'],
+			['\u24B1', '&#9393;'],
+			['\u24B2', '&#9394;'],
+			['\u24B3', '&#9395;'],
+			['\u24B4', '&#9396;'],
+			['\u24B5', '&#9397;'],
+			['\u24B6', '&#9398;'],
+			['\u24B7', '&#9399;'],
+			['\u24B8', '&#9400;'],
+			['\u24B9', '&#9401;'],
+			['\u24BA', '&#9402;'],
+			['\u24BB', '&#9403;'],
+			['\u24BC', '&#9404;'],
+			['\u24BD', '&#9405;'],
+			['\u24BE', '&#9406;'],
+			['\u24BF', '&#9407;'],
+			['\u24C0', '&#9408;'],
+			['\u24C1', '&#9409;'],
+			['\u24C2', '&#9410;'],
+			['\u24C3', '&#9411;'],
+			['\u24C4', '&#9412;'],
+			['\u24C5', '&#9413;'],
+			['\u24C6', '&#9414;'],
+			['\u24C7', '&#9415;'],
+			['\u24C8', '&#9416;'],
+			['\u24C9', '&#9417;'],
+			['\u24CA', '&#9418;'],
+			['\u24CB', '&#9419;'],
+			['\u24CC', '&#9420;'],
+			['\u24CD', '&#9421;'],
+			['\u24CE', '&#9422;'],
+			['\u24CF', '&#9423;'],
+			['\u24D0', '&#9424;'],
+			['\u24D1', '&#9425;'],
+			['\u24D2', '&#9426;'],
+			['\u24D3', '&#9427;'],
+			['\u24D4', '&#9428;'],
+			['\u24D5', '&#9429;'],
+			['\u24D6', '&#9430;'],
+			['\u24D7', '&#9431;'],
+			['\u24D8', '&#9432;'],
+			['\u24D9', '&#9433;'],
+			['\u24DA', '&#9434;'],
+			['\u24DB', '&#9435;'],
+			['\u24DC', '&#9436;'],
+			['\u24DD', '&#9437;'],
+			['\u24DE', '&#9438;'],
+			['\u24DF', '&#9439;'],
+			['\u24E0', '&#9440;'],
+			['\u24E1', '&#9441;'],
+			['\u24E2', '&#9442;'],
+			['\u24E3', '&#9443;'],
+			['\u24E4', '&#9444;'],
+			['\u24E5', '&#9445;'],
+			['\u24E6', '&#9446;'],
+			['\u24E7', '&#9447;'],
+			['\u24E8', '&#9448;'],
+			['\u24E9', '&#9449;'],
+			['\u24EA', '&#9450;'],
+			['\u24EB', '&#9451;'],
+			['\u24EC', '&#9452;'],
+			['\u24ED', '&#9453;'],
+			['\u24EE', '&#9454;'],
+			['\u24EF', '&#9455;'],
+			['\u24F0', '&#9456;'],
+			['\u24F1', '&#9457;'],
+			['\u24F2', '&#9458;'],
+			['\u24F3', '&#9459;'],
+			['\u24F4', '&#9460;'],
+			['\u24F5', '&#9461;'],
+			['\u24F6', '&#9462;'],
+			['\u24F7', '&#9463;'],
+			['\u24F8', '&#9464;'],
+			['\u24F9', '&#9465;'],
+			['\u24FA', '&#9466;'],
+			['\u24FB', '&#9467;'],
+			['\u24FC', '&#9468;'],
+			['\u24FD', '&#9469;'],
+			['\u24FE', '&#9470;'],
+			['\u2660', '&#9824;'],
+			['\u2661', '&#9825;'],
+			['\u2662', '&#9826;'],
+			['\u2663', '&#9827;'],
+			['\u2664', '&#9828;'],
+			['\u2665', '&#9829;'],
+			['\u2666', '&#9830;'],
+			['\u2667', '&#9831;'],
+			['\u2668', '&#9832;'],
+			['\u2669', '&#9833;'],
+			['\u266B', '&#9835;'],
+			['\u266C', '&#9836;'],
+			['\u266E', '&#9838;'],
+			['\u2776', '&#10102;'],
+			['\u2777', '&#10103;'],
+			['\u2778', '&#10104;'],
+			['\u2779', '&#10105;'],
+			['\u277A', '&#10106;'],
+			['\u277B', '&#10107;'],
+			['\u277C', '&#10108;'],
+			['\u277D', '&#10109;'],
+			['\u277E', '&#10110;'],
+			['\u277F', '&#10111;'],
+			['\u2781', '&#10113;'],
+			['\u2782', '&#10114;'],
+			['\u2783', '&#10115;'],
+			['\u2784', '&#10116;'],
+			['\u2785', '&#10117;'],
+			['\u2786', '&#10118;'],
+			['\u2787', '&#10119;'],
+			['\u2788', '&#10120;'],
+			['\u2789', '&#10121;'],
+			['\u278A', '&#10122;'],
+			['\u278B', '&#10123;'],
+			['\u278C', '&#10124;'],
+			['\u278D', '&#10125;'],
+			['\u278E', '&#10126;'],
+			['\u278F', '&#10127;'],
+			['\u2790', '&#10128;'],
+			['\u2791', '&#10129;'],
+			['\u2792', '&#10130;'],
+			['\u2793', '&#10131;'],
+		]
+		if(reverse){
+			for(let [to, from] of charRefTable){
+				from = new RegExp(from, 'g')
+				str = str.replace(from, to)
+			}
+		} else {
+			for(let [from, to] of charRefTable){
+				from = new RegExp(from, 'g')
+				str = str.replace(from, to)
+			}
+		}
+		return str
+	}
+
+	function getWikiPageUrl(pageName){
+		return `https://seesaawiki.jp/${wikiId}/d/${encodeEUCJP(convertCharRef(pageName))}`
+	}
+
 	function decodeHTMLEntities(text) {
 		const textarea = document.createElement("textarea");
 		textarea.innerHTML = text;
@@ -223,12 +458,15 @@
 		new Promise((resolve) => setTimeout(resolve, time));
 	const sleep = async (time /* in millisec */) => await _sleep(time);
 
-	function addScript(src, innerHTML) {
-		const script = document.createElement("script");
-		if (script) script.src = src;
-		if (innerHTML) script.innerHTML = innerHTML;
-		document.head.appendChild(script);
-	}
+
+	function encodeEUCJP(str) {
+        const eucjpArray = Encoding.convert(Encoding.stringToCode(str), 'EUCJP', 'UNICODE');
+        let result = '';
+        for (let i = 0; i < eucjpArray.length; i++) {
+            result += '%' + eucjpArray[i].toString(16).padStart(2, '0').toUpperCase();
+        }
+        return result;
+    }
 
 	function loadMonacoEditor(ver="0.52.0") {
 		return new Promise((resolve) => {
@@ -638,13 +876,6 @@
 
 		monaco.languages.registerColorProvider('seesaawiki', seesaaWikiColorProvider);
 
-
-		// アンカーリンクを検出する正規表現
-		const anchorLinkRegex = /\[\[(?:#([a-zA-Z0-9\-_\.:]+)|\S+?>#([a-zA-Z0-9\-_\.:]+))\]\]/g;
-
-		// アンカーを検出する正規表現
-		const anchorRegex = /&aname\(([a-zA-Z0-9\-_\.:]+)\)/;
-
 		// DocumentLinkProviderを定義
 		const linkProvider = {
 			provideLinks: (model) => {
@@ -652,7 +883,8 @@
 				const text = model.getValue();
 				let match;
 
-				anchorLinkRegex.lastIndex = 0;
+				const anchorLinkRegex = /\[\[(?:#([a-zA-Z0-9\-_\.:]+)|\S+?>#([a-zA-Z0-9\-_\.:]+))\]\]/g;
+
 				while ((match = anchorLinkRegex.exec(text)) !== null) {
 					const anchorName = match[1] || match[2];
 
@@ -1525,6 +1757,7 @@
 		let innerHTML = diffBox.innerHTML;
 		innerHTML = innerHTML.replace(/<br>|<\/span>/g, "");
 		innerHTML = decodeHTMLEntities(innerHTML);
+		innerHTML = convertCharRef(innerHTML, reverse=true)
 
 		const oldContent = innerHTML.replace(/<span class="line-add">.*?\n|<span class="line-delete">/g, "")
 		const newContent = innerHTML.replace(/<span class="line-delete">.*?\n|<span class="line-add">/g, "")
