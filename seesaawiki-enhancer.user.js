@@ -531,7 +531,8 @@
 				{ open: "%%", close: "%%" },
 				{ open: "%%%", close: "%%" },
 				{ open: "|", close: "|" },
-			]
+			],
+			// wordPattern: /(-?\d*\.\d\w*%?)|(https?:\/\/.*?\.(?:png|jpg|jpeg|gif|webp))|([^\`\~\!\@\#\%\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g
 		};
 
 		monaco.languages.setLanguageConfiguration("seesaawiki", languageConfiguration);
@@ -1028,6 +1029,51 @@
 		// 		};
 		// 	}
 		// });
+
+		// 画像URLを検出する正規表現
+		const imageUrlRegex = /(https?:\/\/.*?\.(?:png|jpg|jpeg|gif|webp))/gi;
+
+		// ホバープロバイダーを登録
+		monaco.languages.registerHoverProvider('seesaawiki', {
+			provideHover: function (model, position) {
+				console.log('Hover position: ' + position.toString());
+				window.parent.console.log('Hover position: ' + position.toString());
+				// 1. positionの行全体のlineContentを取得する
+				const lineContent = model.getLineContent(position.lineNumber);
+
+				// 2. lineContentに対してimageUrlRegexでマッチするか確かめる。複数のマッチがある場合全て確かめる
+				let match;
+				while ((match = imageUrlRegex.exec(lineContent)) !== null) {
+					const startIndex = match.index;
+					const endIndex = startIndex + match[0].length;
+
+					// 4. マッチ範囲とpositionが被っているか確認
+					if (position.column >= startIndex || position.column <= endIndex) {
+						// 6. 被っていれば、マッチ範囲で結果のrangeとcontentsのオブジェクトをreturnする
+						return {
+							range: new monaco.Range(
+								position.lineNumber,
+								startIndex + 1,
+								position.lineNumber,
+								endIndex + 1
+							),
+							contents: [
+								{ value: '**Image Preview**' },
+								{
+									value: `<img src="${match[0]}" alt="Image preview" height=200>`,
+									supportHtml: true,
+									isTrusted: true
+								}
+							]
+						};
+					}
+				}
+
+				// 3. マッチしなければ、何もしない
+				// 5. 被っていない場合、何もしない
+				return null;
+			}
+		});
 	}
 
 
