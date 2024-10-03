@@ -898,7 +898,6 @@
 						endColumn: model.getPositionAt(match.index + match[0].length).column
 					};
 
-					let uri;
 					if(targetText.startsWith('http')){
 						links.push({
 							range: range,
