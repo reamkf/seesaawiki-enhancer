@@ -1202,7 +1202,10 @@
 
 			if (cellRanges) {
 				if(position.column === lineContent.length + 1){ // カーソルが末尾の場合
+					// 通常の改行
+					_w.monacoEditor.trigger('keyboard', 'type', { text: '\n' });
 					// 次の行に新しい行を追加
+					/*
 					const nextLineContent = '|'.repeat(cellRanges.length - 1);
 
 					if(nextLineContent != lineContent){ // 行が空ではない場合
@@ -1222,6 +1225,7 @@
 							text: ''
 						}]);
 					}
+					*/
 				} else {
 					// 下のセルを選択
 					const nextLineNumber = position.lineNumber + 1;
