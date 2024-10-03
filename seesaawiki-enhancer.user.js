@@ -890,7 +890,7 @@
 				const matches = text.matchAll(linkRegex);
 
 				for (const match of matches) {
-					const linkTargetText = match[1];
+					const targetText = match[1];
 					const range = {
 						startLineNumber: model.getPositionAt(match.index).lineNumber,
 						startColumn: model.getPositionAt(match.index).column,
@@ -899,34 +899,27 @@
 					};
 
 					let uri;
-					if(linkTargetText.match(/^https?:\/\//)){
+					if(targetText.startsWith('http')){
 						links.push({
 							range: range,
-							url: linkTargetText,
-							tooltip: `Open ${linkTargetText}`
+							url: targetText,
+							tooltip: `Open ${targetText}`,
+							type: 'url'
 						});
-					} else if(linkTargetText.match(ancorNameRegex)){
-						const anchorName = linkTargetText.substring(1);
+					} else if(targetText.match(ancorNameRegex)){
+						const anchorName = targetText.substring(1);
 						links.push({
 							range: range,
-							anchorName: anchorName,
-							tooltip: `Jump to &aname(${anchorName})`
+							tooltip: `Jump to &aname(${anchorName})`,
+							type: 'anchor',
+							target: anchorName,
 						});
 					} else {
-						const anchorNameMatch = linkTargetText.match(pageNameWithAncorRegex);
-						let pageName, anchorName;
-						if(anchorNameMatch){
-							pageName = anchorNameMatch[1];
-							anchorName = anchorNameMatch[2];
-						} else {
-							pageName = linkTargetText;
-							anchorName = '';
-						}
-						const uri = getWikiPageUrl(pageName) + anchorName;
 						links.push({
 							range: range,
-							url: uri,
-							tooltip: `Open ${linkTargetText}`
+							tooltip: `Open ${targetText}`,
+							type: 'page',
+							target: targetText
 						});
 					}
 				}
@@ -934,8 +927,12 @@
 				return { links };
 			},
 			resolveLink: function(link, token) {
-				const anchorName = link.anchorName;
-				if(anchorName){
+				const type = link.type;
+				if(type === 'url'){
+					return { url: link.url };
+				} else if(type === 'anchor'){
+					const anchorName = link.target;
+
 					const editor = monaco.editor.getEditors()[0];
 					const model = editor.getModel();
 					const text = model.getValue();
@@ -960,7 +957,17 @@
 							url: uri
 						};
 					}
-				} else return {	url: link.url };
+				} else if(type === 'page'){
+					const target = link.target;
+
+					const anchorMatch = target.match(pageNameWithAncorRegex);
+					if(anchorMatch){
+						return { url: getWikiPageUrl(anchorMatch[1]) + anchorMatch[2] };
+					} else {
+						return { url: getWikiPageUrl(target) };
+					}
+				}
+
 				return null;
 			}
 		};
