@@ -1062,8 +1062,6 @@
 		// ホバープロバイダーを登録
 		monaco.languages.registerHoverProvider('seesaawiki', {
 			provideHover: function (model, position) {
-				console.log('Hover position: ' + position.toString());
-				window.parent.console.log('Hover position: ' + position.toString());
 				// 1. positionの行全体のlineContentを取得する
 				const lineContent = model.getLineContent(position.lineNumber);
 
