@@ -231,19 +231,19 @@
 	}
 
 	function getWikiId(url){
-		const patterns = [
-			/^https:\/\/seesaawiki\.jp\/([^\/]+)/,
-			/^https:\/\/([^\.]+)\.(memo|game-info|sokuhou|chronicle|playing)\.wiki\//,
-		];
+		let match;
 
-		for (const pattern of patterns) {
-			const match = url.match(pattern);
-			if (match && match[1]) {
-				return match[1];
-			}
+		match = url.match(/^https:\/\/seesaawiki\.jp\/([^\/]+)/);
+		if (match && match[1]) {
+			return match[1];
 		}
 
-		return null; // URLが一致しない場合は
+		match = url.match(/^https:\/\/([^\.]+)\.(memo|game-info|sokuhou|chronicle|playing)\.wiki\//);
+		if(match && match[1] && match[2]){
+			return match[1] + '-' + match[2];
+		}
+
+		return null;
 	}
 
 	function convertCharRef(str, reverse=false){
