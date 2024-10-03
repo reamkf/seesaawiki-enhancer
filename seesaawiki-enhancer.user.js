@@ -933,7 +933,8 @@
 				} else if(type === 'anchor'){
 					const anchorName = link.target;
 
-					const editor = monaco.editor.getEditors()[0];
+					const editors = monaco.editor.getEditors();
+					const editor = editors.length === 1 ? editors[0] : editors[1];
 					const model = editor.getModel();
 					const text = model.getValue();
 					const anchorMatch = text.match(new RegExp(`&aname\\(${anchorName}\\)`));
