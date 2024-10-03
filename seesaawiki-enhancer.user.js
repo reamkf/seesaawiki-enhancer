@@ -617,7 +617,7 @@
 					[/^----$/, 'keyword.control'],
 
 					// Anchor
-					[/(&)(aname)(\()(@anchorName)(\))/, [
+					[/(&|#)(aname)(\()(@anchorName)(\))/, [
 						'keyword.control', 'keyword',
 						{token: 'delimiter.parenthesis', bracket: '@open'}, 'support.variable.italic', {token: 'delimiter.parenthesis', bracket: '@close'}
 					]],
@@ -955,7 +955,7 @@
 					const editor = editors.length === 1 ? editors[0] : editors[1];
 					const model = editor.getModel();
 					const text = model.getValue();
-					const anchorMatch = text.match(new RegExp(`&aname\\(${anchorName}\\)`));
+					const anchorMatch = text.match(new RegExp(`(?:&|#)aname\\(${anchorName}\\)`));
 
 					if (anchorMatch) {
 						const anchorIndex = anchorMatch.index;
