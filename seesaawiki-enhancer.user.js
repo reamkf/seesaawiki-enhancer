@@ -233,7 +233,7 @@
 	function getWikiId(url){
 		let match;
 
-		match = url.match(/^https:\/\/seesaawiki\.jp\/([^\/]+)/);
+		match = url.match(/^https:\/\/seesaawiki\.jp\/((?:w\/)?[^\/]+)/);
 		if (match && match[1]) {
 			return match[1];
 		}
