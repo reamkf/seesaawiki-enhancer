@@ -755,14 +755,33 @@
 
 
 		// 色名をRGB値に変換する関数
+		// Using canvas
+		// function colorNameToRGB(colorName) {
+		// 	const canvas = document.createElement('canvas');
+		// 	canvas.width = canvas.height = 1;
+		// 	const ctx = canvas.getContext('2d');
+		// 	ctx.fillStyle = colorName;
+		// 	ctx.fillRect(0, 0, 1, 1);
+		// 	const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+		// 	return { red: r / 255, green: g / 255, blue: b / 255, alpha: 1 };
+		// }
+		// Using getComputedStyle
+		const colorTestElement = document.createElement('div');
+		colorTestElement.id = 'color-test';
+		colorTestElement.style.display = 'none';
+		document.body.appendChild(colorTestElement);
+
 		function colorNameToRGB(colorName) {
-			const canvas = document.createElement('canvas');
-			canvas.width = canvas.height = 1;
-			const ctx = canvas.getContext('2d');
-			ctx.fillStyle = colorName;
-			ctx.fillRect(0, 0, 1, 1);
-			const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-			return { red: r / 255, green: g / 255, blue: b / 255, alpha: 1 };
+			colorTestElement.style.color = colorName;
+			const color = window.getComputedStyle(colorTestElement).getPropertyValue('color');
+
+			const match = color.match(/\d+/g);
+			if (match) {
+				const [r, g, b] = match.map(Number);
+				const a = colorName == 'transparent' ? 0 : 1;
+				return { red: r / 255, green: g / 255, blue: b / 255, alpha: a };
+			}
+			return null;
 		}
 
 		// 16進数の色コードをRGB値に変換する関数
