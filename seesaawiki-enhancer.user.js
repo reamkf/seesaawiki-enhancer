@@ -1421,7 +1421,7 @@
 
 			// 通常の逆タブ
 			_w.monacoEditor.trigger('keyboard', 'outdent', {});
-		}, 'editorTextFocus && !editorReadonly && !editorTabMovesFocus && !suggestWidgetHasFocusedSuggestion && !suggestWidgetVisible');
+		}, 'editorTextFocus && !editorReadonly && !editorTabMovesFocus && !suggestWidgetHasFocusedSuggestion && !suggestWidgetVisible && !hasNextTabstop && !inSnippetMode');
 
 
 		// モナコエディタのseesaawiki言語用スニペットを定義
@@ -1429,7 +1429,7 @@
 			{
 				label: '&ref',
 				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&ref(${1:})',
+				insertText: '&ref(${1:画像URL})',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '画像表示を挿入'
 			},
@@ -1457,14 +1457,14 @@
 			{
 				label: '&size',
 				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&size(${1:}){${2:$TM_SELECTED_TEXT}}',
+				insertText: '&size(${1:size}){${2:$TM_SELECTED_TEXT}}',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '&sizeを挿入'
 			},
 			{
 				label: '&color',
 				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&color(${1:}){${2:$TM_SELECTED_TEXT}}',
+				insertText: '&color(${1:red}){${2:$TM_SELECTED_TEXT}}',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '&colorを挿入'
 			},
@@ -1492,7 +1492,7 @@
 			{
 				label: '&fukidashi',
 				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&fukidashi(${1:}){${2:$TM_SELECTED_TEXT}}',
+				insertText: '&fukidashi(${1:){${2:$TM_SELECTED_TEXT}}',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '&fukidashiを挿入'
 			},
