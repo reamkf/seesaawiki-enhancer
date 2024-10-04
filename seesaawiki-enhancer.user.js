@@ -2002,10 +2002,38 @@
 		// 初期アウトラインビューの更新
 		updateOutlineView(monacoEditor);
 
+
+		let lastSavedVersionId;
+		function updateLastSavedVersionId() {
+			const model = monacoEditor.getModel();
+			if (model) {
+				lastSavedVersionId = model.getAlternativeVersionId();
+			}
+		}
+
+		updateLastSavedVersionId();
+
+		function isDirty() {
+			const model = monacoEditor.getModel();
+			if (model) {
+				const currentVersionId = model.getAlternativeVersionId();
+				return currentVersionId !== lastSavedVersionId;
+			}
+			return false;
+		}
+
+		window.addEventListener('beforeunload', (event) => {
+			if (isDirty()) {
+				event.preventDefault();
+				event.returnValue = '';
+			}
+		});
+
 		// Override form submission
 		const form = textarea.closest('form');
 		form.addEventListener('submit', e => {
 			e.preventDefault();
+			updateLastSavedVersionId();
 			textarea.value = iframeWindow.monacoEditor.getModel().getValue();
 			form.submit();
 		});
