@@ -1238,7 +1238,7 @@
 			{
 				label: 'pre-formatted',
 				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '=|${1|BOX,AA,AAS|}\n${2:$TM_SELECTED_TEXT}\n||=\n',
+				insertText: '=|${1|BOX,AA,AAS|}|\n${2:$TM_SELECTED_TEXT}\n||=\n',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '整形済みテキストを挿入'
 			},
