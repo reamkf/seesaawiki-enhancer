@@ -518,6 +518,7 @@
 		});
 	}
 
+
 	function registerSeesaaWikiLanguage() {
 		// Monaco Editorに言語を登録
 		monaco.languages.register({
@@ -526,7 +527,11 @@
 			aliases: ["Seesaa Wiki", "ssw"],
 		});
 
-		languageConfiguration = {
+
+		/* --------------------------------------------------------------------------------
+			Language Configuration
+		/* -------------------------------------------------------------------------------- */
+		monaco.languages.setLanguageConfiguration("seesaawiki", {
 			comments: {
 				lineComment: "//",
 			},
@@ -560,11 +565,12 @@
 				{ open: "|", close: "|" },
 			],
 			// wordPattern: /(-?\d*\.\d\w*%?)|(https?:\/\/.*?\.(?:png|jpg|jpeg|gif|webp))|([^\`\~\!\@\#\%\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g
-		};
+		});
 
-		monaco.languages.setLanguageConfiguration("seesaawiki", languageConfiguration);
-
-		seesaaWikiLanguage = {
+		/* --------------------------------------------------------------------------------
+			Tokens Provider
+		/* -------------------------------------------------------------------------------- */
+		monaco.languages.setMonarchTokensProvider("seesaawiki", {
 			anchorName: /[a-zA-Z0-1\-_\.:]+/,
 			tableParams: /(?:center|left|right|(?:color|bgcolor|size|w|h)\(.*?\)):?/,
 			tokenizer: {
@@ -736,10 +742,11 @@
 					[/@tableParams/, 'keyword.parameter'],
 				]
 			}
-		};
+		});
 
-		monaco.languages.setMonarchTokensProvider("seesaawiki", seesaaWikiLanguage);
-
+		/* --------------------------------------------------------------------------------
+			Theme
+		/* -------------------------------------------------------------------------------- */
 		monaco.editor.defineTheme('seesaawikiTheme', {
 			base: 'vs-dark',
 			inherit: true,
@@ -778,9 +785,14 @@
 			}
 		});
 
+		/* --------------------------------------------------------------------------------
+			Document Symbol Provider
+		/* -------------------------------------------------------------------------------- */
 		monaco.languages.registerDocumentSymbolProvider('seesaawiki', new SeesaaWikiDocumentSymbolProvider(monaco));
 
-
+		/* --------------------------------------------------------------------------------
+			Color Provider
+		/* -------------------------------------------------------------------------------- */
 		// 色名をRGB値に変換する関数
 		// Using canvas
 		// function colorNameToRGB(colorName) {
@@ -846,8 +858,7 @@
 			return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 		}
 
-		// カラープロバイダーの定義
-		const seesaaWikiColorProvider = {
+		monaco.languages.registerColorProvider('seesaawiki', {
 			provideDocumentColors: function(model, token) {
 				const text = model.getValue();
 				const hexRegex = '[0-9A-Fa-f]';
@@ -920,16 +931,17 @@
 
 				return [{ label: newColor }];
 			}
-		};
+		});
 
-		monaco.languages.registerColorProvider('seesaawiki', seesaaWikiColorProvider);
-
+		/* --------------------------------------------------------------------------------
+			Link Provider
+		/* -------------------------------------------------------------------------------- */
 		const linkRegex = /\[\[(?:.+?>)??([^>]+?)\]\]/g;
 		const ancorNameRegex = /^(#[a-zA-Z0-9\-_\.:]+)$/;
 		const pageNameWithAncorRegex = /^(.*?)(#[a-zA-Z0-9\-_\.:]+)$/;
 
-		// DocumentLinkProviderを定義
-		const linkProvider = {
+		// DocumentLinkProviderを定義		// // DocumentLinkProviderを登録
+		monaco.languages.registerLinkProvider('seesaawiki', {
 			provideLinks: (model) => {
 				const links = [];
 				const text = model.getValue();
@@ -1016,73 +1028,53 @@
 
 				return null;
 			}
-		};
-
-		// // DocumentLinkProviderを登録
-		monaco.languages.registerLinkProvider('seesaawiki', linkProvider);
+		});
 
 
-		// Definition Providerを登録
+		/* --------------------------------------------------------------------------------
+			Definition Provider
+		/* -------------------------------------------------------------------------------- */
 		// monaco.languages.registerDefinitionProvider('seesaawiki', {
 			// provideDefinition: function(model, position, token) {
-				// // const wordInfo = model.getWordAtPosition(position);
-				// // if (!wordInfo) return;
+				// const wordInfo = model.getWordAtPosition(position);
+				// if (!wordInfo) return;
 
-				// // const line = model.getLineContent(position.lineNumber);
-				// // // const lineUntilCursor = line.substring(0, position.column);
-				// // const lineUntilCursor = line
+				// const line = model.getLineContent(position.lineNumber);
+				// // const lineUntilCursor = line.substring(0, position.column);
+				// const lineUntilCursor = line
 
-				// // const lastLinkMatch = lineUntilCursor.match(anchorLinkRegex);
-				// // if (!lastLinkMatch) return;
+				// const lastLinkMatch = lineUntilCursor.match(anchorLinkRegex);
+				// if (!lastLinkMatch) return;
 
-				// // const anchorName = lastLinkMatch[1] || lastLinkMatch[2];
-				// // console.log(1);
-				// // const text = model.getValue();
-				// // const anchorMatch = text.match(new RegExp(`&aname\\(${anchorName}\\)`));
+				// const anchorName = lastLinkMatch[1] || lastLinkMatch[2];
+				// console.log(1);
+				// const text = model.getValue();
+				// const anchorMatch = text.match(new RegExp(`&aname\\(${anchorName}\\)`));
 
-				// // if (anchorMatch) {
-				// // 	const anchorIndex = anchorMatch.index;
-				// // 	const anchorPosition = model.getPositionAt(anchorIndex);
+				// if (anchorMatch) {
+				// 	const anchorIndex = anchorMatch.index;
+				// 	const anchorPosition = model.getPositionAt(anchorIndex);
 
-				// // 	const uri = model.uri.with({
-				// // 		fragment: `${anchorPosition.lineNumber},${anchorPosition.column}`
-				// // 	});
+				// 	const uri = model.uri.with({
+				// 		fragment: `${anchorPosition.lineNumber},${anchorPosition.column}`
+				// 	});
 
-				// // 	return {
-				// // 		uri: uri,
-				// // 		range: { // 定義のrange
-				// // 			startLineNumber: anchorPosition.lineNumber,
-				// // 			startColumn: anchorPosition.column,
-				// // 			endLineNumber: anchorPosition.lineNumber,
-				// // 			endColumn: anchorPosition.column + anchorMatch[0].length
-				// // 		}
-				// // 	};
-				// // }
+				// 	return {
+				// 		uri: uri,
+				// 		range: { // 定義のrange
+				// 			startLineNumber: anchorPosition.lineNumber,
+				// 			startColumn: anchorPosition.column,
+				// 			endLineNumber: anchorPosition.lineNumber,
+				// 			endColumn: anchorPosition.column + anchorMatch[0].length
+				// 		}
+				// 	};
+				// }
 			// }
 		// });
 
-		// アンカーリンクにホバー効果を追加
-		// monaco.languages.registerHoverProvider('seesaawiki', {
-		// 	provideHover: function(model, position, token) {
-		// 		const wordInfo = model.getWordAtPosition(position);
-		// 		if (!wordInfo) return;
-
-		// 		const line = model.getLineContent(position.lineNumber);
-		// 		const lineUntilCursor = line.substring(0, position.column);
-
-		// 		const lastLinkMatch = lineUntilCursor.match(anchorLinkRegex);
-		// 		if (!lastLinkMatch) return;
-
-		// 		const anchorName = lastLinkMatch[1] || lastLinkMatch[2];
-
-		// 		return {
-		// 			contents: [
-		// 				{ value: `Jump to anchor: #${anchorName}` }
-		// 			]
-		// 		};
-		// 	}
-		// });
-
+		/* --------------------------------------------------------------------------------
+			Hover Provider
+		/* -------------------------------------------------------------------------------- */
 		// 画像URLを検出する正規表現
 		const imageUrlRegex = /(https?:\/\/.*?\.(?:png|jpg|jpeg|gif|webp))/gi;
 
@@ -1125,8 +1117,201 @@
 				return null;
 			}
 		});
-	}
 
+
+		/* --------------------------------------------------------------------------------
+			Completion Provider
+		/* -------------------------------------------------------------------------------- */
+		const seesaawikiSnippets = [
+			{
+				label: '&ref',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&ref(${1:画像URL})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '画像表示を挿入'
+			},
+			{
+				label: '&attach',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&attach(${1:})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '画像添付を挿入'
+			},
+			{
+				label: '&attachref',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&attachref(${1:})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '画像添付と表示を挿入'
+			},
+			{
+				label: '&aname',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&aname(${1:anchor_name})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '&anameを挿入'
+			},
+			{
+				label: '&size',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&size(${1:size}){${2:$TM_SELECTED_TEXT}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '&sizeを挿入'
+			},
+			{
+				label: '&color',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&color(${1:red}){${2:$TM_SELECTED_TEXT}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '&colorを挿入'
+			},
+			{
+				label: '&sup',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&sup{${1:$TM_SELECTED_TEXT}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '上付き文字を挿入'
+			},
+			{
+				label: '&sub',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '__${1:$TM_SELECTED_TEXT}__',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '下付き文字を挿入'
+			},
+			{
+				label: '&align',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&align(${1|left,center,right|}){${2:$TM_SELECTED_TEXT}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '&alignを挿入'
+			},
+			{
+				label: '&fukidashi',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&fukidashi(${1:){${2:$TM_SELECTED_TEXT}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '&fukidashiを挿入'
+			},
+			{
+				label: '&hukidashi',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&fukidashi(${1:}){${2:$TM_SELECTED_TEXT}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '&fukidashiを挿入'
+			},
+			{
+				label: 'bold',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '\'\'${1:$TM_SELECTED_TEXT}\'\'',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '太字を挿入'
+			},
+			{
+				label: 'underline',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '%%%${1:$TM_SELECTED_TEXT}%%%',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '下線を挿入'
+			},
+			{
+				label: 'deleted',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '%%${1:$TM_SELECTED_TEXT}%%',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '取り消し線を挿入'
+			},
+			{
+				label: 'strikethrough',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '%%${1:$TM_SELECTED_TEXT}%%',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '取り消し線を挿入'
+			},
+			{
+				label: 'italic',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '\'\'\'${1:$TM_SELECTED_TEXT}\'\'\'',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'イタリックを挿入'
+			},
+			{
+				label: 'pre-formatted',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '=|${1|BOX,AA,AAS|}\n${2:$TM_SELECTED_TEXT}\n||=\n',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '整形済みテキストを挿入'
+			},
+			{
+				label: 'plus-end',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '[+]${1:}\n${2:$TM_SELECTED_TEXT}\n[END]\n',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'デフォルトで閉じた折りたたみを挿入'
+			},
+			{
+				label: 'minus-end',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '[-]${1:}\n${2:$TM_SELECTED_TEXT}\n[END]\n',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'デフォルトで開いた折りたたみを挿入'
+			},
+			{
+				label: 'link',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '[[${1:$TM_SELECTED_TEXT}]]',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'リンクを挿入'
+			},
+			{
+				label: 'link (with link text)',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '[[${1:}${2|>,>>,>>>|}${3:$TM_SELECTED_TEXT}]]',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'リンクテキスト付きリンクを挿入'
+			},
+			{
+				label: 'horizon',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '----',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '水平線を挿入'
+			}
+		];
+
+		monaco.languages.registerCompletionItemProvider('seesaawiki', {
+			triggerCharacters: ['&', '#'],
+			provideCompletionItems: function(model, position) {
+				const textUntilPosition = model.getValueInRange({
+					startLineNumber: position.lineNumber,
+					startColumn: 1,
+					endLineNumber: position.lineNumber,
+					endColumn: position.column
+				});
+
+				const match = textUntilPosition.match(/[\w&]+$/);
+				const prefix = match ? match[0] : '';
+
+				const filteredSnippets = seesaawikiSnippets.filter(snippet =>
+					snippet.label.toLowerCase().startsWith(prefix.toLowerCase())
+				);
+
+				const suggestions = filteredSnippets.map(snippet => ({
+					...snippet,
+					range: {
+						startLineNumber: position.lineNumber,
+						endLineNumber: position.lineNumber,
+						startColumn: position.column - prefix.length,
+						endColumn: position.column
+					}
+				}));
+
+				return { suggestions };
+			}
+		});
+
+		// キーボードショートカットはeditorに付与するのでreplaceTextareaWithMonacoで定義
+	}
 
 	function replaceTextareaWithMonaco(_w=window, value="") {
 		const monacoEditor = _w.monaco.editor.create(_w.document.getElementById('monaco-editor-container'), {
@@ -1449,197 +1634,6 @@
 			// 通常の逆タブ
 			_w.monacoEditor.trigger('keyboard', 'outdent', {});
 		}, 'editorTextFocus && !editorReadonly && !editorTabMovesFocus && !suggestWidgetHasFocusedSuggestion && !suggestWidgetVisible && !hasNextTabstop && !inSnippetMode');
-
-
-		// モナコエディタのseesaawiki言語用スニペットを定義
-		const seesaawikiSnippets = [
-			{
-				label: '&ref',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&ref(${1:画像URL})',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '画像表示を挿入'
-			},
-			{
-				label: '&attach',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&attach(${1:})',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '画像添付を挿入'
-			},
-			{
-				label: '&attachref',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&attachref(${1:})',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '画像添付と表示を挿入'
-			},
-			{
-				label: '&aname',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&aname(${1:anchor_name})',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '&anameを挿入'
-			},
-			{
-				label: '&size',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&size(${1:size}){${2:$TM_SELECTED_TEXT}}',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '&sizeを挿入'
-			},
-			{
-				label: '&color',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&color(${1:red}){${2:$TM_SELECTED_TEXT}}',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '&colorを挿入'
-			},
-			{
-				label: '&sup',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&sup{${1:$TM_SELECTED_TEXT}}',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '上付き文字を挿入'
-			},
-			{
-				label: '&sub',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '__${1:$TM_SELECTED_TEXT}__',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '下付き文字を挿入'
-			},
-			{
-				label: '&align',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&align(${1|left,center,right|}){${2:$TM_SELECTED_TEXT}}',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '&alignを挿入'
-			},
-			{
-				label: '&fukidashi',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&fukidashi(${1:){${2:$TM_SELECTED_TEXT}}',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '&fukidashiを挿入'
-			},
-			{
-				label: '&hukidashi',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&fukidashi(${1:}){${2:$TM_SELECTED_TEXT}}',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '&fukidashiを挿入'
-			},
-			{
-				label: 'bold',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '\'\'${1:$TM_SELECTED_TEXT}\'\'',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '太字を挿入'
-			},
-			{
-				label: 'underline',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '%%%${1:$TM_SELECTED_TEXT}%%%',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '下線を挿入'
-			},
-			{
-				label: 'deleted',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '%%${1:$TM_SELECTED_TEXT}%%',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '取り消し線を挿入'
-			},
-			{
-				label: 'strikethrough',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '%%${1:$TM_SELECTED_TEXT}%%',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '取り消し線を挿入'
-			},
-			{
-				label: 'italic',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '\'\'\'${1:$TM_SELECTED_TEXT}\'\'\'',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: 'イタリックを挿入'
-			},
-			{
-				label: 'pre-formatted',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '=|${1|BOX,AA,AAS|}\n${2:$TM_SELECTED_TEXT}\n||=\n',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '整形済みテキストを挿入'
-			},
-			{
-				label: 'plus-end',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '[+]${1:}\n${2:$TM_SELECTED_TEXT}\n[END]\n',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: 'デフォルトで閉じた折りたたみを挿入'
-			},
-			{
-				label: 'minus-end',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '[-]${1:}\n${2:$TM_SELECTED_TEXT}\n[END]\n',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: 'デフォルトで開いた折りたたみを挿入'
-			},
-			{
-				label: 'link',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '[[${1:$TM_SELECTED_TEXT}]]',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: 'リンクを挿入'
-			},
-			{
-				label: 'link (with link text)',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '[[${1:}${2|>,>>,>>>|}${3:$TM_SELECTED_TEXT}]]',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: 'リンクテキスト付きリンクを挿入'
-			},
-			{
-				label: 'horizon',
-				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '----',
-				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '水平線を挿入'
-			}
-		];
-
-		// Monaco Editorにスニペットを登録する関数
-		monaco.languages.registerCompletionItemProvider('seesaawiki', {
-			triggerCharacters: ['&', '#'],
-			provideCompletionItems: function(model, position) {
-				const textUntilPosition = model.getValueInRange({
-					startLineNumber: position.lineNumber,
-					startColumn: 1,
-					endLineNumber: position.lineNumber,
-					endColumn: position.column
-				});
-
-				const match = textUntilPosition.match(/[\w&]+$/);
-				const prefix = match ? match[0] : '';
-
-				const filteredSnippets = seesaawikiSnippets.filter(snippet =>
-					snippet.label.toLowerCase().startsWith(prefix.toLowerCase())
-				);
-
-				const suggestions = filteredSnippets.map(snippet => ({
-					...snippet,
-					range: {
-						startLineNumber: position.lineNumber,
-						endLineNumber: position.lineNumber,
-						startColumn: position.column - prefix.length,
-						endColumn: position.column
-					}
-				}));
-
-				return { suggestions };
-			}
-		});
 
 		// 既存のボタンの機能を実装
 		const parentWindow = window.parent;
@@ -2169,11 +2163,10 @@
 		document.getElementsByClassName("information-box")[0].style.display = "none";
 
 		await loadMonacoEditor();
+		registerSeesaaWikiLanguage();
 
 		const diffContent = extractDiffContent();
 		if (!diffContent) return;
-
-		registerSeesaaWikiLanguage();
 
 		const container = createDiffEditorContainer();
 		diffBox.parentNode.insertBefore(container, diffBox);
