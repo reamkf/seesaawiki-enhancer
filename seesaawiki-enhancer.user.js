@@ -1788,14 +1788,14 @@
 
 		const iframe = document.createElement('iframe');
 		iframe.style.width = '100%';
-		iframe.style.height = 'max(calc(100vh - 500px), 500px)';
+		iframe.style.height = 'max(calc(100vh - 500px), 750px)';
 
 		// Maximize editor
 		document.getElementById('wide_area_button').addEventListener('click', () => {
 			if(editor.wide_area_mode.is_wide){
-				iframe.style.height = 'max(calc(100vh - 500px), 500px)';
+				iframe.style.height = 'max(calc(100vh - 500px), 750px)';
 			} else {
-				iframe.style.height = 'max(calc(100vh - 150px), 500px)';
+				iframe.style.height = 'max(calc(100vh - 150px), 750px)';
 			}
 		})
 
