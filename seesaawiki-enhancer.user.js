@@ -148,34 +148,44 @@
 		});
 
 		/* ********************************************************************************
-			Adjust editor height
+			Adjust editor width & height
 		/* ******************************************************************************** */
+		const wikiContent = document.getElementById('wiki-content');
+		if(wikiContent){
+			const originalWidth = wikiContent.style.getPropertyValue('width');
+			wikiContent.style.setProperty('width', 'calc(100vw - 40px)', 'important');
+
+			// 編集ボタンクリック時、幅を拡げる
+			document.querySelectorAll('.edit > a').forEach((edit) => {
+				edit.addEventListener('click', e => {
+					wikiContent.style.setProperty('width', 'calc(100vw - 40px)', 'important');
+				});
+			});
+
+			// プレビューボタンクリック時、元の幅に戻す
+			document.querySelectorAll('.preview > a').forEach((preview) => {
+				preview.addEventListener('click', e => {
+					wikiContent.style.setProperty('width', originalWidth);
+				});
+			});
+		}
+
 		addCSS(`
+			/* 高さを増やす */
 			#content, .user-area { /* editor window, preview-window */
 				height: max(calc(100vh - 500px), 500px) !important;
 			}
 
+			.user-area { /* preview-window */
+			}
+
+			/* 余白を減らす */
 			#page-body {
 				margin-bottom: 0 !important;
 			}
 			#page-footer, #page-footer-inner {
 				display: none !important;
 			}
-
-			/*
-			#page-body {
-				margin: 0 !important;
-			}
-
-			#rule-area {
-				margin: 0 !important;
-			}
-
-			.edit-line-1.clearfix {
-				margin: 0 !important;
-				padding: 5px !important;
-			}
-			*/
 		`);
 
 	} else if (pageType == WikiPageType.DIFF) {
