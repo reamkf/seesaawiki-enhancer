@@ -148,27 +148,44 @@
 		});
 
 		/* ********************************************************************************
-			Adjust editor width & height
+			Adjust editor width, height, margin
 		/* ******************************************************************************** */
+		const wikiContainer = document.getElementById('wiki-container');
 		const wikiContent = document.getElementById('wiki-content');
-		if(wikiContent){
-			const originalWidth = wikiContent.style.getPropertyValue('width');
-			wikiContent.style.setProperty('width', 'calc(100vw - 40px)', 'important');
 
-			// 編集ボタンクリック時、幅を拡げる
-			document.querySelectorAll('.edit > a').forEach((edit) => {
-				edit.addEventListener('click', e => {
-					wikiContent.style.setProperty('width', 'calc(100vw - 40px)', 'important');
-				});
-			});
-
-			// プレビューボタンクリック時、元の幅に戻す
-			document.querySelectorAll('.preview > a').forEach((preview) => {
-				preview.addEventListener('click', e => {
-					wikiContent.style.setProperty('width', originalWidth);
-				});
-			});
+		const originalWidth = wikiContent.style.getPropertyValue('width');
+		const originalMargin0 = wikiContainer.style.getPropertyValue('margin');
+		const originalMargin1 = wikiContent.style.getPropertyValue('margin');
+		function widen(){
+			wikiContent.style.setProperty('width', `max(calc(100vw - 100px), ${originalWidth})`, 'important');
+			wikiContainer.style.setProperty('margin', '0', 'important');
+			wikiContent.style.setProperty('margin', '10px 20px 0', 'important');
 		}
+		function narrow(){
+			wikiContent.style.setProperty('width', originalWidth);
+			wikiContainer.style.setProperty('margin', originalMargin0);
+			wikiContent.style.setProperty('margin', originalMargin1);
+		}
+		widen();
+
+		// プレビュー時、元の幅に戻す
+		const previewContainer = document.getElementById('preview-container');
+		const observer = new MutationObserver((mutations) => {
+			for (const mutation of mutations) {
+				if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+					narrow();
+					break;
+				}
+			}
+		});
+
+		// 編集ボタンクリック時、再度幅を拡げる
+		document.querySelectorAll('.edit > a').forEach((edit) => {
+			edit.addEventListener('click', widen);
+		});
+
+
+		observer.observe(previewContainer, { childList: true, subtree: true });
 
 		addCSS(`
 			/* 高さを増やす */
