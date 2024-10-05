@@ -1,5 +1,5 @@
 # Seesaa Wiki Enhancer
-[Seesaa Wiki](https://wiki.seesaa.jp)の編集機能を強化するUserScriptです。
+[Seesaa Wiki](https://wiki.seesaa.jp)の編集機能を[Monaco Editor](https://microsoft.github.io/monaco-editor/)ベースで拡張するUserScriptです。
 
 ![デモ](demo/image.png)
 
