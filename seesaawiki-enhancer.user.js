@@ -53,7 +53,7 @@
 						children: []
 					};
 
-					// Close opened deeper headings
+					// 前の見出しを閉じる
 					for (let level = headingLevel; level <= 3; level++) {
 						if (lastUnclosedHeadingSymbol[level - 1] !== null) {
 							lastUnclosedHeadingSymbol[level - 1].range.endLineNumber = lineIndex - 1;
@@ -62,7 +62,7 @@
 						}
 					}
 
-					// append child or push to documentSymbols
+					// 親子関係を調べ、子なら親にpush
 					let childFlag = false;
 					for (let j = headingLevel - 1; j > 0; j--) {
 						if (lastUnclosedHeadingSymbol[j - 1] !== null) {
@@ -71,6 +71,7 @@
 							break;
 						}
 					}
+					// 子でない場合はdocumentSymbolsに追加
 					if (!childFlag) {
 						documentSymbols.push(symbol);
 					}
@@ -78,7 +79,7 @@
 				}
 			}
 
-			// Close any remaining open headings
+			// 残ってる全ての見出しを閉じる
 			const lastLineNum = model.getLineCount();
 			for (const level of [1, 2, 3]) {
 				if (lastUnclosedHeadingSymbol[level - 1] !== null) {
@@ -127,22 +128,21 @@
 		/* ********************************************************************************
 			Search file on Enter key press
 		/* ******************************************************************************** */
-		const input = document.getElementById("search-description");
-		const button = input.nextElementSibling;
+		const searchDescriptionInput = document.getElementById("search-description");
 
-		input.addEventListener("keypress", (e) => {
-			switch (e.keyCode) {
-				case 13:
-					button.click();
-					break;
-			}
-		});
+		if(searchDescriptionInput){
+			searchDescriptionInput.addEventListener("keydown", (e) => {
+				if(e.key === 'Enter'){
+					searchDescriptionInput.nextElementSibling.click();
+				}
+			});
+		}
 
 		/* ********************************************************************************
 			Press Esc to hide item_search
 		/* ******************************************************************************** */
 		document.addEventListener("keydown", (e) => {
-			if (e.keyCode == 27) {
+			if (e.key === "Escape") {
 				editor.item_search.hide(editor.item_search);
 			}
 		});
@@ -152,7 +152,7 @@
 		/* ******************************************************************************** */
 		addCSS(`
 			#content, .user-area { /* editor window, preview-window */
-				height: max(calc(100vh - 800px), 500px) !important;
+				height: max(calc(100vh - 500px), 500px) !important;
 			}
 
 			#page-body {
