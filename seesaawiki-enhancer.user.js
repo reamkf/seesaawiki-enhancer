@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Seesaa Wiki Enhancer
-// @version      0.8.2
+// @version      0.8.1
 // @author       @_ream_kf
 // @match        https://seesaawiki.jp/*
 // @match        https://*.memo.wiki/*
@@ -1086,19 +1086,18 @@
 
 				// 2. lineContentに対してimageUrlRegexでマッチするか確かめる。複数のマッチがある場合全て確かめる
 				let match;
+				imageUrlRegex.lastIndex = 0;
 				while ((match = imageUrlRegex.exec(lineContent)) !== null) {
-					const startIndex = match.index;
+					const startIndex = match.index + 1;
 					const endIndex = startIndex + match[0].length;
 
 					// 4. マッチ範囲とpositionが被っているか確認
-					if (position.column >= startIndex || position.column <= endIndex) {
+					if (position.column >= startIndex && position.column <= endIndex) {
 						// 6. 被っていれば、マッチ範囲で結果のrangeとcontentsのオブジェクトをreturnする
 						return {
 							range: new monaco.Range(
-								position.lineNumber,
-								startIndex + 1,
-								position.lineNumber,
-								endIndex + 1
+								position.lineNumber, startIndex,
+								position.lineNumber, endIndex
 							),
 							contents: [
 								{ value: '**Image Preview**' },
