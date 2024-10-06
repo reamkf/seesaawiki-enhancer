@@ -1290,7 +1290,7 @@
 				});
 
 				const match = textUntilPosition.match(/[\w&]+$/);
-				const prefix = match ? match[0] : '';
+				const prefix = match ? match[0] : null;
 
 				const filteredSnippets = seesaawikiSnippets.filter(snippet =>
 					snippet.label.toLowerCase().startsWith(prefix.toLowerCase())
