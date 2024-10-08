@@ -947,7 +947,7 @@
 				kind: monaco.languages.CompletionItemKind.Snippet,
 				insertText: '&ref(${1:画像URL})',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-				documentation: '画像表示を挿入'
+				documentation: '画像を挿入'
 			},
 			{
 				label: '&attach',
@@ -962,6 +962,20 @@
 				insertText: '&attachref(${1:})',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '画像添付と表示を挿入'
+			},
+			{
+				label: '&video',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&video(${1:動画URL}){$2}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '動画を挿入'
+			},
+			{
+				label: '&audio',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&audio(${1:音声URL})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '音声を挿入'
 			},
 			{
 				label: '&aname',
