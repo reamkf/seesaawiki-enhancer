@@ -751,11 +751,10 @@
 		/* --------------------------------------------------------------------------------
 			Link Provider
 		/* -------------------------------------------------------------------------------- */
-		const linkRegex = /\[\[(?:.+?>)??([^>]+?)\]\]/g;
+		const linkRegex = /\[\[(?:.+?>)??([^>]+?)\]\]|(?:&|#)include\(([^)]+)\)/g;
 		const ancorNameRegex = /^(#[a-zA-Z0-9\-_\.:]+)$/;
 		const pageNameWithAncorRegex = /^(.*?)(#[a-zA-Z0-9\-_\.:]+)$/;
 
-		// DocumentLinkProviderを定義		// // DocumentLinkProviderを登録
 		monaco.languages.registerLinkProvider('seesaawiki', {
 			provideLinks: (model) => {
 				const links = [];
@@ -763,7 +762,9 @@
 				const matches = text.matchAll(linkRegex);
 
 				for (const match of matches) {
-					const targetText = match[1];
+					const targetText = match[1] || match[2];
+					if(!targetText) continue;
+
 					const range = {
 						startLineNumber: model.getPositionAt(match.index).lineNumber,
 						startColumn: model.getPositionAt(match.index).column,
