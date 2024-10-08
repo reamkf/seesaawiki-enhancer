@@ -1664,6 +1664,51 @@
 			_w.monacoEditor.trigger('keyboard', 'outdent', {});
 		}, 'editorTextFocus && !editorReadonly && !editorTabMovesFocus && !suggestWidgetHasFocusedSuggestion && !suggestWidgetVisible && !hasNextTabstop && !inSnippetMode');
 
+		_w.monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyV, async () => {
+			try {
+				const clipboardText = await navigator.clipboard.readText();
+				let pasteText = clipboardText;
+
+				const snippetController = monacoEditor.getContribution('snippetController2');
+
+				// URLを判別するための正規表現
+				const urlRegex = /^(https?:\/\/[^\s]+)$/;
+				const imageUrlRegex = /\.(jpg|jpeg|png|gif|bmp|webp|tiff|svg)$/i;
+				const videoUrlRegex = /\.(mp4|webm|ogg|avi|mov|flv|wmv|mkv|m4v|3gp|mpeg|mpg)$/i;
+				const audioUrlRegex = /\.(mp3|wav|ogg|flac|m4a|aac|wma|aiff|alac)$/i;
+				const youtubeUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
+				const niconicoUrlRegex = /^(https?:\/\/)?(www\.)?(nicovideo\.jp|nico\.ms)\/.+$/;
+				const twitterTweetUrlRegex = /^https?:\/\/(?:mobile\.)?(?:x|twitter|fxtwitter|vxtwitter|fixupx)\.com\/(?:#!\/)?(\w+)\/status(es)?\/(\d+)/;
+				const twitterProfileUrlRegex = /^https?:\/\/(?:mobile\.)?(?:x|twitter|fxtwitter|vxtwitter|fixupx)\.com\/(?:#!\/)?(\w+)\/?$/;
+
+				if (imageUrlRegex.test(clipboardText)) {
+					pasteText = `&ref(${clipboardText})`;
+				} else if (videoUrlRegex.test(clipboardText)) {
+					pasteText = `&video(${clipboardText})`;
+				} else if (audioUrlRegex.test(clipboardText)) {
+					pasteText = `&audio(${clipboardText})`;
+				} else if (youtubeUrlRegex.test(clipboardText)) {
+					pasteText = `&youtube(${clipboardText})`;
+				} else if (niconicoUrlRegex.test(clipboardText)) {
+					pasteText = `&niconico(${clipboardText})`;
+				} else if (twitterTweetUrlRegex.test(clipboardText)) {
+					const match = clipboardText.match(twitterTweetUrlRegex);
+					pasteText = `&twitter(${match[3]})`;
+				} else if (twitterProfileUrlRegex.test(clipboardText)) {
+					const match = clipboardText.match(twitterProfileUrlRegex);
+					pasteText = `&twitter_profile(${match[1]})`;
+				} else if (urlRegex.test(clipboardText)) {
+					// スニペットを使用してリンクを挿入
+					snippetController.insert(`[[\${1:リンクテキスト}\${2|>,>>,>>>|}${clipboardText}]]`);
+					return;
+				}
+
+				_w.monacoEditor.trigger('keyboard', 'type', { text: pasteText });
+			} catch (error) {
+				console.error('クリップボードの読み取りに失敗しました:', error);
+			}
+		}, 'editorTextFocus && !editorReadonly');
+
 		// 既存のボタンの機能を実装
 		const parentWindow = window.parent;
 		const parentDocument = window.parent.document;
