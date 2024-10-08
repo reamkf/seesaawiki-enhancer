@@ -896,7 +896,7 @@
 			Hover Provider
 		/* -------------------------------------------------------------------------------- */
 		// 画像URLを検出する正規表現
-		const imageUrlRegex = /(https?:\/\/.*?\.(?:png|jpg|jpeg|gif|webp))/gi;
+		const imageUrlRegex = /(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;%=]+)?\.(png|jpg|jpeg|gif|webp)(\?[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;%=]+)?/gi;
 
 		// ホバープロバイダーを登録
 		monaco.languages.registerHoverProvider('seesaawiki', {
@@ -1667,15 +1667,15 @@
 		_w.monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyV, async () => {
 			try {
 				const clipboardText = await navigator.clipboard.readText();
-				let pasteText = clipboardText;
+				let pasteText = clipboardText.trim();
 
 				const snippetController = monacoEditor.getContribution('snippetController2');
 
 				// URLを判別するための正規表現
 				const urlRegex = /^(https?:\/\/[^\s]+)$/;
-				const imageUrlRegex = /\.(jpg|jpeg|png|gif|bmp|webp|tiff|svg)$/i;
-				const videoUrlRegex = /\.(mp4|webm|ogg|avi|mov|flv|wmv|mkv|m4v|3gp|mpeg|mpg)$/i;
-				const audioUrlRegex = /\.(mp3|wav|ogg|flac|m4a|aac|wma|aiff|alac)$/i;
+				const imageUrlRegex = /^https?:\/\/.*\.(jpg|jpeg|png|gif|bmp|webp|tiff|svg)/i;
+				const videoUrlRegex = /^https?:\/\/.*\.(mp4|webm|ogg|avi|mov|flv|wmv|mkv|m4v|3gp|mpeg|mpg)/i;
+				const audioUrlRegex = /^https?:\/\/.*\.(mp3|wav|ogg|flac|m4a|aac|wma|aiff|alac)/i;
 				const youtubeUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
 				const niconicoUrlRegex = /^(https?:\/\/)?(www\.)?(nicovideo\.jp|nico\.ms)\/.+$/;
 				const twitterTweetUrlRegex = /^https?:\/\/(?:mobile\.)?(?:x|twitter|fxtwitter|vxtwitter|fixupx)\.com\/(?:#!\/)?(\w+)\/status(es)?\/(\d+)/;
