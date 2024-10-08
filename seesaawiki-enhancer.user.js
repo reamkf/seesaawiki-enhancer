@@ -672,8 +672,13 @@
 			}
 		}
 
-		function rgbToHex(r, g, b) {
-			return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+		function rgbaToHex(r, g, b, a) {
+			r = Math.round(r * 255);
+			g = Math.round(g * 255);
+			b = Math.round(b * 255);
+			a = Math.round(a * 255);
+			return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1) +
+				(a === 255 ? "" : a.toString(16).padStart(2, '0'));
 		}
 
 		monaco.languages.registerColorProvider('seesaawiki', {
@@ -741,10 +746,11 @@
 			},
 
 			provideColorPresentations: function(model, colorInfo, token) {
-				const newColor = rgbToHex(
-					Math.round(colorInfo.color.red * 255),
-					Math.round(colorInfo.color.green * 255),
-					Math.round(colorInfo.color.blue * 255)
+				const newColor = rgbaToHex(
+					colorInfo.color.red,
+					colorInfo.color.green,
+					colorInfo.color.blue,
+					colorInfo.color.alpha
 				);
 
 				return [{ label: newColor }];
