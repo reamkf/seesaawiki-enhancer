@@ -476,6 +476,8 @@
 					// HTML Entities
 					[/&(?:\w+|#\d+|#x[\da-fA-F]+);/, 'constant.character.escape'],
 
+					// Others
+					[/(&|#)(\w+)/, ['keyword.control', 'keyword']],
 				// 	// Super
 				// 	[/(&)(sup)(\{)([^}]*)(\})/, [
 				// 		'keyword.control',
@@ -484,11 +486,9 @@
 				// 		{ token: '', next: '@supContent' },
 				// 		'keyword'
 				// 	]],
-
-				// 	// Sub
-				// 	[/(__)(.*)(__)/,
-				// 		['keyword', '', 'keyword']
-				// 	],
+				// 	//
+					// Sub
+					[/(__)(.*)(__)/, ['keyword.control', '', 'keyword.control']],
 
 				// 	// Fukidashi
 				// 	[/(&)(fukidashi)(\()([^,)]*?)(?:(,)(s*)(right))?(\))(\{)([^}]*)(\})/, [
@@ -950,6 +950,13 @@
 				documentation: '画像を挿入'
 			},
 			{
+				label: '&ref (with title, alt)',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&ref(${1:画像URL}){${2:タイトル}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '画像を挿入'
+			},
+			{
 				label: '&attach',
 				kind: monaco.languages.CompletionItemKind.Snippet,
 				insertText: '&attach(${1:})',
@@ -966,9 +973,44 @@
 			{
 				label: '&video',
 				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&video(${1:動画URL}){$2}',
+				insertText: '&video(${1:動画URL})',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '動画を挿入'
+			},
+			{
+				label: '&youtube',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&youtube(${1:URL})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'YouTube動画を挿入'
+			},
+			{
+				label: '&nicovideo',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&nicovideo(${1:URL})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'ニコニコ動画を挿入'
+			},
+			{
+				label: '&video (size)',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&video(${1:動画URL}){${2:size}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '動画を挿入'
+			},
+			{
+				label: '&youtube (size)',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&youtube(${1:URL}){${2:size}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'YouTube動画を挿入'
+			},
+			{
+				label: '&nicovideo (size)',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&nicovideo(${1:URL}){${2:size}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'ニコニコ動画を挿入'
 			},
 			{
 				label: '&audio',
@@ -976,6 +1018,69 @@
 				insertText: '&audio(${1:音声URL})',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '音声を挿入'
+			},
+			{
+				label: '&twitter',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&twitter(${1:${TM_SELECTED_TEXT/(?:https?:\\/\\/)?(?:www\\.)?(?:x|twitter)\\.com\\/(?:#!\\/)?(\\w+)\\/status\\/(\\d+).*/$2/}})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'ツイートを挿入'
+			},
+			{
+				label: '&twitter (options)',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&twitter(${1:${TM_SELECTED_TEXT/(?:https?:\\/\\/)?(?:www\\.)?(?:x|twitter)\\.com\\/(?:#!\\/)?(\\w+)\\/status\\/(\\d+).*/$2/}}){${2|theme:dark,[width],right|}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'ツイートを挿入'
+			},
+			{
+				label: '&twitter_profile',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&twitter_profile(${1:${TM_SELECTED_TEXT/(?:https?:\\/\\/)?(?:www\\.)?(?:x|twitter)\\.com\\/(?:#!\\/)?(\\w+).*/$1/}})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'Twitterプロフィールを挿入'
+			},
+			{
+				label: '&twitter_profile (options)',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&twitter_profile(${1:${TM_SELECTED_TEXT/(?:https?:\\/\\/)?(?:www\\.)?(?:x|twitter)\\.com\\/(?:#!\\/)?(\\w+).*/$1/}}){${2|noheader,nofooter,noborders,noscrollbar,transparent,dark,light,[width]|}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'Twitterプロフィールを挿入'
+			},
+			{
+				label: '#contents',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '#contents',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '目次を挿入'
+			},
+			{
+				label: '&contents',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '#contents',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '目次を挿入'
+			},
+			{
+				label: '#contents()',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '#contents(${1|1,2|})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '目次を挿入'
+			},
+			{
+				label: '&contents()',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '#contents(${1|1,2|})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '目次を挿入'
+			},
+			{
+				label: '&RecentUpdate',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&RecentUpdate(${1|0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50|})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '目次を挿入'
 			},
 			{
 				label: '&aname',
@@ -1013,6 +1118,13 @@
 				documentation: '下付き文字を挿入'
 			},
 			{
+				label: '&ruby',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&ruby(${1:ルビ}){${2:$TM_SELECTED_TEXT}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '下付き文字を挿入'
+			},
+			{
 				label: '&align',
 				kind: monaco.languages.CompletionItemKind.Snippet,
 				insertText: '&align(${1|left,center,right|}){${2:$TM_SELECTED_TEXT}}',
@@ -1022,7 +1134,7 @@
 			{
 				label: '&fukidashi',
 				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '&fukidashi(${1:){${2:$TM_SELECTED_TEXT}}',
+				insertText: '&fukidashi(${1:}){${2:$TM_SELECTED_TEXT}}',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '&fukidashiを挿入'
 			},
@@ -1030,6 +1142,20 @@
 				label: '&hukidashi',
 				kind: monaco.languages.CompletionItemKind.Snippet,
 				insertText: '&fukidashi(${1:}){${2:$TM_SELECTED_TEXT}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '&fukidashiを挿入'
+			},
+			{
+				label: '&fukidashi (right)',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&fukidashi(${1:},right){${2:$TM_SELECTED_TEXT}}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '&fukidashiを挿入'
+			},
+			{
+				label: '&hukidashi (right)',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '&fukidashi(${1:},right){${2:$TM_SELECTED_TEXT}}',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '&fukidashiを挿入'
 			},
@@ -1071,7 +1197,7 @@
 			{
 				label: 'pre-formatted',
 				kind: monaco.languages.CompletionItemKind.Snippet,
-				insertText: '=|${1|BOX,AA,AAS|}|\n${2:$TM_SELECTED_TEXT}\n||=\n',
+				insertText: '=|${1|BOX,AA,AAS,AUTO,CC,CPP,CS,CYC,JAVA,BSH,CSH,SH,CV,PY,PERL,PL,PM,RB,JS,HTML,XHTML,XML,XSL,LUA,ERLANG,GO,LISP,R,SCALA,SQL,SWIFT,TEX,YAML|}|\n${2:$TM_SELECTED_TEXT}\n||=\n',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '整形済みテキストを挿入'
 			},
@@ -1111,11 +1237,74 @@
 				documentation: '定義リストを挿入'
 			},
 			{
+				label: 'annotation',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: '((${1:注釈}))',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '注釈を挿入'
+			},
+			{
 				label: 'horizon',
 				kind: monaco.languages.CompletionItemKind.Snippet,
 				insertText: '----',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '水平線を挿入'
+			},
+			{
+				label: 'no_link',
+				kind: monaco.languages.CompletionItemKind.Keyword,
+				insertText: 'no_link',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'no_link'
+			},
+			{
+				label: 'right',
+				kind: monaco.languages.CompletionItemKind.Keyword,
+				insertText: 'right',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'right'
+			},
+			{
+				label: 'center',
+				kind: monaco.languages.CompletionItemKind.Keyword,
+				insertText: 'center',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'center'
+			},
+			{
+				label: 'left',
+				kind: monaco.languages.CompletionItemKind.Keyword,
+				insertText: 'left',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'left'
+			},
+			{
+				label: 'bottom',
+				kind: monaco.languages.CompletionItemKind.Keyword,
+				insertText: 'bottom',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'bottom'
+			},
+			{
+				label: 'top',
+				kind: monaco.languages.CompletionItemKind.Keyword,
+				insertText: 'top',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'top'
+			},
+			{
+				label: 'color',
+				kind: monaco.languages.CompletionItemKind.Keyword,
+				insertText: 'color(${1:色})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'color'
+			},
+			{
+				label: 'bgcolor',
+				kind: monaco.languages.CompletionItemKind.Keyword,
+				insertText: 'bgcolor(${1:色})',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: 'bgcolor'
 			},
 		];
 
