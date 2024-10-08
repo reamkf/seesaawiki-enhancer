@@ -1104,12 +1104,19 @@
 				documentation: 'リンクテキスト付きリンクを挿入'
 			},
 			{
+				label: 'definition',
+				kind: monaco.languages.CompletionItemKind.Snippet,
+				insertText: ':${1:定義語}|${2:説明文}',
+				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+				documentation: '定義リストを挿入'
+			},
+			{
 				label: 'horizon',
 				kind: monaco.languages.CompletionItemKind.Snippet,
 				insertText: '----',
 				insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
 				documentation: '水平線を挿入'
-			}
+			},
 		];
 
 		monaco.languages.registerCompletionItemProvider('seesaawiki', {
