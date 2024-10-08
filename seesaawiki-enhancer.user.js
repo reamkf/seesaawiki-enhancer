@@ -404,6 +404,9 @@
 					// Refs
 					[/(&|#)(ref|attachref)(\()/, ['keyword.control', 'keyword', { token: 'delimiter.curly', bracket: '@open', next: '@ref' }]],
 
+					// Video, Audio
+					[/(&|#)(video|audio)(\()(.*?)(\))/, ['keyword.control', 'keyword', { token: 'delimiter.curly', bracket: '@open'}, 'string.url', { token: 'delimiter.curly', bracket: '@close'}]],
+
 					// Bold
 					[/('')([^']*?)('')/, ['keyword', {token: 'markup.bold', next: '@root'}, 'keyword']],
 
