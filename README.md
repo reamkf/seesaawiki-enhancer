@@ -178,7 +178,7 @@ Tampermonkeyの更新機能に対応しているため、Tampermonkeyの自動�
 | `&video` | 音声表示 | `&video(動画URL){}` |
 | `&audio` | 音声表示 | `&audio(音声URL)` |
 | `&youtube` | YouTube表示 | `&youtube(URL)` |
-| `&niconico` | ニコニコ動画表示 | `&youtube(URL)` |
+| `&niconico` | ニコニコ動画表示 | `&niconico(URL)` |
 
 ### その他の装飾
 
@@ -200,7 +200,7 @@ Tampermonkeyの更新機能に対応しているため、Tampermonkeyの自動�
 |------------|------|--------|
 | `#contents` | 目次 | `#contents` |
 | `&twitter` | ツイート表示 | `&twitter(ツイードID)` |
-| `&twitter_profile` | Twitterプロフィール表示 | `&twitter(ユーザーID)` |
+| `&twitter_profile` | Twitterプロフィール表示 | `&twitter_profile(ユーザーID)` |
 | `definition` | 定義リスト | `:定義語\|説明文` |
 | `annotation` | 注釈 | `((注釈))` |
 | `horizon` | 水平線 | `----` |
