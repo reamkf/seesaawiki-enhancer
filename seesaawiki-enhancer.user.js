@@ -475,7 +475,7 @@
 					]],
 
 					// HTML Entities
-					[/&(?:\w+|#\d+|#x[\da-fA-F]+);/, 'constant.character.escape'],
+					[/&(?:\w+|#\d+);/, 'constant.character.escape'],
 
 					// Others
 					[/(&|#)(twitter|twitter_profile|RecentUpdate|sub|ruby|align|fukidashi)/, ['keyword.control', 'keyword']],
@@ -531,8 +531,9 @@
 					[/\]\]/, { token: 'delimiter.square', bracket: '@close', next: '@pop'}],
 					[/>{1,3}/, 'delimiter.angle'],
 					[/https?:\/\/[^\s>\]]+/, 'string.url'],
+					[/&(?:\w+|#\d+);/, 'constant.character.escape'],
 					[/#@anchorName/, 'support.variable.italic'],
-					[/[^#>\]]+/, 'markup.underline.link']
+					[/[^#>\]]+?/, 'markup.underline.link']
 				],
 				ref: [
 					[/\)/, { token: 'delimiter.curly', bracket: '@close', next: '@pop' }],
