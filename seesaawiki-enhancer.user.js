@@ -1752,6 +1752,55 @@
 			}
 		}, 'editorTextFocus && !editorReadonly');
 
+		// HTML文字をエスケープする関数
+		function escapeHTML(text) {
+			return text.split('').map(char => {
+				const code = char.charCodeAt(0);
+				return `&#${code};`;
+			}).join('');
+		}
+
+		// エスケープ用のコンテキストメニュー項目を追加
+		monacoEditor.addAction({
+			id: 'escape-html',
+			label: 'Escape as HTML Entity',
+			contextMenuGroupId: 'modification',
+			contextMenuOrder: 1.5,
+			run: function(ed) {
+				const selection = ed.getSelection();
+				const selectedText = ed.getModel().getValueInRange(selection);
+
+				if (selectedText) {
+					const escapedText = escapeHTML(selectedText);
+					ed.executeEdits('escape-html', [{
+						range: selection,
+						text: escapedText
+					}]);
+				}
+			}
+		});
+
+		// アンエスケープ用のコンテキストメニュー項目を追加
+		const _decodeHTMLEntities = window.parent && window.parent.decodeHTMLEntities || decodeHTMLEntities;
+		monacoEditor.addAction({
+			id: 'unescape-html',
+			label: 'Unescape HTML Entity',
+			contextMenuGroupId: 'modification',
+			contextMenuOrder: 1.6,
+			run: function(ed) {
+				const selection = ed.getSelection();
+				const selectedText = ed.getModel().getValueInRange(selection);
+
+				if (selectedText) {
+					const unescapedText = _decodeHTMLEntities(selectedText);
+					ed.executeEdits('unescape-html', [{
+						range: selection,
+						text: unescapedText
+					}]);
+				}
+			}
+		});
+
 		// 既存のボタンの機能を実装
 		const parentWindow = window.parent;
 		const parentDocument = window.parent.document;
