@@ -295,6 +295,7 @@
 		textarea.innerHTML = text;
 		return textarea.value;
 	}
+	window.decodeHTMLEntities = decodeHTMLEntities;
 
 	const _sleep = (time /* in millisec */) =>
 		new Promise((resolve) => setTimeout(resolve, time));
@@ -932,6 +933,40 @@
 									supportHtml: true,
 									isTrusted: true
 								}
+							]
+						};
+					}
+				}
+
+				// エスケープ文字と名前付き文字参照を処理する
+				const _decodeHTMLEntities = window.parent && window.parent.decodeHTMLEntities || decodeHTMLEntities;
+				const escapeRegex = /&(?:#(\d+)|([a-zA-Z]+));/g;
+				while ((match = escapeRegex.exec(lineContent)) !== null) {
+					const startIndex = match.index + 1;
+					const endIndex = startIndex + match[0].length;
+
+					if (position.column >= startIndex && position.column <= endIndex) {
+						const originalEntity = match[0];
+						const decodedChar = _decodeHTMLEntities(originalEntity);
+						let description, unicode;
+
+						if (match[1]) {  // 10進数の文字参照
+							description = `Decimal Character Reference`;
+						} else if (match[2]) {  // 名前付き文字参照
+							description = `Named Character Reference`;
+						}
+
+						unicode = decodedChar.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0');
+
+						return {
+							range: new monaco.Range(
+								position.lineNumber, startIndex,
+								position.lineNumber, endIndex
+							),
+							contents: [
+								{ value: `**${description}**` },
+								{ value: `Character: ${decodedChar}` },
+								{ value: `Unicode: U+${unicode}` }
 							]
 						};
 					}
