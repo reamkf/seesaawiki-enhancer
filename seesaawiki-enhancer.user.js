@@ -1324,8 +1324,9 @@
 					endColumn: position.column
 				});
 
-				const match = textUntilPosition.match(/[\w&]+$/);
+				const match = textUntilPosition.match(/[&#]|[&#]?[\w]+$/);
 				const prefix = match ? match[0] : null;
+				if(prefix === null) return null;
 
 				const filteredSnippets = seesaawikiSnippets.filter(snippet =>
 					snippet.label.toLowerCase().startsWith(prefix.toLowerCase())
