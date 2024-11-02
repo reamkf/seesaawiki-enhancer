@@ -260,12 +260,12 @@
 	function getWikiId(url){
 		let match;
 
-		match = url.match(/^https:\/\/seesaawiki\.jp\/((?:w\/)?[^\/]+)/);
+		match = url.match(/^https?:\/\/seesaawiki\.jp\/((?:w\/)?[^\/]+)/);
 		if (match && match[1]) {
 			return match[1];
 		}
 
-		match = url.match(/^https:\/\/([^\.]+)\.(memo|game-info|sokuhou|chronicle|playing)\.wiki\//);
+		match = url.match(/^https?:\/\/([^\.]+)\.(memo|game-info|sokuhou|chronicle|playing)\.wiki\//);
 		if(match && match[1] && match[2]){
 			return match[1] + '-' + match[2];
 		}
@@ -762,9 +762,11 @@
 		/* --------------------------------------------------------------------------------
 			Link Provider
 		/* -------------------------------------------------------------------------------- */
-		const linkRegex = /\[\[(?:.+?>)??([^>]+?)\]\]|(?:&|#)include\(([^)]+)\)|(?:&|#)twitter\(([^)]+)\)|(?:&|#)twitter_profile\(([^)]+)\)/g;
-		const ancorNameRegex = /^(#[a-zA-Z0-9\-_\.:]+)$/;
-		const pageNameWithAncorRegex = /^(.*?)(#[a-zA-Z0-9\-_\.:]+)$/;
+		// Add to existing link regex
+		const linkRegex = /\[\[(?:.+?>)??([^>]+?)\]\]|(?:&|#)include\(([^)]+)\)|(?:&|#)(?:attachref|ref)\(([^)]+?)\s*(?:,\s*(?:\d+%?|left|right|center|no_link))*\)|(?:&|#)twitter\(([^)]+)\)|(?:&|#)twitter_profile\(([^)]+)\)/g;
+		const anchorNameRegex = /^(#[a-zA-Z0-9\-_\.:]+)$/;
+		const pageNameWithAnchorRegex = /^(.*?)(#[a-zA-Z0-9\-_\.:]+)$/;
+
 
 		monaco.languages.registerLinkProvider('seesaawiki', {
 			provideLinks: (model) => {
@@ -773,9 +775,10 @@
 				const matches = text.matchAll(linkRegex);
 
 				for (const match of matches) {
-					const targetText = match[1] || match[2];
-					const tweetId = match[3];
-					const twitterUserName = match[4];
+					const linkTarget = match[1] || match[2];
+					const imageUrl = match[3];
+					const tweetId = match[4];
+					const twitterUserName = match[5];
 
 					const range = {
 						startLineNumber: model.getPositionAt(match.index).lineNumber,
@@ -784,7 +787,38 @@
 						endColumn: model.getPositionAt(match.index + match[0].length).column
 					};
 
-					if (tweetId) {
+					if (linkTarget) {
+						if (linkTarget.startsWith('http')) {
+							links.push({
+								range: range,
+								url: linkTarget,
+								tooltip: `Open ${linkTarget}`,
+								type: 'url'
+							});
+						} else if (linkTarget.match(anchorNameRegex)) {
+							const anchorName = linkTarget.substring(1);
+							links.push({
+								range: range,
+								tooltip: `Jump to &aname(${anchorName})`,
+								type: 'anchor',
+								target: anchorName,
+							});
+						} else {
+							links.push({
+								range: range,
+								tooltip: `Open ${linkTarget}`,
+								type: 'page',
+								target: linkTarget
+							});
+						}
+					} else if (imageUrl) {
+						links.push({
+							range: range,
+							url: imageUrl,
+							tooltip: `Open ${imageUrl}`,
+							type: 'image_ref',
+						});
+					} else if (tweetId) {
 						links.push({
 							range: range,
 							url: `https://x.com/_/status/${tweetId}`,
@@ -798,30 +832,6 @@
 							tooltip: `Open Twitter Profile @${twitterUserName}`,
 							type: 'twitter_profile'
 						});
-					} else if (targetText) {
-						if (targetText.startsWith('http')) {
-							links.push({
-								range: range,
-								url: targetText,
-								tooltip: `Open ${targetText}`,
-								type: 'url'
-							});
-						} else if (targetText.match(ancorNameRegex)) {
-							const anchorName = targetText.substring(1);
-							links.push({
-								range: range,
-								tooltip: `Jump to &aname(${anchorName})`,
-								type: 'anchor',
-								target: anchorName,
-							});
-						} else {
-							links.push({
-								range: range,
-								tooltip: `Open ${targetText}`,
-								type: 'page',
-								target: targetText
-							});
-						}
 					}
 				}
 
@@ -829,9 +839,9 @@
 			},
 			resolveLink: function(link, token) {
 				const type = link.type;
-				if (type === 'url' || type === 'twitter_status' || type === 'twitter_profile'){
+				if (type === 'url' || type === 'image_ref' || type === 'twitter_status' || type === 'twitter_profile') {
 					return { url: link.url };
-				} else if (type === 'anchor'){
+				} else if (type === 'anchor') {
 					const anchorName = link.target;
 
 					const editors = monaco.editor.getEditors();
@@ -861,7 +871,7 @@
 				} else if (type === 'page') {
 					const target = link.target;
 
-					const anchorMatch = target.match(pageNameWithAncorRegex);
+					const anchorMatch = target.match(pageNameWithAnchorRegex);
 					const _getWikiPageUrl = window.parent && window.parent.getWikiPageUrl || getWikiPageUrl;
 					if (anchorMatch) {
 						return { url: _getWikiPageUrl(anchorMatch[1]) + anchorMatch[2] };
