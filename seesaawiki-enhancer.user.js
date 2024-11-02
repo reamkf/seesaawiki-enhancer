@@ -478,7 +478,7 @@
 					[/&(?:\w+|#\d+);/, 'constant.character.escape'],
 
 					// Others
-					[/(&|#)(twitter|twitter_profile|RecentUpdate|sub|ruby|align|fukidashi)/, ['keyword.control', 'keyword']],
+					[/(&|#)(twitter_profile|twitter|RecentUpdate|sub|ruby|align|fukidashi|youtube|niconico|)/, ['keyword.control', 'keyword']],
 				// 	// Super
 				// 	[/(&)(sup)(\{)([^}]*)(\})/, [
 				// 		'keyword.control',
