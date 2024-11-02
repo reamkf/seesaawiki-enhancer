@@ -1715,43 +1715,67 @@
 
 				const snippetController = monacoEditor.getContribution('snippetController2');
 
-				// URLを判別するための正規表現
-				const urlRegex = /^(https?:\/\/[^\s]+)$/;
-				const imageUrlRegex = /^https?:\/\/.*\.(jpg|jpeg|png|gif|bmp|webp|tiff|svg)/i;
-				const videoUrlRegex = /^https?:\/\/.*\.(mp4|webm|ogg|avi|mov|flv|wmv|mkv|m4v|3gp|mpeg|mpg)/i;
-				const audioUrlRegex = /^https?:\/\/.*\.(mp3|wav|ogg|flac|m4a|aac|wma|aiff|alac)/i;
-				const youtubeUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
-				const niconicoUrlRegex = /^(https?:\/\/)?(www\.)?(nicovideo\.jp|nico\.ms)\/.+$/;
-				const twitterTweetUrlRegex = /^https?:\/\/(?:mobile\.)?(?:x|twitter|fxtwitter|vxtwitter|fixupx)\.com\/(?:#!\/)?(\w+)\/status(es)?\/(\d+)/;
-				const twitterProfileUrlRegex = /^https?:\/\/(?:mobile\.)?(?:x|twitter|fxtwitter|vxtwitter|fixupx)\.com\/(?:#!\/)?(\w+)\/?$/;
+				if(/^(https?:\/\/[^\s/$.?#].[^\s]*)$/i.test(pasteText)){
+					const url = new URL(pasteText);
+					const domain = url.hostname;
+					const path = url.pathname;
+					const extension = path.split('.').pop();
 
-				if (imageUrlRegex.test(clipboardText)) {
-					pasteText = `&ref(${clipboardText})`;
-				} else if (videoUrlRegex.test(clipboardText)) {
-					pasteText = `&video(${clipboardText})`;
-				} else if (audioUrlRegex.test(clipboardText)) {
-					pasteText = `&audio(${clipboardText})`;
-				} else if (youtubeUrlRegex.test(clipboardText)) {
-					pasteText = `&youtube(${clipboardText})`;
-				} else if (niconicoUrlRegex.test(clipboardText)) {
-					pasteText = `&niconico(${clipboardText})`;
-				} else if (twitterTweetUrlRegex.test(clipboardText)) {
-					const match = clipboardText.match(twitterTweetUrlRegex);
-					pasteText = `&twitter(${match[3]})`;
-				} else if (twitterProfileUrlRegex.test(clipboardText)) {
-					const match = clipboardText.match(twitterProfileUrlRegex);
-					pasteText = `&twitter_profile(${match[1]})`;
-				} else if (urlRegex.test(clipboardText)) {
-					// スニペットを使用してリンクを挿入
-					snippetController.insert(`[[\${1:リンクテキスト}\${2|>,>>,>>>|}${clipboardText}]]`);
-					return;
+					if (/^(jpg|jpeg|png|gif|bmp|webp|tiff|svg)$/i.test(extension)) {
+						pasteText = `&ref(${clipboardText})`;
+					} else if (/^(mp4|webm|ogg|avi|mov|flv|wmv|mkv|m4v|3gp|mpeg|mpg)$/i.test(extension)) {
+						pasteText = `&video(${clipboardText})`;
+					} else if (/^(mp3|wav|ogg|flac|m4a|aac|wma|aiff|alac)$/i.test(extension)) {
+						pasteText = `&audio(${clipboardText})`;
+					} else if(/^(www\.)?(youtube\.com|youtu\.be)$/.test(domain)){
+						pasteText = `&youtube(${clipboardText})`;
+					} else if(/^(www\.)?(nicovideo\.jp|nico\.ms)$/.test(domain)){
+						pasteText = `&niconico(${clipboardText})`;
+					} else if(/^(mobile\.)?(x|twitter|fxtwitter|vxtwitter|fixupx)\.com$/.test(domain)){
+						const tweetMatch = path.match(/^\/[\w\d_]+\/status(es)?\/(\d+)/);
+						if(tweetMatch){
+							pasteText = `&twitter(${tweetMatch[2]})`;
+						} else {
+							const profileMatch = path.match(/^\/([\w\d_]+)$/);
+							if(profileMatch){
+								pasteText = `&twitter_profile(${profileMatch[1]})`;
+							}
+						}
+					} else {
+						// スニペットを使用してリンクを挿入
+						snippetController.insert(`[[\${1:リンクテキスト}\${2|>,>>,>>>|}${clipboardText}]]`);
+						return;
+					}
 				}
 
-				_w.monacoEditor.trigger('keyboard', 'type', { text: pasteText });
+				insertTextAtCursor(_w.monacoEditor, pasteText);
 			} catch (error) {
 				console.error('クリップボードの読み取りに失敗しました:', error);
 			}
 		}, 'editorTextFocus && !editorReadonly');
+
+		function insertTextAtCursor(editor, text) {
+			// 現在の選択範囲を取得
+			const selection = editor.getSelection();
+			const range = selection.isEmpty()
+				// 選択範囲がない場合は、カーソル位置に1文字分の範囲を作成
+				? new monaco.Range(
+					selection.startLineNumber,
+					selection.startColumn,
+					selection.startLineNumber,
+					selection.startColumn
+				)
+				// 選択範囲がある場合は、その範囲を使用
+				: selection;
+
+			editor.pushUndoStop();
+			editor.executeEdits('my-source', [{
+				range: range,
+				text: text,
+				forceMoveMarkers: true
+			}]);
+			editor.pushUndoStop();
+		}
 
 		// HTML文字をエスケープする関数
 		function escapeHTML(text) {
