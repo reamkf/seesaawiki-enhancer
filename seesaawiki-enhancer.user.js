@@ -762,7 +762,7 @@
 		/* --------------------------------------------------------------------------------
 			Link Provider
 		/* -------------------------------------------------------------------------------- */
-		const linkRegex = /\[\[(?:.+?>)??([^>]+?)\]\]|(?:&|#)include\(([^)]+)\)/g;
+		const linkRegex = /\[\[(?:.+?>)??([^>]+?)\]\]|(?:&|#)include\(([^)]+)\)|(?:&|#)twitter\(([^)]+)\)|(?:&|#)twitter_profile\(([^)]+)\)/g;
 		const ancorNameRegex = /^(#[a-zA-Z0-9\-_\.:]+)$/;
 		const pageNameWithAncorRegex = /^(.*?)(#[a-zA-Z0-9\-_\.:]+)$/;
 
@@ -774,7 +774,8 @@
 
 				for (const match of matches) {
 					const targetText = match[1] || match[2];
-					if(!targetText) continue;
+					const tweetId = match[3];
+					const twitterUserName = match[4];
 
 					const range = {
 						startLineNumber: model.getPositionAt(match.index).lineNumber,
@@ -783,28 +784,44 @@
 						endColumn: model.getPositionAt(match.index + match[0].length).column
 					};
 
-					if(targetText.startsWith('http')){
+					if (tweetId) {
 						links.push({
 							range: range,
-							url: targetText,
-							tooltip: `Open ${targetText}`,
-							type: 'url'
+							url: `https://x.com/_/status/${tweetId}`,
+							tooltip: `Open Tweet ${tweetId}`,
+							type: 'twitter_status'
 						});
-					} else if(targetText.match(ancorNameRegex)){
-						const anchorName = targetText.substring(1);
+					} else if (twitterUserName) {
 						links.push({
 							range: range,
-							tooltip: `Jump to &aname(${anchorName})`,
-							type: 'anchor',
-							target: anchorName,
+							url: `https://x.com/${twitterUserName}`,
+							tooltip: `Open Twitter Profile @${twitterUserName}`,
+							type: 'twitter_profile'
 						});
-					} else {
-						links.push({
-							range: range,
-							tooltip: `Open ${targetText}`,
-							type: 'page',
-							target: targetText
-						});
+					} else if (targetText) {
+						if (targetText.startsWith('http')) {
+							links.push({
+								range: range,
+								url: targetText,
+								tooltip: `Open ${targetText}`,
+								type: 'url'
+							});
+						} else if (targetText.match(ancorNameRegex)) {
+							const anchorName = targetText.substring(1);
+							links.push({
+								range: range,
+								tooltip: `Jump to &aname(${anchorName})`,
+								type: 'anchor',
+								target: anchorName,
+							});
+						} else {
+							links.push({
+								range: range,
+								tooltip: `Open ${targetText}`,
+								type: 'page',
+								target: targetText
+							});
+						}
 					}
 				}
 
@@ -812,9 +829,9 @@
 			},
 			resolveLink: function(link, token) {
 				const type = link.type;
-				if(type === 'url'){
+				if (type === 'url' || type === 'twitter_status' || type === 'twitter_profile'){
 					return { url: link.url };
-				} else if(type === 'anchor'){
+				} else if (type === 'anchor'){
 					const anchorName = link.target;
 
 					const editors = monaco.editor.getEditors();
@@ -827,7 +844,6 @@
 						const anchorIndex = anchorMatch.index;
 						const anchorPosition = model.getPositionAt(anchorIndex);
 
-						// URIにフラグメント識別子を追加して位置を指定
 						const uri = model.uri.with({
 							fragment: `${anchorPosition.lineNumber},${anchorPosition.column}`
 						});
@@ -842,12 +858,12 @@
 							url: uri
 						};
 					}
-				} else if(type === 'page'){
+				} else if (type === 'page') {
 					const target = link.target;
 
 					const anchorMatch = target.match(pageNameWithAncorRegex);
 					const _getWikiPageUrl = window.parent && window.parent.getWikiPageUrl || getWikiPageUrl;
-					if(anchorMatch){
+					if (anchorMatch) {
 						return { url: _getWikiPageUrl(anchorMatch[1]) + anchorMatch[2] };
 					} else {
 						return { url: _getWikiPageUrl(target) };
