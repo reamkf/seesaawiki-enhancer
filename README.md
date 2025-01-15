@@ -1,10 +1,15 @@
 # Seesaa Wiki Enhancer
 [Seesaa Wiki](https://wiki.seesaa.jp)の編集機能を[Monaco Editor](https://microsoft.github.io/monaco-editor/)ベースで拡張するUserScriptです。
 
+> [!Warning]
+> **本UserScriptは非公式です。**<br>
+> **本UserScriptを使用することにより生じた損害について、作者は一切の責任を負いません。自己責任で使用してください。**<br>
+> **本UserScriptを使用することにより何らかの異常が発生した場合、直ちに使用を中止してください。**
+
 ![デモ](demo/image.png)
 
+
 - [Seesaa Wiki Enhancer](#seesaa-wiki-enhancer)
-  - [⚠️注意事項](#️注意事項)
   - [主な機能](#主な機能)
   - [使用方法](#使用方法)
     - [インストール手順詳細](#インストール手順詳細)
@@ -23,11 +28,6 @@
   - [今後実装するかもしれない機能](#今後実装するかもしれない機能)
   - [実装予定のない機能](#実装予定のない機能)
 
-
-## ⚠️注意事項
-**本UserScriptは非公式です。**<br>
-**本UserScriptを使用することにより生じた損害について、作者は一切の責任を負いません。自己責任で使用してください。**<br>
-**本UserScriptを使用することにより何らかの異常が発生した場合、直ちに使用を中止してください。**
 
 ## 主な機能
 - **[Monaco Editor](https://microsoft.github.io/monaco-editor/)の導入**
@@ -66,7 +66,8 @@ Tampermonkeyの更新機能に対応しているため、Tampermonkeyの自動�
 - PC版のみ対応します。モバイル版では動作しません。
 
 ## キーボードショートカット
-Macの人は`Ctrl`→`Cmd`に読み替えてください。
+> [!Note]
+> Macの人は`Ctrl`→`Cmd`, `Alt`→`Option`に読み替えてください。
 
 ### 独自のショートカット一覧
 #### 編集画面
