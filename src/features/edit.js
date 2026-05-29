@@ -1,4 +1,5 @@
 import { addCSS } from '../utils/dom.js';
+import { waitForIframeReady } from '../utils/iframe.js';
 import { buildIframeHtml } from '../iframe/build.js';
 
 function setupLoginReturn(url) {
@@ -86,27 +87,6 @@ function setupEditorWidth() {
       display: none !important;
     }
   `);
-}
-
-function waitForIframeReady(iframeWindow) {
-  return new Promise((resolve) => {
-    if (iframeWindow.__seesaawikiApi) {
-      resolve();
-      return;
-    }
-    const onMessage = (event) => {
-      if (
-        event.source === iframeWindow &&
-        event.origin === window.location.origin &&
-        event.data &&
-        event.data.type === 'seesaawiki:ready'
-      ) {
-        window.removeEventListener('message', onMessage);
-        resolve();
-      }
-    };
-    window.addEventListener('message', onMessage);
-  });
 }
 
 function bindToolbar(api, editor) {
