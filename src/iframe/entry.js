@@ -1,4 +1,7 @@
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+import 'monaco-editor/esm/vs/editor/editor.all.js';
+import 'monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneGotoLineQuickAccess.js';
+import 'monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneGotoSymbolQuickAccess.js';
 import { registerSeesaaWikiLanguage } from './language-register.js';
 import { SeesaaWikiDocumentSymbolProvider } from './symbol-provider.js';
 import { createEditor } from './editor.js';
