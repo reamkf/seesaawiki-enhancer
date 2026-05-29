@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "bun run build:iframe && vite",
     "build:iframe": "vite build --config vite.iframe.config.js",
     "build:main": "vite build",
     "build": "bun run build:iframe && bun run build:main",
