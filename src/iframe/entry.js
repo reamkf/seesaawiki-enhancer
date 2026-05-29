@@ -43,5 +43,8 @@ const api = {
 window.__seesaawikiApi = api;
 
 if (window.parent !== window) {
-  window.parent.postMessage({ type: 'seesaawiki:ready' }, '*');
+  window.parent.postMessage(
+    { type: 'seesaawiki:ready' },
+    window.parent.location.origin
+  );
 }

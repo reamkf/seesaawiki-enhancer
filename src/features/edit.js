@@ -97,6 +97,7 @@ function waitForIframeReady(iframeWindow) {
     const onMessage = (event) => {
       if (
         event.source === iframeWindow &&
+        event.origin === window.location.origin &&
         event.data &&
         event.data.type === 'seesaawiki:ready'
       ) {
