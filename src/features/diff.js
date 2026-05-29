@@ -1,7 +1,6 @@
-import { decodeHTMLEntities } from '../utils/encoding.js';
 import { buildIframeHtml } from '../iframe/build.js';
 
-function extractDiffContent() {
+function extractDiffContent(decodeHTMLEntities) {
   const diffBox = document.querySelector('.diff-box');
   if (!diffBox) return null;
 
@@ -21,18 +20,27 @@ function extractDiffContent() {
   return { oldContent, newContent };
 }
 
-function createDiffEditorContainer() {
-  const container = document.createElement('div');
-  container.id = 'monaco-editor-container';
-  container.style.width = '100%';
-  container.style.height = 'max(calc(100vh - 350px), 500px)';
-  container.style.marginBottom = '20px';
-  container.style.position = 'relative';
-  container.style.border = '1px solid #ccc';
-  return container;
+function waitForIframeReady(iframeWindow) {
+  return new Promise((resolve) => {
+    if (iframeWindow.__seesaawikiApi) {
+      resolve();
+      return;
+    }
+    const onMessage = (event) => {
+      if (
+        event.source === iframeWindow &&
+        event.data &&
+        event.data.type === 'seesaawiki:ready'
+      ) {
+        window.removeEventListener('message', onMessage);
+        resolve();
+      }
+    };
+    window.addEventListener('message', onMessage);
+  });
 }
 
-export async function setupDiffPage() {
+export async function setupDiffPage({ decodeHTMLEntities }) {
   const diffBox = document.querySelector('.diff-box');
   if (!diffBox) return;
 
@@ -40,7 +48,7 @@ export async function setupDiffPage() {
   const infoBox = document.getElementsByClassName('information-box')[0];
   if (infoBox) infoBox.style.display = 'none';
 
-  const diffContent = extractDiffContent();
+  const diffContent = extractDiffContent(decodeHTMLEntities);
   if (!diffContent) return;
 
   const iframe = document.createElement('iframe');
@@ -48,46 +56,24 @@ export async function setupDiffPage() {
   iframe.style.height = 'max(calc(100vh - 350px), 500px)';
   iframe.style.border = '1px solid #ccc';
   iframe.style.marginBottom = '20px';
-
   diffBox.parentNode.insertBefore(iframe, diffBox);
 
   const iframeWindow = iframe.contentWindow;
   const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
 
   iframeDocument.open();
-  iframeDocument.write(buildIframeHtml({ mode: 'diff', wikiId: window.wikiId }));
+  iframeDocument.write(buildIframeHtml('diff'));
   iframeDocument.close();
 
-  await new Promise((resolve) => {
-    const onMessage = (event) => {
-      if (event.data === 'monacoReady') {
-        window.removeEventListener('message', onMessage);
-        resolve();
-      }
-    };
-    window.addEventListener('message', onMessage);
-    const check = () => {
-      if (iframeWindow.monaco && iframeWindow.__seesaawikiDiffReady) {
-        window.removeEventListener('message', onMessage);
-        resolve();
-      } else {
-        setTimeout(check, 100);
-      }
-    };
-    check();
-  });
+  await waitForIframeReady(iframeWindow);
 
-  const monaco = iframeWindow.monaco;
-  const diffEditor = iframeWindow.createSeesaawikiDiffEditor(
-    diffContent.oldContent,
-    diffContent.newContent
-  );
-  window.monacoEditor = diffEditor;
+  const api = iframeWindow.__seesaawikiApi;
+  const diffEditor = api.createDiffEditor(diffContent.oldContent, diffContent.newContent);
 
-  diffEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, () =>
+  diffEditor.addCommand(api.monaco.KeyMod.Alt | api.monaco.KeyCode.DownArrow, () =>
     diffEditor.goToDiff('next')
   );
-  diffEditor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, () =>
+  diffEditor.addCommand(api.monaco.KeyMod.Alt | api.monaco.KeyCode.UpArrow, () =>
     diffEditor.goToDiff('previous')
   );
 }

@@ -1,4 +1,4 @@
-import { decodeHTMLEntities } from './helpers.js';
+import { context } from './context.js';
 
 export function setupSeesaawikiHoverProvider(monaco) {
   const imageUrlRegex =
@@ -34,8 +34,8 @@ export function setupSeesaawikiHoverProvider(monaco) {
         }
       }
 
-      const _decodeHTMLEntities =
-        (window.parent && window.parent.decodeHTMLEntities) || decodeHTMLEntities;
+      if (!context.decodeHTMLEntities) return null;
+
       const escapeRegex = /&(?:#(\d+)|([a-zA-Z]+));/g;
       while ((match = escapeRegex.exec(lineContent)) !== null) {
         const startIndex = match.index + 1;
@@ -43,7 +43,7 @@ export function setupSeesaawikiHoverProvider(monaco) {
 
         if (position.column >= startIndex && position.column <= endIndex) {
           const originalEntity = match[0];
-          const decodedChar = _decodeHTMLEntities(originalEntity);
+          const decodedChar = context.decodeHTMLEntities(originalEntity);
           let description;
 
           if (match[1]) {

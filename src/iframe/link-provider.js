@@ -1,3 +1,5 @@
+import { context } from './context.js';
+
 export function setupSeesaawikiLinkProvider(monaco) {
   const linkRegex =
     /\[\[(?:.+?>)??([^>]+?)\]\]|(?:&|#)include\(([^)]+)\)|(?:&|#)(?:attachref|ref)\(([^)]+?)\s*(?:,\s*(?:\d+%?|left|right|center|no_link))*\)|(?:&|#)twitter\(([^)]+)\)|(?:&|#)twitter_profile\(([^)]+)\)/g;
@@ -109,14 +111,13 @@ export function setupSeesaawikiLinkProvider(monaco) {
           };
         }
       } else if (type === 'page') {
+        if (!context.getWikiPageUrl) return null;
         const target = link.target;
         const anchorMatch = target.match(pageNameWithAnchorRegex);
-        const _getWikiPageUrl =
-          (window.parent && window.parent.getWikiPageUrl) || window.getWikiPageUrl;
         if (anchorMatch) {
-          return { url: _getWikiPageUrl(anchorMatch[1]) + anchorMatch[2] };
+          return { url: context.getWikiPageUrl(anchorMatch[1]) + anchorMatch[2] };
         } else {
-          return { url: _getWikiPageUrl(target) };
+          return { url: context.getWikiPageUrl(target) };
         }
       }
 

@@ -24,9 +24,8 @@ function setupSearchFile() {
 
 function setupItemSearchEscape() {
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      // eslint-disable-next-line no-undef
-      editor.item_search.hide(editor.item_search);
+    if (e.key === 'Escape' && globalThis.editor?.item_search) {
+      globalThis.editor.item_search.hide(globalThis.editor.item_search);
     }
   });
 }
@@ -89,73 +88,58 @@ function setupEditorWidth() {
   `);
 }
 
-async function initMonacoEditor() {
-  const textarea = document.getElementById('content');
-  if (!textarea) return;
-  textarea.style.display = 'none';
-  textarea.readOnly = true;
-
-  const iframe = document.createElement('iframe');
-  iframe.style.width = '100%';
-  iframe.style.height = 'max(calc(100vh - 500px), 750px)';
-  iframe.style.border = 'none';
-
-  const wideAreaButton = document.getElementById('wide_area_button');
-  if (wideAreaButton) {
-    wideAreaButton.addEventListener('click', () => {
-      // eslint-disable-next-line no-undef
-      if (editor.wide_area_mode.is_wide) {
-        iframe.style.height = 'max(calc(100vh - 500px), 750px)';
-      } else {
-        iframe.style.height = 'max(calc(100vh - 150px), 750px)';
-      }
-    });
-  }
-
-  textarea.parentNode.insertBefore(iframe, textarea);
-  textarea.style.display = 'none';
-
-  const iframeWindow = iframe.contentWindow;
-  const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-
-  iframeDocument.open();
-  iframeDocument.write(buildIframeHtml({ mode: 'edit', wikiId: window.wikiId }));
-  iframeDocument.close();
-
-  await new Promise((resolve) => {
+function waitForIframeReady(iframeWindow) {
+  return new Promise((resolve) => {
+    if (iframeWindow.__seesaawikiApi) {
+      resolve();
+      return;
+    }
     const onMessage = (event) => {
-      if (event.data === 'monacoReady') {
+      if (
+        event.source === iframeWindow &&
+        event.data &&
+        event.data.type === 'seesaawiki:ready'
+      ) {
         window.removeEventListener('message', onMessage);
         resolve();
       }
     };
     window.addEventListener('message', onMessage);
-    const check = () => {
-      if (iframeWindow.monaco && iframeWindow.monacoEditor) {
-        window.removeEventListener('message', onMessage);
-        resolve();
-      } else {
-        setTimeout(check, 100);
-      }
-    };
-    check();
   });
+}
 
-  const monaco = iframeWindow.monaco;
-  const monacoEditor = iframeWindow.monacoEditor;
-  window.monaco = monaco;
-  window.monacoEditor = monacoEditor;
+function bindToolbar(api, editor) {
+  const click = (selector, handler, byClass = false) => {
+    const el = byClass
+      ? document.getElementsByClassName(selector)[0]
+      : document.getElementById(selector);
+    if (el) el.addEventListener('click', handler);
+  };
 
-  monacoEditor.setValue(textarea.value);
+  click('bt-undo', () => editor.trigger('source', 'undo'), true);
+  click('bt-redo', () => editor.trigger('source', 'redo'), true);
+  click('bold', () => api.wrapSelectedText(editor, "''", "''"));
+  click('italic', () => api.wrapSelectedText(editor, "'''", "'''"));
+  click('underline', () => api.wrapSelectedText(editor, '%%%', '%%%'));
+  click('ul', () => api.insertAtBeginningOfLine(editor, '-', 3));
+  click('ol', () => api.insertAtBeginningOfLine(editor, '+', 3));
+  click('h2', () => api.insertAtBeginningOfLine(editor, '+', 3));
+  click('strike', () => api.wrapSelectedText(editor, '%%', '%%'));
+  click('toggle_open', () => api.wrapSelectedText(editor, '[+]\n', '\n[END]'));
+  click('toggle_close', () => api.wrapSelectedText(editor, '[-]\n', '\n[END]'));
+  click('blockquote', () => api.insertAtBeginningOfLine(editor, '>', 1));
+  click('annotation', () => api.wrapSelectedText(editor, '((', '))'));
+}
 
-  const SeesaaWikiDocumentSymbolProvider = iframeWindow.SeesaaWikiDocumentSymbolProvider;
-  const symbolProvider = new SeesaaWikiDocumentSymbolProvider(monaco);
+function setupOutlineView({ iframeDocument, api, editor }) {
+  const symbolProvider = new api.SymbolProvider(api.monaco);
+  const outlineContent = iframeDocument.getElementById('outline-content');
+  if (!outlineContent) return;
 
-  function renderSymbols(symbols, editor) {
-    const outlineContent = iframeDocument.getElementById('outline-content');
+  const renderSymbols = (symbols) => {
     outlineContent.innerHTML = '';
 
-    function renderSymbolsRecursive(symbols, container) {
+    const renderSymbolsRecursive = (symbols, container) => {
       symbols.forEach((symbol) => {
         const item = iframeDocument.createElement('div');
         item.className = 'outline-item';
@@ -185,53 +169,37 @@ async function initMonacoEditor() {
           container.appendChild(childrenContainer);
         }
       });
-    }
+    };
 
     renderSymbolsRecursive(symbols, outlineContent);
-  }
+  };
 
-  function updateOutlineView(editor) {
-    const model = editor.getModel();
+  const update = () => {
     let symbols;
     try {
-      symbols = symbolProvider.provideDocumentSymbols(model);
+      symbols = symbolProvider.provideDocumentSymbols(editor.getModel());
     } catch (error) {
       console.error('Error retrieving document symbols:', error);
       return;
     }
     if (symbols && typeof symbols.then === 'function') {
-      symbols
-        .then((resolved) => renderSymbols(resolved, editor))
-        .catch((error) => {
-          console.error('Error retrieving document symbols:', error);
-        });
+      symbols.then(renderSymbols).catch((error) => {
+        console.error('Error retrieving document symbols:', error);
+      });
     } else {
-      renderSymbols(symbols, editor);
+      renderSymbols(symbols);
     }
-  }
+  };
 
-  monacoEditor.onDidChangeModelContent(() => {
-    updateOutlineView(monacoEditor);
-  });
-  updateOutlineView(monacoEditor);
+  editor.onDidChangeModelContent(update);
+  update();
+}
 
-  let lastSavedVersionId;
-  function updateLastSavedVersionId() {
-    const model = monacoEditor.getModel();
-    if (model) {
-      lastSavedVersionId = model.getAlternativeVersionId();
-    }
-  }
-  updateLastSavedVersionId();
+function setupFormSubmit({ textarea, editor }) {
+  let lastSavedVersionId = editor.getModel().getAlternativeVersionId();
 
-  function isDirty() {
-    const model = monacoEditor.getModel();
-    if (model) {
-      const currentVersionId = model.getAlternativeVersionId();
-      return currentVersionId !== lastSavedVersionId;
-    }
-    return false;
-  }
+  const isDirty = () =>
+    editor.getModel().getAlternativeVersionId() !== lastSavedVersionId;
 
   window.addEventListener('beforeunload', (event) => {
     if (isDirty()) {
@@ -244,8 +212,8 @@ async function initMonacoEditor() {
   if (form) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      updateLastSavedVersionId();
-      textarea.value = iframeWindow.monacoEditor.getModel().getValue();
+      lastSavedVersionId = editor.getModel().getAlternativeVersionId();
+      textarea.value = editor.getModel().getValue();
       form.submit();
     });
   }
@@ -253,49 +221,99 @@ async function initMonacoEditor() {
   document.querySelectorAll('.preview > a').forEach((preview) => {
     preview.addEventListener('click', (e) => {
       e.preventDefault();
-      textarea.value = iframeWindow.monacoEditor.getModel().getValue();
-      if (window.editor && window.editor.tools && window.editor.tools.toPreview) {
-        window.editor.tools.toPreview();
+      textarea.value = editor.getModel().getValue();
+      if (globalThis.editor?.tools?.toPreview) {
+        globalThis.editor.tools.toPreview();
       } else {
         console.warn('editor.tools.toPreview is not available');
         if (form) form.submit();
       }
     });
   });
+}
 
-  window.monacoInsertString = (str, selected = true) => {
-    const ed = window.monacoEditor;
-    const position = ed.getPosition();
-    const range = new monaco.Range(
+function setupItemSearchTemplate(api, editor) {
+  const insertEventName = 'seesaawiki:insertFromItemSearch';
+
+  window.addEventListener(insertEventName, (event) => {
+    const { text, selected = true } = event.detail || {};
+    if (typeof text !== 'string') return;
+    const position = editor.getPosition();
+    const range = new api.monaco.Range(
       position.lineNumber,
       position.column,
       position.lineNumber,
       position.column
     );
-    ed.executeEdits('', [
+    editor.executeEdits('', [
       {
-        range: selected ? ed.getSelection() : range,
-        text: str,
+        range: selected ? editor.getSelection() : range,
+        text,
       },
     ]);
-  };
+  });
 
   const itemSearchTemplateTextArea = document.querySelector(
     'textarea#itemsearch_results.template'
   );
-  if (itemSearchTemplateTextArea) {
-    let content = itemSearchTemplateTextArea.value;
-    content = content.replace(/editor\.buffer\.savePoint\(\);/g, '');
-    content = content.replace(
-      /editor\.item_search\.insertString\((.*?)\);/g,
-      'window.monacoInsertString($1);'
-    );
-    itemSearchTemplateTextArea.value = content;
-  }
+  if (!itemSearchTemplateTextArea) return;
+
+  let content = itemSearchTemplateTextArea.value;
+  content = content.replace(/editor\.buffer\.savePoint\(\);/g, '');
+  content = content.replace(
+    /editor\.item_search\.insertString\((.*?)\);/g,
+    `window.dispatchEvent(new CustomEvent('${insertEventName}',{detail:{text:$1}}));`
+  );
+  itemSearchTemplateTextArea.value = content;
 }
 
-export function setupEditPage(url) {
-  initMonacoEditor();
+async function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }) {
+  const textarea = document.getElementById('content');
+  if (!textarea) return;
+  textarea.style.display = 'none';
+  textarea.readOnly = true;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.width = '100%';
+  iframe.style.height = 'max(calc(100vh - 500px), 750px)';
+  iframe.style.border = 'none';
+
+  const wideAreaButton = document.getElementById('wide_area_button');
+  if (wideAreaButton) {
+    wideAreaButton.addEventListener('click', () => {
+      if (globalThis.editor?.wide_area_mode?.is_wide) {
+        iframe.style.height = 'max(calc(100vh - 500px), 750px)';
+      } else {
+        iframe.style.height = 'max(calc(100vh - 150px), 750px)';
+      }
+    });
+  }
+
+  textarea.parentNode.insertBefore(iframe, textarea);
+
+  const iframeWindow = iframe.contentWindow;
+  const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+
+  iframeDocument.open();
+  iframeDocument.write(buildIframeHtml('edit'));
+  iframeDocument.close();
+
+  await waitForIframeReady(iframeWindow);
+
+  const api = iframeWindow.__seesaawikiApi;
+  api.setContext({ getWikiPageUrl, decodeHTMLEntities });
+
+  const container = iframeDocument.getElementById('monaco-editor-container');
+  const editor = api.createEditor(container, { value: textarea.value });
+
+  bindToolbar(api, editor);
+  setupOutlineView({ iframeDocument, api, editor });
+  setupFormSubmit({ textarea, editor });
+  setupItemSearchTemplate(api, editor);
+}
+
+export function setupEditPage({ url, getWikiPageUrl, decodeHTMLEntities }) {
+  initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities });
   setupLoginReturn(url);
   setupSearchFile();
   setupItemSearchEscape();

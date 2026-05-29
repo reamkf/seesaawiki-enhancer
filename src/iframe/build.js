@@ -1,23 +1,7 @@
 import iframeBundle from '../../dist-iframe/iframe.iife.js?raw';
 import { editIframeStyles, diffIframeStyles } from './styles.js';
 
-function buildBootstrap({ mode, wikiId }) {
-  const common = `window.wikiId = ${JSON.stringify(wikiId)};`;
-
-  if (mode === 'edit') {
-    return `
-      ${common}
-      window.replaceTextareaWithMonaco(window);
-      window.parent.postMessage('monacoReady', '*');
-    `;
-  }
-  return `
-    ${common}
-    window.parent.postMessage('monacoReady', '*');
-  `;
-}
-
-export function buildIframeHtml({ mode, wikiId }) {
+export function buildIframeHtml(mode) {
   const body =
     mode === 'edit'
       ? `
@@ -29,12 +13,9 @@ export function buildIframeHtml({ mode, wikiId }) {
           <div id="monaco-editor-container"></div>
         </div>
       `
-      : `
-        <div id="monaco-editor-container"></div>
-      `;
+      : `<div id="monaco-editor-container"></div>`;
 
   const styles = mode === 'edit' ? editIframeStyles : diffIframeStyles;
-  const bootstrap = buildBootstrap({ mode, wikiId });
 
   return `
     <!DOCTYPE html>
@@ -48,7 +29,6 @@ export function buildIframeHtml({ mode, wikiId }) {
     <body>
       ${body}
       <script>${iframeBundle}<\/script>
-      <script>${bootstrap}<\/script>
     </body>
     </html>
   `;

@@ -46,6 +46,7 @@ export function getWikiId(url) {
   return null;
 }
 
-export function getWikiPageUrl(pageName) {
-  return `https://seesaawiki.jp/${window.wikiId}/d/${encodeEUCJP(convertCharRef(pageName))}`;
+export function makeGetWikiPageUrl(wikiId) {
+  return (pageName) =>
+    `https://seesaawiki.jp/${wikiId}/d/${encodeEUCJP(convertCharRef(pageName))}`;
 }
