@@ -1,55 +1,19 @@
-import loadMonacoSrc from './load-monaco.js?raw';
-import symbolProviderSrc from './symbol-provider.js?raw';
-import helpersSrc from './helpers.js?raw';
-import languageConfigSrc from './language-config.js?raw';
-import colorProviderSrc from './color-provider.js?raw';
-import linkProviderSrc from './link-provider.js?raw';
-import hoverProviderSrc from './hover-provider.js?raw';
-import completionProviderSrc from './completion-provider.js?raw';
-import languageRegisterSrc from './language-register.js?raw';
-import editorSrc from './editor.js?raw';
-import diffEditorSrc from './diff-editor.js?raw';
+import iframeBundle from '../../dist-iframe/iframe.iife.js?raw';
 import { editIframeStyles, diffIframeStyles } from './styles.js';
 
-const iframeScriptParts = [
-  loadMonacoSrc,
-  symbolProviderSrc,
-  helpersSrc,
-  languageConfigSrc,
-  colorProviderSrc,
-  linkProviderSrc,
-  hoverProviderSrc,
-  completionProviderSrc,
-  languageRegisterSrc,
-  editorSrc,
-  diffEditorSrc,
-];
-
 function buildBootstrap({ mode, wikiId }) {
+  const common = `window.wikiId = ${JSON.stringify(wikiId)};`;
+
   if (mode === 'edit') {
     return `
-      (async () => {
-        await loadMonacoEditor();
-        window.monaco = monaco;
-        window.SeesaaWikiDocumentSymbolProvider = SeesaaWikiDocumentSymbolProvider;
-        registerSeesaaWikiLanguage();
-        window.wikiId = ${JSON.stringify(wikiId)};
-        replaceTextareaWithMonaco(window);
-        window.parent.postMessage('monacoReady', '*');
-      })();
+      ${common}
+      window.replaceTextareaWithMonaco(window);
+      window.parent.postMessage('monacoReady', '*');
     `;
   }
   return `
-    (async () => {
-      await loadMonacoEditor();
-      window.monaco = monaco;
-      window.SeesaaWikiDocumentSymbolProvider = SeesaaWikiDocumentSymbolProvider;
-      registerSeesaaWikiLanguage();
-      window.wikiId = ${JSON.stringify(wikiId)};
-      window.createSeesaawikiDiffEditor = createSeesaawikiDiffEditor;
-      window.__seesaawikiDiffReady = true;
-      window.parent.postMessage('monacoReady', '*');
-    })();
+    ${common}
+    window.parent.postMessage('monacoReady', '*');
   `;
 }
 
@@ -83,10 +47,8 @@ export function buildIframeHtml({ mode, wikiId }) {
     </head>
     <body>
       ${body}
-      <script>
-        ${iframeScriptParts.join('\n')}
-        ${bootstrap}
-      </script>
+      <script>${iframeBundle}<\/script>
+      <script>${bootstrap}<\/script>
     </body>
     </html>
   `;

@@ -5,14 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build:iframe": "vite build --config vite.iframe.config.js",
+    "build:main": "vite build",
+    "build": "bun run build:iframe && bun run build:main",
     "preview": "vite preview"
   },
   "devDependencies": {
     "vite": "^5.4.0",
+    "vite-plugin-css-injected-by-js": "^5.0.1",
     "vite-plugin-monkey": "^4.0.6"
   },
   "dependencies": {
-    "encoding-japanese": "^2.2.0"
+    "encoding-japanese": "^2.2.0",
+    "monaco-editor": "^0.55.1"
   }
 }

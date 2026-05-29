@@ -1,4 +1,6 @@
-function setupSeesaawikiHoverProvider() {
+import { decodeHTMLEntities } from './helpers.js';
+
+export function setupSeesaawikiHoverProvider(monaco) {
   const imageUrlRegex =
     /(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;%=]+)?\.(png|jpg|jpeg|gif|webp)(\?[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;%=]+)?/gi;
 

@@ -1,4 +1,4 @@
-function setupSeesaawikiLinkProvider() {
+export function setupSeesaawikiLinkProvider(monaco) {
   const linkRegex =
     /\[\[(?:.+?>)??([^>]+?)\]\]|(?:&|#)include\(([^)]+)\)|(?:&|#)(?:attachref|ref)\(([^)]+?)\s*(?:,\s*(?:\d+%?|left|right|center|no_link))*\)|(?:&|#)twitter\(([^)]+)\)|(?:&|#)twitter_profile\(([^)]+)\)/g;
   const anchorNameRegex = /^(#[a-zA-Z0-9\-_\.:]+)$/;

@@ -1,4 +1,4 @@
-function setupSeesaawikiColorProvider() {
+export function setupSeesaawikiColorProvider(monaco) {
   const colorTestElement = document.createElement('div');
   colorTestElement.id = 'color-test';
   colorTestElement.style.display = 'none';

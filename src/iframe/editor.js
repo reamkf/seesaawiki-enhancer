@@ -1,3 +1,10 @@
+import {
+  wrapSelectedText,
+  insertAtBeginningOfLine,
+  escapeHTML,
+  decodeHTMLEntities,
+} from './helpers.js';
+
 function getTableCellRanges(_w, lineNumber) {
   const model = _w.monacoEditor.getModel();
   const lineContent = model.getLineContent(lineNumber);
@@ -24,7 +31,7 @@ function getTableCellRanges(_w, lineNumber) {
   }
 }
 
-function insertTextAtCursor(editor, text) {
+function insertTextAtCursor(monaco, editor, text) {
   const selection = editor.getSelection();
   const range = selection.isEmpty()
     ? new monaco.Range(
@@ -47,34 +54,34 @@ function insertTextAtCursor(editor, text) {
 }
 
 function setupEditorKeybindings(_w) {
-  _w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyB, () => {
-    wrapSelectedText(_w.monaco, _w.monacoEditor, "''", "''");
+  const monaco = _w.monaco;
+  _w.monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB, () => {
+    wrapSelectedText(monaco, _w.monacoEditor, "''", "''");
   });
 
-  _w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyI, () => {
-    wrapSelectedText(_w.monaco, _w.monacoEditor, "'''", "'''");
+  _w.monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyI, () => {
+    wrapSelectedText(monaco, _w.monacoEditor, "'''", "'''");
   });
 
-  _w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyU, () => {
-    wrapSelectedText(_w.monaco, _w.monacoEditor, '%%%', '%%%');
+  _w.monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyU, () => {
+    wrapSelectedText(monaco, _w.monacoEditor, '%%%', '%%%');
   });
 
-  _w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyD, () => {
-    wrapSelectedText(_w.monaco, _w.monacoEditor, '%%', '%%');
+  _w.monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, () => {
+    wrapSelectedText(monaco, _w.monacoEditor, '%%', '%%');
   });
 
-  _w.monacoEditor.addCommand(_w.monaco.KeyMod.CtrlCmd | _w.monaco.KeyCode.KeyK, () => {
-    wrapSelectedText(_w.monaco, _w.monacoEditor, '[[', ']]');
+  _w.monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
+    wrapSelectedText(monaco, _w.monacoEditor, '[[', ']]');
   });
 
   _w.monacoEditor.addCommand(
-    _w.monaco.KeyCode.Enter,
+    monaco.KeyCode.Enter,
     () => {
       const model = _w.monacoEditor.getModel();
       const position = _w.monacoEditor.getPosition();
       const lineContent = model.getLineContent(position.lineNumber);
 
-      // 箇条書きの処理
       const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(?!-)(.*)$/);
       if (bulletMatch) {
         const [, bullet, content] = bulletMatch;
@@ -82,7 +89,7 @@ function setupEditorKeybindings(_w) {
           const nextLineContent = bullet;
           _w.monacoEditor.executeEdits('', [
             {
-              range: new _w.monaco.Range(
+              range: new monaco.Range(
                 position.lineNumber,
                 position.column,
                 position.lineNumber,
@@ -98,7 +105,7 @@ function setupEditorKeybindings(_w) {
         } else {
           _w.monacoEditor.executeEdits('', [
             {
-              range: new _w.monaco.Range(
+              range: new monaco.Range(
                 position.lineNumber,
                 1,
                 position.lineNumber,
@@ -111,7 +118,6 @@ function setupEditorKeybindings(_w) {
         return;
       }
 
-      // テーブルの処理
       const cellRanges = getTableCellRanges(_w, position.lineNumber);
       if (cellRanges) {
         if (position.column === lineContent.length + 1) {
@@ -135,13 +141,12 @@ function setupEditorKeybindings(_w) {
         return;
       }
 
-      // 引用の処理
       if (lineContent.startsWith('>') || lineContent.startsWith(' ')) {
         const content = lineContent.slice(1).trim();
         if (content != '') {
           _w.monacoEditor.executeEdits('', [
             {
-              range: new _w.monaco.Range(
+              range: new monaco.Range(
                 position.lineNumber,
                 position.column,
                 position.lineNumber,
@@ -157,7 +162,7 @@ function setupEditorKeybindings(_w) {
         } else {
           _w.monacoEditor.executeEdits('', [
             {
-              range: new _w.monaco.Range(
+              range: new monaco.Range(
                 position.lineNumber,
                 1,
                 position.lineNumber,
@@ -176,7 +181,7 @@ function setupEditorKeybindings(_w) {
   );
 
   _w.monacoEditor.addCommand(
-    _w.monaco.KeyMod.Shift | _w.monaco.KeyCode.Enter,
+    monaco.KeyMod.Shift | monaco.KeyCode.Enter,
     () => {
       const position = _w.monacoEditor.getPosition();
 
@@ -205,7 +210,7 @@ function setupEditorKeybindings(_w) {
   );
 
   _w.monacoEditor.addCommand(
-    _w.monaco.KeyCode.Tab,
+    monaco.KeyCode.Tab,
     () => {
       const model = _w.monacoEditor.getModel();
       const position = _w.monacoEditor.getPosition();
@@ -217,7 +222,7 @@ function setupEditorKeybindings(_w) {
         if (bullet.length < 3) {
           _w.monacoEditor.executeEdits('', [
             {
-              range: new _w.monaco.Range(position.lineNumber, 1, position.lineNumber, 1),
+              range: new monaco.Range(position.lineNumber, 1, position.lineNumber, 1),
               text: bullet[0],
             },
           ]);
@@ -261,7 +266,7 @@ function setupEditorKeybindings(_w) {
   );
 
   _w.monacoEditor.addCommand(
-    _w.monaco.KeyMod.Shift | _w.monaco.KeyCode.Tab,
+    monaco.KeyMod.Shift | monaco.KeyCode.Tab,
     () => {
       const model = _w.monacoEditor.getModel();
       const position = _w.monacoEditor.getPosition();
@@ -273,7 +278,7 @@ function setupEditorKeybindings(_w) {
         if (bullet.length > 1) {
           _w.monacoEditor.executeEdits('', [
             {
-              range: new _w.monaco.Range(position.lineNumber, 1, position.lineNumber, 2),
+              range: new monaco.Range(position.lineNumber, 1, position.lineNumber, 2),
               text: '',
             },
           ]);
@@ -359,7 +364,7 @@ function setupEditorKeybindings(_w) {
           }
         }
 
-        insertTextAtCursor(_w.monacoEditor, pasteText);
+        insertTextAtCursor(monaco, _w.monacoEditor, pasteText);
       } catch (error) {
         console.error('クリップボードの読み取りに失敗しました:', error);
       }
@@ -417,6 +422,7 @@ function setupEditorContextMenu(_w) {
 
 function setupEditorToolbarBindings(_w) {
   const parentDocument = window.parent.document;
+  const monaco = _w.monaco;
 
   const bind = (selector, handler, byClass = false) => {
     const el = byClass
@@ -427,26 +433,26 @@ function setupEditorToolbarBindings(_w) {
 
   bind('bt-undo', () => _w.monacoEditor.trigger('source', 'undo'), true);
   bind('bt-redo', () => _w.monacoEditor.trigger('source', 'redo'), true);
-  bind('bold', () => wrapSelectedText(_w.monaco, _w.monacoEditor, "''", "''"));
-  bind('italic', () => wrapSelectedText(_w.monaco, _w.monacoEditor, "'''", "'''"));
-  bind('underline', () => wrapSelectedText(_w.monaco, _w.monacoEditor, '%%%', '%%%'));
-  bind('ul', () => insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, '-', 3));
-  bind('ol', () => insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, '+', 3));
-  bind('h2', () => insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, '+', 3));
-  bind('strike', () => wrapSelectedText(_w.monaco, _w.monacoEditor, '%%', '%%'));
+  bind('bold', () => wrapSelectedText(monaco, _w.monacoEditor, "''", "''"));
+  bind('italic', () => wrapSelectedText(monaco, _w.monacoEditor, "'''", "'''"));
+  bind('underline', () => wrapSelectedText(monaco, _w.monacoEditor, '%%%', '%%%'));
+  bind('ul', () => insertAtBeginningOfLine(monaco, _w.monacoEditor, '-', 3));
+  bind('ol', () => insertAtBeginningOfLine(monaco, _w.monacoEditor, '+', 3));
+  bind('h2', () => insertAtBeginningOfLine(monaco, _w.monacoEditor, '+', 3));
+  bind('strike', () => wrapSelectedText(monaco, _w.monacoEditor, '%%', '%%'));
   bind('toggle_open', () =>
-    wrapSelectedText(_w.monaco, _w.monacoEditor, '[+]\n', '\n[END]')
+    wrapSelectedText(monaco, _w.monacoEditor, '[+]\n', '\n[END]')
   );
   bind('toggle_close', () =>
-    wrapSelectedText(_w.monaco, _w.monacoEditor, '[-]\n', '\n[END]')
+    wrapSelectedText(monaco, _w.monacoEditor, '[-]\n', '\n[END]')
   );
   bind('blockquote', () =>
-    insertAtBeginningOfLine(_w.monaco, _w.monacoEditor, '>', 1)
+    insertAtBeginningOfLine(monaco, _w.monacoEditor, '>', 1)
   );
-  bind('annotation', () => wrapSelectedText(_w.monaco, _w.monacoEditor, '((', '))'));
+  bind('annotation', () => wrapSelectedText(monaco, _w.monacoEditor, '((', '))'));
 }
 
-function replaceTextareaWithMonaco(_w, value = '') {
+export function replaceTextareaWithMonaco(_w, value = '') {
   const monacoEditor = _w.monaco.editor.create(
     _w.document.getElementById('monaco-editor-container'),
     {
@@ -472,4 +478,6 @@ function replaceTextareaWithMonaco(_w, value = '') {
   setupEditorKeybindings(_w);
   setupEditorContextMenu(_w);
   setupEditorToolbarBindings(_w);
+
+  return monacoEditor;
 }

@@ -1,4 +1,4 @@
-function getSeesaawikiSnippets() {
+function getSeesaawikiSnippets(monaco) {
   const Snippet = monaco.languages.CompletionItemKind.Snippet;
   const Keyword = monaco.languages.CompletionItemKind.Keyword;
   const insertAsSnippet = monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
@@ -341,8 +341,8 @@ function getSeesaawikiSnippets() {
   ];
 }
 
-function setupSeesaawikiCompletionProvider() {
-  const seesaawikiSnippets = getSeesaawikiSnippets();
+export function setupSeesaawikiCompletionProvider(monaco) {
+  const seesaawikiSnippets = getSeesaawikiSnippets(monaco);
 
   monaco.languages.registerCompletionItemProvider('seesaawiki', {
     triggerCharacters: ['&', '#'],

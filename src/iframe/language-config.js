@@ -1,4 +1,4 @@
-function setupSeesaawikiLanguageConfig() {
+export function setupSeesaawikiLanguageConfig(monaco) {
   monaco.languages.register({
     id: 'seesaawiki',
     extensions: ['.seesaawiki'],
@@ -39,31 +39,22 @@ function setupSeesaawikiLanguageConfig() {
   });
 }
 
-function setupSeesaawikiTokens() {
+export function setupSeesaawikiTokens(monaco) {
   monaco.languages.setMonarchTokensProvider('seesaawiki', {
     anchorName: /[a-zA-Z0-9\-_\.:]+/,
     tableParams: /(?:center|left|right|(?:color|bgcolor|size|w|h)\(.*?\)):?/,
     tokenizer: {
       root: [
-        // Comment
         [/^\/\/.*$/, 'comment'],
-
-        // Headings
         [/^(\*)(?!\*)(.*)$/, ['keyword', 'markup.heading.3']],
         [/^(\*{2})(?!\*)(.*)$/, ['keyword', 'markup.heading.4']],
         [/^(\*{3})(?!\*)(.*)$/, ['keyword', 'markup.heading.5']],
-
-        // Links
         [/\[\[/, { token: 'delimiter.square', bracket: '@open', next: '@links' }],
-
-        // Refs
         [/(&|#)(ref|attachref)(\()/, [
           'keyword.control',
           'keyword',
           { token: 'delimiter.curly', bracket: '@open', next: '@ref' },
         ]],
-
-        // Video, Audio
         [/(&|#)(video|audio)(\()(.*?)(\))/, [
           'keyword.control',
           'keyword',
@@ -71,36 +62,26 @@ function setupSeesaawikiTokens() {
           'string.url',
           { token: 'delimiter.curly', bracket: '@close' },
         ]],
-
-        // Bold
         [/('')([^']*?)('')/, [
           'keyword',
           { token: 'markup.bold', next: '@root' },
           'keyword',
         ]],
-
-        // Underline
         [/(%%%)([^%]*?)(%%%)/, [
           'keyword',
           { token: 'markup.underline', next: '@root' },
           'keyword',
         ]],
-
-        // Italic
         [/(''')([^']*?)(''')/, [
           'keyword',
           { token: 'markup.italic', next: '@root' },
           'keyword',
         ]],
-
-        // Strike
         [/(%%)([^%]*?)(%%)/, [
           'keyword',
           { token: 'markup.deleted', next: '@root' },
           'keyword',
         ]],
-
-        // Font size
         [/(&|#)(size)(\()(\d+)(\))(\{)/, [
           'keyword.control',
           'keyword',
@@ -109,19 +90,13 @@ function setupSeesaawikiTokens() {
           { token: 'delimiter.parenthesis', bracket: '@close' },
           { token: 'delimiter.curly', bracket: '@open', next: '@root' },
         ]],
-
-        // Font color
         [/(&|#)(color)(\()/, [
           'keyword.control',
           'keyword',
           { token: 'delimiter.parenthesis', bracket: '@open', next: '@color' },
         ]],
-
-        // Foldings
         [/^\[(?:\+|-)\]/, { token: 'keyword.control', bracket: '@open', next: '@root' }],
         [/^\[END\]/, { token: 'keyword.control', bracket: '@close', next: '@pop' }],
-
-        // Table of contents
         [/^(#)(contents)(\()(1|2)(\))/, [
           'keyword.control',
           'keyword',
@@ -130,24 +105,12 @@ function setupSeesaawikiTokens() {
           { token: 'delimiter.parenthesis', bracket: '@close' },
         ]],
         [/^(#)(contents)/, ['keyword.control', 'keyword']],
-
-        // New Line
         [/~~(?:~~~)*/, 'keyword.control'],
-
-        // Table
         [/^\|/, { token: 'keyword.control', bracket: '@open', next: '@table' }],
-
-        // Email
         [/\w+@\w+\.\w+/, 'markup.underline.link'],
-
-        // List
         [/^(\+{1,3})(?!\+)/, ['keyword']],
         [/^(\-{1,3})(?!\-)/, ['keyword']],
-
-        // Horizon
         [/^----$/, 'keyword.control'],
-
-        // Anchor
         [/(&|#)(aname)(\()(@anchorName)(\))/, [
           'keyword.control',
           'keyword',
@@ -155,17 +118,11 @@ function setupSeesaawikiTokens() {
           'support.variable.italic',
           { token: 'delimiter.parenthesis', bracket: '@close' },
         ]],
-
-        // HTML Entities
         [/&(?:\w+|#\d+);/, 'constant.character.escape'],
-
-        // Others
         [/(&|#)(twitter_profile|twitter|RecentUpdate|sub|ruby|align|fukidashi|youtube|niconico|)/, [
           'keyword.control',
           'keyword',
         ]],
-
-        // Sub
         [/(__)(.*)(__)/, ['keyword.control', '', 'keyword.control']],
       ],
       rootCloseCurlyBracket: [
@@ -218,7 +175,7 @@ function setupSeesaawikiTokens() {
   });
 }
 
-function setupSeesaawikiTheme() {
+export function setupSeesaawikiTheme(monaco) {
   monaco.editor.defineTheme('seesaawikiTheme', {
     base: 'vs-dark',
     inherit: true,

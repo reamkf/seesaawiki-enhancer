@@ -1,4 +1,4 @@
-function createSeesaawikiDiffEditor(oldContent, newContent) {
+export function createSeesaawikiDiffEditor(monaco, oldContent, newContent) {
   const container = document.getElementById('monaco-editor-container');
   const diffEditor = monaco.editor.createDiffEditor(container, {
     readOnly: true,

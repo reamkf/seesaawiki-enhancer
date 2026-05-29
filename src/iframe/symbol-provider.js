@@ -1,4 +1,4 @@
-class SeesaaWikiDocumentSymbolProvider {
+export class SeesaaWikiDocumentSymbolProvider {
   constructor(monaco) {
     this.monaco = monaco;
   }
@@ -26,7 +26,7 @@ class SeesaaWikiDocumentSymbolProvider {
           name: lineContent,
           detail: 'Heading ' + String(headingLevel),
           kind: this.monaco.languages.SymbolKind.String,
-          range: range,
+          range,
           selectionRange: range,
           children: [],
         };
