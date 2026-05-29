@@ -295,11 +295,12 @@ async function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }) {
   const iframeWindow = iframe.contentWindow;
   const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
 
+  const readyPromise = waitForIframeReady(iframeWindow);
   iframeDocument.open();
   iframeDocument.write(buildIframeHtml('edit'));
   iframeDocument.close();
 
-  await waitForIframeReady(iframeWindow);
+  await readyPromise;
 
   const api = iframeWindow.__seesaawikiApi;
   api.setContext({ getWikiPageUrl, decodeHTMLEntities });

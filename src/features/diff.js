@@ -62,11 +62,12 @@ export async function setupDiffPage({ decodeHTMLEntities }) {
   const iframeWindow = iframe.contentWindow;
   const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
 
+  const readyPromise = waitForIframeReady(iframeWindow);
   iframeDocument.open();
   iframeDocument.write(buildIframeHtml('diff'));
   iframeDocument.close();
 
-  await waitForIframeReady(iframeWindow);
+  await readyPromise;
 
   const api = iframeWindow.__seesaawikiApi;
   const diffEditor = api.createDiffEditor(diffContent.oldContent, diffContent.newContent);
