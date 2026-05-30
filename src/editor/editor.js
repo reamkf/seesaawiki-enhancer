@@ -24,25 +24,62 @@ function getTableCellRanges(monaco, editor, lineNumber) {
 }
 
 function insertTextAtCursor(monaco, editor, text) {
-  const selection = editor.getSelection();
-  const range = selection.isEmpty()
-    ? new monaco.Range(
-        selection.startLineNumber,
-        selection.startColumn,
-        selection.startLineNumber,
-        selection.startColumn
-      )
-    : selection;
+  const selections = editor.getSelections() ?? [editor.getSelection()];
+  const model = editor.getModel();
+  const newSelections = new Array(selections.length);
+  const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
+
+  selectionsWithIndex.sort((a, b) => {
+    const aStart = a.selection.getStartPosition();
+    const bStart = b.selection.getStartPosition();
+    if (aStart.lineNumber !== bStart.lineNumber) {
+      return aStart.lineNumber - bStart.lineNumber;
+    }
+    if (aStart.column !== bStart.column) {
+      return aStart.column - bStart.column;
+    }
+    const aEnd = a.selection.getEndPosition();
+    const bEnd = b.selection.getEndPosition();
+    if (aEnd.lineNumber !== bEnd.lineNumber) {
+      return aEnd.lineNumber - bEnd.lineNumber;
+    }
+    return aEnd.column - bEnd.column;
+  });
 
   editor.pushUndoStop();
-  editor.executeEdits('my-source', [
-    {
-      range,
-      text,
-      forceMoveMarkers: true,
-    },
-  ]);
+  selectionsWithIndex
+    .slice()
+    .reverse()
+    .forEach(({ selection, index }) => {
+      const range = selection.isEmpty()
+        ? new monaco.Range(
+            selection.startLineNumber,
+            selection.startColumn,
+            selection.startLineNumber,
+            selection.startColumn
+          )
+        : selection;
+      const startOffset = model.getOffsetAt(range.getStartPosition());
+
+      editor.executeEdits('insert-text-at-cursor', [
+        {
+          range,
+          text,
+          forceMoveMarkers: true,
+        },
+      ]);
+
+      const endOffset = startOffset + text.length;
+      const endPosition = model.getPositionAt(endOffset);
+      newSelections[index] = new monaco.Selection(
+        endPosition.lineNumber,
+        endPosition.column,
+        endPosition.lineNumber,
+        endPosition.column
+      );
+    });
   editor.pushUndoStop();
+  editor.setSelections(newSelections);
 }
 
 function setupEditorKeybindings(monaco, editor) {
@@ -359,13 +396,52 @@ function setupEditorContextMenu(editor) {
     contextMenuGroupId: 'modification',
     contextMenuOrder: 1.5,
     run: function (ed) {
-      const selection = ed.getSelection();
-      const selectedText = ed.getModel().getValueInRange(selection);
+      const selections = ed.getSelections() ?? [ed.getSelection()];
+      const model = ed.getModel();
+      const newSelections = new Array(selections.length);
+      const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
 
-      if (selectedText) {
-        const escapedText = escapeHTML(selectedText);
-        ed.executeEdits('escape-html', [{ range: selection, text: escapedText }]);
-      }
+      selectionsWithIndex.sort((a, b) => {
+        const aStart = a.selection.getStartPosition();
+        const bStart = b.selection.getStartPosition();
+        if (aStart.lineNumber !== bStart.lineNumber) {
+          return aStart.lineNumber - bStart.lineNumber;
+        }
+        if (aStart.column !== bStart.column) {
+          return aStart.column - bStart.column;
+        }
+        const aEnd = a.selection.getEndPosition();
+        const bEnd = b.selection.getEndPosition();
+        if (aEnd.lineNumber !== bEnd.lineNumber) {
+          return aEnd.lineNumber - bEnd.lineNumber;
+        }
+        return aEnd.column - bEnd.column;
+      });
+
+      ed.pushUndoStop();
+      selectionsWithIndex
+        .slice()
+        .reverse()
+        .forEach(({ selection, index }) => {
+          const selectedText = model.getValueInRange(selection);
+          if (!selectedText) {
+            newSelections[index] = selection;
+            return;
+          }
+
+          const escapedText = escapeHTML(selectedText);
+          const startOffset = model.getOffsetAt(selection.getStartPosition());
+          ed.executeEdits('escape-html', [{ range: selection, text: escapedText }]);
+          const endPosition = model.getPositionAt(startOffset + escapedText.length);
+          newSelections[index] = new monaco.Selection(
+            selection.getStartPosition().lineNumber,
+            selection.getStartPosition().column,
+            endPosition.lineNumber,
+            endPosition.column
+          );
+        });
+      ed.pushUndoStop();
+      ed.setSelections(newSelections);
     },
   });
 
@@ -375,13 +451,52 @@ function setupEditorContextMenu(editor) {
     contextMenuGroupId: 'modification',
     contextMenuOrder: 1.6,
     run: function (ed) {
-      const selection = ed.getSelection();
-      const selectedText = ed.getModel().getValueInRange(selection);
+      const selections = ed.getSelections() ?? [ed.getSelection()];
+      const model = ed.getModel();
+      const newSelections = new Array(selections.length);
+      const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
 
-      if (selectedText && context.decodeHTMLEntities) {
-        const unescapedText = context.decodeHTMLEntities(selectedText);
-        ed.executeEdits('unescape-html', [{ range: selection, text: unescapedText }]);
-      }
+      selectionsWithIndex.sort((a, b) => {
+        const aStart = a.selection.getStartPosition();
+        const bStart = b.selection.getStartPosition();
+        if (aStart.lineNumber !== bStart.lineNumber) {
+          return aStart.lineNumber - bStart.lineNumber;
+        }
+        if (aStart.column !== bStart.column) {
+          return aStart.column - bStart.column;
+        }
+        const aEnd = a.selection.getEndPosition();
+        const bEnd = b.selection.getEndPosition();
+        if (aEnd.lineNumber !== bEnd.lineNumber) {
+          return aEnd.lineNumber - bEnd.lineNumber;
+        }
+        return aEnd.column - bEnd.column;
+      });
+
+      ed.pushUndoStop();
+      selectionsWithIndex
+        .slice()
+        .reverse()
+        .forEach(({ selection, index }) => {
+          const selectedText = model.getValueInRange(selection);
+          if (!selectedText || !context.decodeHTMLEntities) {
+            newSelections[index] = selection;
+            return;
+          }
+
+          const unescapedText = context.decodeHTMLEntities(selectedText);
+          const startOffset = model.getOffsetAt(selection.getStartPosition());
+          ed.executeEdits('unescape-html', [{ range: selection, text: unescapedText }]);
+          const endPosition = model.getPositionAt(startOffset + unescapedText.length);
+          newSelections[index] = new monaco.Selection(
+            selection.getStartPosition().lineNumber,
+            selection.getStartPosition().column,
+            endPosition.lineNumber,
+            endPosition.column
+          );
+        });
+      ed.pushUndoStop();
+      ed.setSelections(newSelections);
     },
   });
 }
