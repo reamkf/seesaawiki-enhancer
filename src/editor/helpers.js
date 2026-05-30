@@ -81,9 +81,17 @@ export function wrapSelectedText(monaco, editor, prefix, suffix) {
 export function insertAtBeginningOfLine(monaco, editor, prefix, maxLevel = 1) {
   const selections = editor.getSelections() ?? [editor.getSelection()];
   const model = editor.getModel();
-  const lineNumbers = Array.from(
-    new Set(selections.map((selection) => selection.getStartPosition().lineNumber))
-  ).sort((a, b) => b - a);
+  const lineNumberSet = new Set();
+
+  selections.forEach((selection) => {
+    const startLine = selection.getStartPosition().lineNumber;
+    const endLine = selection.getEndPosition().lineNumber;
+    for (let lineNumber = startLine; lineNumber <= endLine; lineNumber += 1) {
+      lineNumberSet.add(lineNumber);
+    }
+  });
+
+  const lineNumbers = Array.from(lineNumberSet).sort((a, b) => b - a);
   const edits = [];
 
   lineNumbers.forEach((lineNumber) => {
