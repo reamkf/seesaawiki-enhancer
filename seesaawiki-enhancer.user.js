@@ -377,7 +377,7 @@
 				{ open: "'", close: "'" },
 				{ open: "'''", close: "'''" },
 				{ open: "%%", close: "%%" },
-				{ open: "%%%", close: "%%" },
+				{ open: "%%%", close: "%%%" },
 				{ open: "|", close: "|" },
 			],
 			// wordPattern: /(-?\d*\.\d\w*%?)|(https?:\/\/.*?\.(?:png|jpg|jpeg|gif|webp))|([^\`\~\!\@\#\%\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g
