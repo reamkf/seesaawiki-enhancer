@@ -10,9 +10,22 @@ export function convertCharRef(s) {
     .join('');
 }
 
-export function decodeHTMLEntities(text) {
+export function decodeHTMLEntities(text, options = {}) {
+  const { stripAnchors = false } = options;
+  let html = text;
+
+  if (stripAnchors) {
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    container.querySelectorAll('a').forEach((anchor) => {
+      const textNode = document.createTextNode(anchor.textContent ?? '');
+      anchor.replaceWith(textNode);
+    });
+    html = container.innerHTML;
+  }
+
   const textarea = document.createElement('textarea');
-  textarea.innerHTML = text;
+  textarea.innerHTML = html;
   return textarea.value;
 }
 

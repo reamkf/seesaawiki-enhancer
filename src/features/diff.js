@@ -8,7 +8,7 @@ function extractDiffContent(decodeHTMLEntities) {
 
   let innerHTML = diffBox.innerHTML;
   innerHTML = innerHTML.replace(/<br>|<\/span>/g, '');
-  innerHTML = decodeHTMLEntities(innerHTML);
+  innerHTML = decodeHTMLEntities(innerHTML, { stripAnchors: true });
 
   const oldContent = innerHTML.replace(
     /<span class="line-add">.*?\n|<span class="line-delete">/g,
