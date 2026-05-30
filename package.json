@@ -4,15 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run build:iframe && vite",
-    "build:iframe": "vite build --config vite.iframe.config.js",
-    "build:main": "vite build",
-    "build": "bun run build:iframe && bun run build:main",
+    "dev": "vite",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
     "vite": "^5.4.0",
-    "vite-plugin-css-injected-by-js": "^5.0.1",
     "vite-plugin-monkey": "^4.0.6"
   },
   "dependencies": {

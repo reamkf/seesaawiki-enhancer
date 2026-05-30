@@ -1,6 +1,6 @@
 import { addCSS } from '../utils/dom.js';
-import { waitForIframeReady } from '../utils/iframe.js';
-import { buildIframeHtml } from '../iframe/build.js';
+import { api } from '../editor/api.js';
+import { editStyles } from '../editor/styles.js';
 
 function setupLoginReturn(url) {
   const login = document.getElementsByClassName('login');
@@ -112,9 +112,8 @@ function bindToolbar(api, editor) {
   click('annotation', () => api.wrapSelectedText(editor, '((', '))'));
 }
 
-function setupOutlineView({ iframeDocument, api, editor }) {
+function setupOutlineView({ outlineContent, editor }) {
   const symbolProvider = new api.SymbolProvider(api.monaco);
-  const outlineContent = iframeDocument.getElementById('outline-content');
   if (!outlineContent) return;
 
   const renderSymbols = (symbols) => {
@@ -122,15 +121,15 @@ function setupOutlineView({ iframeDocument, api, editor }) {
 
     const renderSymbolsRecursive = (symbols, container) => {
       symbols.forEach((symbol) => {
-        const item = iframeDocument.createElement('div');
-        item.className = 'outline-item';
+        const item = document.createElement('div');
+        item.className = 'swe-outline-item';
         item.textContent = symbol.name;
         item.onclick = (e) => {
           e.stopPropagation();
           outlineContent
-            .querySelectorAll('.outline-item')
-            .forEach((el) => el.classList.remove('active'));
-          item.classList.add('active');
+            .querySelectorAll('.swe-outline-item')
+            .forEach((el) => el.classList.remove('is-active'));
+          item.classList.add('is-active');
           editor.revealPositionInCenter({
             lineNumber: symbol.range.startLineNumber,
             column: symbol.range.startColumn,
@@ -144,8 +143,8 @@ function setupOutlineView({ iframeDocument, api, editor }) {
         container.appendChild(item);
 
         if (symbol.children && symbol.children.length > 0) {
-          const childrenContainer = iframeDocument.createElement('div');
-          childrenContainer.className = 'outline-children';
+          const childrenContainer = document.createElement('div');
+          childrenContainer.className = 'swe-outline-children';
           renderSymbolsRecursive(symbol.children, childrenContainer);
           container.appendChild(childrenContainer);
         }
@@ -248,48 +247,55 @@ function setupItemSearchTemplate(api, editor) {
   itemSearchTemplateTextArea.value = content;
 }
 
-async function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }) {
+function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }) {
   const textarea = document.getElementById('content');
   if (!textarea) return;
   textarea.style.display = 'none';
   textarea.readOnly = true;
 
-  const iframe = document.createElement('iframe');
-  iframe.style.width = '100%';
-  iframe.style.height = 'max(calc(100vh - 500px), 750px)';
-  iframe.style.border = 'none';
+  addCSS(editStyles);
+
+  const root = document.createElement('div');
+  root.className = 'swe-edit-container';
+  root.style.width = '100%';
+  root.style.height = 'max(calc(100vh - 500px), 750px)';
+
+  const outlineContainer = document.createElement('div');
+  outlineContainer.className = 'swe-outline-container';
+
+  const outlineLabel = document.createElement('div');
+  outlineLabel.className = 'swe-outline-label';
+  outlineLabel.textContent = 'OUTLINE';
+
+  const outlineContent = document.createElement('div');
+  outlineContent.className = 'swe-outline-content';
+
+  outlineContainer.append(outlineLabel, outlineContent);
+
+  const container = document.createElement('div');
+  container.className = 'swe-monaco-container';
+
+  root.append(outlineContainer, container);
 
   const wideAreaButton = document.getElementById('wide_area_button');
   if (wideAreaButton) {
     wideAreaButton.addEventListener('click', () => {
       if (globalThis.editor?.wide_area_mode?.is_wide) {
-        iframe.style.height = 'max(calc(100vh - 500px), 750px)';
+        root.style.height = 'max(calc(100vh - 500px), 750px)';
       } else {
-        iframe.style.height = 'max(calc(100vh - 150px), 750px)';
+        root.style.height = 'max(calc(100vh - 150px), 750px)';
       }
     });
   }
 
-  textarea.parentNode.insertBefore(iframe, textarea);
+  textarea.parentNode.insertBefore(root, textarea);
 
-  const iframeWindow = iframe.contentWindow;
-  const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-
-  const readyPromise = waitForIframeReady(iframeWindow);
-  iframeDocument.open();
-  iframeDocument.write(buildIframeHtml('edit'));
-  iframeDocument.close();
-
-  await readyPromise;
-
-  const api = iframeWindow.__seesaawikiApi;
   api.setContext({ getWikiPageUrl, decodeHTMLEntities });
 
-  const container = iframeDocument.getElementById('monaco-editor-container');
   const editor = api.createEditor(container, { value: textarea.value });
 
   bindToolbar(api, editor);
-  setupOutlineView({ iframeDocument, api, editor });
+  setupOutlineView({ outlineContent, editor });
   setupFormSubmit({ textarea, editor });
   setupItemSearchTemplate(api, editor);
 }

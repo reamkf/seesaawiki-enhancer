@@ -1,5 +1,6 @@
-import { waitForIframeReady } from '../utils/iframe.js';
-import { buildIframeHtml } from '../iframe/build.js';
+import { addCSS } from '../utils/dom.js';
+import { api } from '../editor/api.js';
+import { diffStyles } from '../editor/styles.js';
 
 function extractDiffContent(decodeHTMLEntities) {
   const diffBox = document.querySelector('.diff-box');
@@ -21,7 +22,7 @@ function extractDiffContent(decodeHTMLEntities) {
   return { oldContent, newContent };
 }
 
-export async function setupDiffPage({ decodeHTMLEntities }) {
+export function setupDiffPage({ decodeHTMLEntities }) {
   const diffBox = document.querySelector('.diff-box');
   if (!diffBox) return;
 
@@ -32,25 +33,21 @@ export async function setupDiffPage({ decodeHTMLEntities }) {
   const diffContent = extractDiffContent(decodeHTMLEntities);
   if (!diffContent) return;
 
-  const iframe = document.createElement('iframe');
-  iframe.style.width = '100%';
-  iframe.style.height = 'max(calc(100vh - 350px), 500px)';
-  iframe.style.border = '1px solid #ccc';
-  iframe.style.marginBottom = '20px';
-  diffBox.parentNode.insertBefore(iframe, diffBox);
+  addCSS(diffStyles);
 
-  const iframeWindow = iframe.contentWindow;
-  const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+  const container = document.createElement('div');
+  container.className = 'swe-diff-container';
+  container.style.width = '100%';
+  container.style.height = 'max(calc(100vh - 350px), 500px)';
+  container.style.border = '1px solid #ccc';
+  container.style.marginBottom = '20px';
+  diffBox.parentNode.insertBefore(container, diffBox);
 
-  const readyPromise = waitForIframeReady(iframeWindow);
-  iframeDocument.open();
-  iframeDocument.write(buildIframeHtml('diff'));
-  iframeDocument.close();
-
-  await readyPromise;
-
-  const api = iframeWindow.__seesaawikiApi;
-  const diffEditor = api.createDiffEditor(diffContent.oldContent, diffContent.newContent);
+  const diffEditor = api.createDiffEditor(
+    container,
+    diffContent.oldContent,
+    diffContent.newContent
+  );
 
   diffEditor.addCommand(api.monaco.KeyMod.Alt | api.monaco.KeyCode.DownArrow, () =>
     diffEditor.goToDiff('next')

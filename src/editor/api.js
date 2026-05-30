@@ -1,3 +1,6 @@
+// Prototype.jsが上書きしたネイティブメソッドをMonaco読み込み前に復元する。
+// 副作用importのため、必ずmonacoより前に置くこと。
+import '../utils/native-methods.js';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import 'monaco-editor/esm/vs/editor/editor.all.js';
 import 'monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneGotoLineQuickAccess.js';
@@ -8,6 +11,7 @@ import { createEditor } from './editor.js';
 import { createSeesaawikiDiffEditor } from './diff-editor.js';
 import { wrapSelectedText, insertAtBeginningOfLine } from './helpers.js';
 import { context } from './context.js';
+import { withoutPrototypePollution } from '../utils/prototype-guard.js';
 
 // 組み込み言語ワーカーは使用しないため、ダミーを設定して警告を抑制
 self.MonacoEnvironment = {
@@ -21,19 +25,21 @@ self.MonacoEnvironment = {
   },
 };
 
-registerSeesaaWikiLanguage(monaco);
+withoutPrototypePollution(() => registerSeesaaWikiLanguage(monaco));
 
-const api = {
+export const api = {
   monaco,
   SymbolProvider: SeesaaWikiDocumentSymbolProvider,
   setContext(values) {
     Object.assign(context, values);
   },
   createEditor(container, options) {
-    return createEditor(monaco, container, options);
+    return withoutPrototypePollution(() => createEditor(monaco, container, options));
   },
-  createDiffEditor(oldContent, newContent) {
-    return createSeesaawikiDiffEditor(monaco, oldContent, newContent);
+  createDiffEditor(container, oldContent, newContent) {
+    return withoutPrototypePollution(() =>
+      createSeesaawikiDiffEditor(monaco, container, oldContent, newContent)
+    );
   },
   wrapSelectedText(editor, prefix, suffix) {
     wrapSelectedText(monaco, editor, prefix, suffix);
@@ -42,12 +48,3 @@ const api = {
     insertAtBeginningOfLine(monaco, editor, prefix, maxLevel);
   },
 };
-
-window.__seesaawikiApi = api;
-
-if (window.parent !== window) {
-  window.parent.postMessage(
-    { type: 'seesaawiki:ready' },
-    window.parent.location.origin
-  );
-}
