@@ -32,10 +32,12 @@ jobs:
     - name: Build userscript
       run: bun run build
 
-    - name: Create Release
-      uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
-      with:
-        name: Release ${{ github.ref_name }}
-        files: |
-          dist/seesaawiki-enhancer.user.js
+    - name: Create Release (draft)
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release create "${GITHUB_REF_NAME}" \
+          --draft \
+          --title "Release ${GITHUB_REF_NAME}" \
+          dist/seesaawiki-enhancer.user.js \
           dist/seesaawiki-enhancer.meta.js
