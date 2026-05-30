@@ -33,7 +33,7 @@ export function setupSeesaawikiLanguageConfig(monaco) {
       { open: "'", close: "'" },
       { open: "'''", close: "'''" },
       { open: '%%', close: '%%' },
-      { open: '%%%', close: '%%' },
+      { open: '%%%', close: '%%%' },
       { open: '|', close: '|' },
     ],
   });
