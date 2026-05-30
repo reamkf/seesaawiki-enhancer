@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "vite": "^5.4.0",
-    "vite-plugin-monkey": "^4.0.6"
+    "vite": "^8.0.14",
+    "vite-plugin-monkey": "^8.0.5"
   },
   "dependencies": {
     "encoding-japanese": "^2.2.0",
