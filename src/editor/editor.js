@@ -106,6 +106,127 @@ function setupEditorKeybindings(monaco, editor) {
   editor.addCommand(
     monaco.KeyCode.Enter,
     () => {
+      const selections = editor.getSelections();
+      if (selections && selections.length > 1) {
+        const model = editor.getModel();
+        const newSelections = new Array(selections.length);
+        const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
+
+        selectionsWithIndex.sort((a, b) => {
+          const aPos = a.selection.getEndPosition();
+          const bPos = b.selection.getEndPosition();
+          if (aPos.lineNumber !== bPos.lineNumber) {
+            return bPos.lineNumber - aPos.lineNumber;
+          }
+          return bPos.column - aPos.column;
+        });
+
+        editor.pushUndoStop();
+        selectionsWithIndex.forEach(({ selection, index }) => {
+          const position = selection.getEndPosition();
+          const lineContent = model.getLineContent(position.lineNumber);
+          const range = selection.isEmpty()
+            ? new monaco.Range(
+                position.lineNumber,
+                position.column,
+                position.lineNumber,
+                position.column
+              )
+            : selection;
+
+          const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(?!-)(.*)$/);
+          if (bulletMatch) {
+            const [, bullet, content] = bulletMatch;
+            if (content.trim() != '') {
+              editor.executeEdits('multi-enter', [
+                {
+                  range,
+                  text: '\n' + bullet,
+                },
+              ]);
+              newSelections[index] = new monaco.Selection(
+                position.lineNumber + 1,
+                bullet.length + 1,
+                position.lineNumber + 1,
+                bullet.length + 1
+              );
+            } else {
+              editor.executeEdits('multi-enter', [
+                {
+                  range: new monaco.Range(
+                    position.lineNumber,
+                    1,
+                    position.lineNumber,
+                    position.column
+                  ),
+                  text: '',
+                },
+              ]);
+              newSelections[index] = new monaco.Selection(
+                position.lineNumber,
+                1,
+                position.lineNumber,
+                1
+              );
+            }
+            return;
+          }
+
+          if (lineContent.startsWith('>') || lineContent.startsWith(' ')) {
+            const content = lineContent.slice(1).trim();
+            if (content != '') {
+              editor.executeEdits('multi-enter', [
+                {
+                  range,
+                  text: '\n' + lineContent[0],
+                },
+              ]);
+              newSelections[index] = new monaco.Selection(
+                position.lineNumber + 1,
+                2,
+                position.lineNumber + 1,
+                2
+              );
+            } else {
+              editor.executeEdits('multi-enter', [
+                {
+                  range: new monaco.Range(
+                    position.lineNumber,
+                    1,
+                    position.lineNumber,
+                    position.column
+                  ),
+                  text: '',
+                },
+              ]);
+              newSelections[index] = new monaco.Selection(
+                position.lineNumber,
+                1,
+                position.lineNumber,
+                1
+              );
+            }
+            return;
+          }
+
+          editor.executeEdits('multi-enter', [
+            {
+              range,
+              text: '\n',
+            },
+          ]);
+          newSelections[index] = new monaco.Selection(
+            position.lineNumber + 1,
+            1,
+            position.lineNumber + 1,
+            1
+          );
+        });
+        editor.pushUndoStop();
+        editor.setSelections(newSelections);
+        return;
+      }
+
       const model = editor.getModel();
       const position = editor.getPosition();
       const lineContent = model.getLineContent(position.lineNumber);
@@ -234,6 +355,45 @@ function setupEditorKeybindings(monaco, editor) {
   editor.addCommand(
     monaco.KeyCode.Tab,
     () => {
+      const selections = editor.getSelections();
+      if (selections && selections.length > 0) {
+        const model = editor.getModel();
+        const lineNumberSet = new Set();
+
+        selections.forEach((selection) => {
+          const startLine = selection.getStartPosition().lineNumber;
+          const endLine = selection.getEndPosition().lineNumber;
+          for (let lineNumber = startLine; lineNumber <= endLine; lineNumber += 1) {
+            lineNumberSet.add(lineNumber);
+          }
+        });
+
+        const lineNumbers = Array.from(lineNumberSet).sort((a, b) => b - a);
+        const edits = [];
+
+        lineNumbers.forEach((lineNumber) => {
+          const lineContent = model.getLineContent(lineNumber);
+          const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(?!-)(.*)$/);
+          if (bulletMatch) {
+            const [, bullet] = bulletMatch;
+            if (bullet.length < 3) {
+              edits.push({
+                range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+                text: bullet[0],
+                forceMoveMarkers: true,
+              });
+            }
+          }
+        });
+
+        if (edits.length > 0) {
+          editor.pushUndoStop();
+          editor.executeEdits('bullet-indent', edits);
+          editor.pushUndoStop();
+          return;
+        }
+      }
+
       const model = editor.getModel();
       const position = editor.getPosition();
       const lineContent = model.getLineContent(position.lineNumber);
@@ -288,6 +448,45 @@ function setupEditorKeybindings(monaco, editor) {
   editor.addCommand(
     monaco.KeyMod.Shift | monaco.KeyCode.Tab,
     () => {
+      const selections = editor.getSelections();
+      if (selections && selections.length > 0) {
+        const model = editor.getModel();
+        const lineNumberSet = new Set();
+
+        selections.forEach((selection) => {
+          const startLine = selection.getStartPosition().lineNumber;
+          const endLine = selection.getEndPosition().lineNumber;
+          for (let lineNumber = startLine; lineNumber <= endLine; lineNumber += 1) {
+            lineNumberSet.add(lineNumber);
+          }
+        });
+
+        const lineNumbers = Array.from(lineNumberSet).sort((a, b) => b - a);
+        const edits = [];
+
+        lineNumbers.forEach((lineNumber) => {
+          const lineContent = model.getLineContent(lineNumber);
+          const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(\s*)([^-]*)$/);
+          if (bulletMatch) {
+            const [, bullet] = bulletMatch;
+            if (bullet.length > 1) {
+              edits.push({
+                range: new monaco.Range(lineNumber, 1, lineNumber, 2),
+                text: '',
+                forceMoveMarkers: true,
+              });
+            }
+          }
+        });
+
+        if (edits.length > 0) {
+          editor.pushUndoStop();
+          editor.executeEdits('bullet-outdent', edits);
+          editor.pushUndoStop();
+          return;
+        }
+      }
+
       const model = editor.getModel();
       const position = editor.getPosition();
       const lineContent = model.getLineContent(position.lineNumber);
