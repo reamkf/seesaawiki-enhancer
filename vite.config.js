@@ -29,12 +29,6 @@ export default defineConfig({
       build: {
         fileName: 'seesaawiki-enhancer.user.js',
         metaFileName: 'seesaawiki-enhancer.meta.js',
-        externalGlobals: {
-          'encoding-japanese': [
-            'Encoding',
-            'https://cdnjs.cloudflare.com/ajax/libs/encoding-japanese/2.0.0/encoding.min.js',
-          ],
-        },
       },
     }),
   ],
