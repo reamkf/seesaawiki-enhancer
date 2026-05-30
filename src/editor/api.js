@@ -2,6 +2,7 @@
 // 副作用importのため、必ずmonacoより前に置くこと。
 import '../utils/native-methods.js';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker&inline';
 import EditorWorkerUrl from 'monaco-editor/esm/vs/editor/editor.worker?worker&url';
 import 'monaco-editor/esm/vs/editor/editor.all.js';
 import 'monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneGotoLineQuickAccess.js';
@@ -17,10 +18,10 @@ import { withoutPrototypePollution } from '../utils/prototype-guard.js';
 // 組み込み言語ワーカーは使用しないため、ダミーを設定して警告を抑制
 self.MonacoEnvironment = {
   getWorker() {
-    return new Worker(EditorWorkerUrl, { type: 'module' });
-  },
-  getWorkerUrl() {
-    return EditorWorkerUrl;
+    if (import.meta.env?.DEV) {
+      return new Worker(EditorWorkerUrl, { type: 'module' });
+    }
+    return new EditorWorker();
   },
 };
 
