@@ -29,17 +29,17 @@ export function setupSeesaawikiColorProvider(monaco: MonacoNamespace): void {
   }
 
   function hexToRGB(hex: string): RGBA {
-    hex = hex.replace(/^#/, '');
+    let normalized = hex.replace(/^#/, '');
     let alpha = 1;
 
-    if (hex.length === 3) {
-      hex = hex.split('').map((char) => char + char).join('');
-    } else if (hex.length === 8) {
-      alpha = parseInt(hex.slice(6, 8), 16) / 255;
-      hex = hex.slice(0, 6);
+    if (normalized.length === 3) {
+      normalized = normalized.split('').map((char) => char + char).join('');
+    } else if (normalized.length === 8) {
+      alpha = parseInt(normalized.slice(6, 8), 16) / 255;
+      normalized = normalized.slice(0, 6);
     }
 
-    const bigint = parseInt(hex, 16);
+    const bigint = parseInt(normalized, 16);
     const r = (bigint >> 16) & 255;
     const g = (bigint >> 8) & 255;
     const b = bigint & 255;
@@ -49,11 +49,11 @@ export function setupSeesaawikiColorProvider(monaco: MonacoNamespace): void {
 
   function parseColor(color: string | null | undefined): RGBA | null {
     if (!color) return null;
-    color = color.trim();
-    if (color.startsWith('#')) {
-      return hexToRGB(color);
+    const trimmed = color.trim();
+    if (trimmed.startsWith('#')) {
+      return hexToRGB(trimmed);
     } else {
-      return colorNameToRGB(color);
+      return colorNameToRGB(trimmed);
     }
   }
 
