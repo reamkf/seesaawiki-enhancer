@@ -1,5 +1,4 @@
 export enum WikiPageType {
-  TOP = 'TOP',
   PAGE = 'PAGE',
   EDIT = 'EDIT',
   ATTACHMENT = 'ATTACHMENT',
