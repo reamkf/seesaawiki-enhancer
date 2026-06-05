@@ -3,6 +3,9 @@ import { getWikiPageType, getWikiId, makeGetWikiPageUrl } from './utils/url.js';
 import { decodeHTMLEntities } from './utils/encoding.js';
 import { setupEditPage } from './features/edit.js';
 import { setupDiffPage } from './features/diff.js';
+import { setupDevErrorBridge } from './dev/errorBridge.js';
+
+setupDevErrorBridge();
 
 const url = location.href;
 const pageType = getWikiPageType(url);

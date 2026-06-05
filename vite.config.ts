@@ -1,8 +1,31 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import monkey from 'vite-plugin-monkey';
+
+/**
+ * UserScriptがHMR WebSocket経由で送ってくる実行時エラーを受け取り、
+ * `bun dev`のターミナルに出力する（dev時のみ）。送信側は`src/dev/errorBridge.ts`。
+ */
+function userscriptErrorBridge(): Plugin {
+  return {
+    name: 'seesaa:error-bridge',
+    apply: 'serve',
+    configureServer(server) {
+      server.ws.on(
+        'seesaa:error',
+        (data: { kind?: string; message?: string; stack?: string }) => {
+          const { kind = 'error', message = '', stack } = data ?? {};
+          server.config.logger.error(
+            `\x1b[31m[userscript:${kind}]\x1b[0m ${message}${stack ? `\n${stack}` : ''}`,
+          );
+        },
+      );
+    },
+  };
+}
 
 export default defineConfig({
   plugins: [
+    userscriptErrorBridge(),
     monkey({
       entry: 'src/main.ts',
       userscript: {
