@@ -27,7 +27,7 @@ function define(target, name, value) {
   });
 }
 
-function specReduce(callback, initialValue) {
+export function specReduce(callback, initialValue) {
   // Prototype.js 1.6互換: 引数が関数でなければ従来の畳み込み(単一要素化)を行う。
   // これによりSeesaa側がPrototype流にreduce()を呼んでも従来通り動作する。
   if (typeof callback !== 'function') {
@@ -53,7 +53,7 @@ function specReduce(callback, initialValue) {
   return accumulator;
 }
 
-function specFrom(items, mapFn, thisArg) {
+export function specFrom(items, mapFn, thisArg) {
   // Prototype.jsの$A互換: nullish時は空配列を返す(仕様はthrowだがMonacoは渡さない)。
   if (items == null) {
     return [];
