@@ -239,6 +239,19 @@ function setupFormSubmit({ textarea, editor }: SetupFormSubmitArgs): void {
       textarea.value = editor.getModel()!.getValue();
       form.submit();
     });
+
+    editor.addAction({
+      id: 'seesaawiki.submitForm',
+      label: 'ページを保存',
+      keybindings: [
+        api.monaco.KeyMod.CtrlCmd | api.monaco.KeyCode.Enter,
+      ],
+      run: () => {
+        lastSavedVersionId = editor.getModel()!.getAlternativeVersionId();
+        textarea.value = editor.getModel()!.getValue();
+        form.submit();
+      },
+    });
   }
 
   document.querySelectorAll('.preview > a').forEach((preview) => {
