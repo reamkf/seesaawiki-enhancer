@@ -202,22 +202,10 @@ function setupOutlineView({ outlineContent, editor }: SetupOutlineViewArgs): voi
   const update = (): void => {
     const model = editor.getModel();
     if (!model) return;
-    let symbols: monacoNs.languages.DocumentSymbol[] | PromiseLike<monacoNs.languages.DocumentSymbol[] | undefined> | undefined;
     try {
-      symbols = symbolProvider.provideDocumentSymbols(model);
+      renderSymbols(symbolProvider.provideDocumentSymbols(model));
     } catch (error) {
       console.error('Error retrieving document symbols:', error);
-      return;
-    }
-    if (symbols && typeof (symbols as unknown as PromiseLike<unknown>).then === 'function') {
-      (symbols as unknown as PromiseLike<monacoNs.languages.DocumentSymbol[] | undefined>).then(
-        renderSymbols,
-        (error) => {
-          console.error('Error retrieving document symbols:', error);
-        }
-      );
-    } else {
-      renderSymbols(symbols as monacoNs.languages.DocumentSymbol[] | undefined);
     }
   };
 
