@@ -3,6 +3,8 @@ import type * as monacoNs from 'monaco-editor';
 type MonacoNamespace = typeof monacoNs;
 type Model = monacoNs.editor.ITextModel;
 type DocumentSymbol = monacoNs.languages.DocumentSymbol;
+// 見出しの親子関係を組み立てる間、children は常に配列として扱う。
+type HeadingSymbol = DocumentSymbol & { children: DocumentSymbol[] };
 
 export class SeesaaWikiDocumentSymbolProvider
   implements monacoNs.languages.DocumentSymbolProvider
@@ -15,8 +17,7 @@ export class SeesaaWikiDocumentSymbolProvider
 
   provideDocumentSymbols(model: Model): DocumentSymbol[] {
     const documentSymbols: DocumentSymbol[] = [];
-    let symbol: DocumentSymbol;
-    const lastUnclosedHeadingSymbol: (DocumentSymbol | null)[] = [null, null, null];
+    const lastUnclosedHeadingSymbol: (HeadingSymbol | null)[] = [null, null, null];
     const headingRegex = /^\*{0,3}/;
 
     for (let lineIndex = 1; lineIndex <= model.getLineCount(); lineIndex++) {
@@ -32,7 +33,7 @@ export class SeesaaWikiDocumentSymbolProvider
           endColumn: lineContent.length + 1,
         };
 
-        symbol = {
+        const symbol: HeadingSymbol = {
           name: lineContent,
           detail: 'Heading ' + String(headingLevel),
           kind: this.monaco.languages.SymbolKind.String,
@@ -60,7 +61,7 @@ export class SeesaaWikiDocumentSymbolProvider
         for (let j = headingLevel - 1; j > 0; j--) {
           const parent = lastUnclosedHeadingSymbol[j - 1];
           if (parent !== null) {
-            parent.children!.push(symbol);
+            parent.children.push(symbol);
             childFlag = true;
             break;
           }
