@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import { withoutPrototypePollution } from '../../src/utils/prototype-guard.js';
+
+type ArrayWithInclude = Array<unknown> & { include?: (...args: unknown[]) => unknown };
 
 describe('withoutPrototypePollution', () => {
   afterEach(() => {
     if (Object.prototype.hasOwnProperty.call(Array.prototype, 'include')) {
-      delete Array.prototype.include;
+      delete (Array.prototype as ArrayWithInclude).include;
     }
   });
 
@@ -13,11 +15,11 @@ describe('withoutPrototypePollution', () => {
   });
 
   it('removes Array.prototype.include during the callback', () => {
-    Array.prototype.include = function () {
+    (Array.prototype as ArrayWithInclude).include = function () {
       return 'polluted';
     };
 
-    let sawIncludeDuringCallback;
+    let sawIncludeDuringCallback: boolean | undefined;
     withoutPrototypePollution(() => {
       sawIncludeDuringCallback = Object.prototype.hasOwnProperty.call(
         Array.prototype,
@@ -29,22 +31,22 @@ describe('withoutPrototypePollution', () => {
   });
 
   it('restores Array.prototype.include after the callback finishes', () => {
-    const original = function include() {
+    const original = function include(): string {
       return 'restored';
     };
-    Array.prototype.include = original;
+    (Array.prototype as ArrayWithInclude).include = original;
 
     withoutPrototypePollution(() => {});
 
     expect(Object.prototype.hasOwnProperty.call(Array.prototype, 'include')).toBe(true);
-    expect(Array.prototype.include).toBe(original);
+    expect((Array.prototype as ArrayWithInclude).include).toBe(original);
   });
 
   it('restores Array.prototype.include even when the callback throws', () => {
-    const original = function include() {
+    const original = function include(): string {
       return 'restored';
     };
-    Array.prototype.include = original;
+    (Array.prototype as ArrayWithInclude).include = original;
 
     expect(() =>
       withoutPrototypePollution(() => {
@@ -53,7 +55,7 @@ describe('withoutPrototypePollution', () => {
     ).toThrow('boom');
 
     expect(Object.prototype.hasOwnProperty.call(Array.prototype, 'include')).toBe(true);
-    expect(Array.prototype.include).toBe(original);
+    expect((Array.prototype as ArrayWithInclude).include).toBe(original);
   });
 
   it('does nothing extra when Array.prototype.include is not present', () => {

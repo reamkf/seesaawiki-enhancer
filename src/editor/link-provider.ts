@@ -1,6 +1,22 @@
+import type * as monacoNs from 'monaco-editor';
 import { context } from './context.js';
 
-export function setupSeesaawikiLinkProvider(monaco) {
+type MonacoNamespace = typeof monacoNs;
+
+type SeesaawikiLinkType =
+  | 'url'
+  | 'anchor'
+  | 'page'
+  | 'image_ref'
+  | 'twitter_status'
+  | 'twitter_profile';
+
+interface SeesaawikiLink extends monacoNs.languages.ILink {
+  type: SeesaawikiLinkType;
+  target?: string;
+}
+
+export function setupSeesaawikiLinkProvider(monaco: MonacoNamespace): void {
   const linkRegex =
     /\[\[(?:.+?>)??([^>]+?)\]\]|(?:&|#)include\(([^)]+)\)|(?:&|#)(?:attachref|ref)\(([^)]+?)\s*(?:,\s*(?:\d+%?|left|right|center|no_link))*\)|(?:&|#)twitter\(([^)]+)\)|(?:&|#)twitter_profile\(([^)]+)\)/g;
   const anchorNameRegex = /^(#[a-zA-Z0-9\-_\.:]+)$/;
@@ -8,7 +24,7 @@ export function setupSeesaawikiLinkProvider(monaco) {
 
   monaco.languages.registerLinkProvider('seesaawiki', {
     provideLinks: (model) => {
-      const links = [];
+      const links: SeesaawikiLink[] = [];
       const text = model.getValue();
       const matches = text.matchAll(linkRegex);
 
@@ -17,12 +33,13 @@ export function setupSeesaawikiLinkProvider(monaco) {
         const imageUrl = match[3];
         const tweetId = match[4];
         const twitterUserName = match[5];
+        const matchIndex = match.index ?? 0;
 
         const range = {
-          startLineNumber: model.getPositionAt(match.index).lineNumber,
-          startColumn: model.getPositionAt(match.index).column,
-          endLineNumber: model.getPositionAt(match.index + match[0].length).lineNumber,
-          endColumn: model.getPositionAt(match.index + match[0].length).column,
+          startLineNumber: model.getPositionAt(matchIndex).lineNumber,
+          startColumn: model.getPositionAt(matchIndex).column,
+          endLineNumber: model.getPositionAt(matchIndex + match[0].length).lineNumber,
+          endColumn: model.getPositionAt(matchIndex + match[0].length).column,
         };
 
         if (linkTarget) {
@@ -75,24 +92,26 @@ export function setupSeesaawikiLinkProvider(monaco) {
 
       return { links };
     },
-    resolveLink: function (link) {
-      const type = link.type;
+    resolveLink(link) {
+      const seesaawikiLink = link as SeesaawikiLink;
+      const type = seesaawikiLink.type;
       if (
         type === 'url' ||
         type === 'image_ref' ||
         type === 'twitter_status' ||
         type === 'twitter_profile'
       ) {
-        return { url: link.url };
+        return { range: link.range, url: link.url };
       } else if (type === 'anchor') {
-        const anchorName = link.target;
+        const anchorName = seesaawikiLink.target;
         const editors = monaco.editor.getEditors();
         const editor = editors.length === 1 ? editors[0] : editors[1];
         const model = editor.getModel();
+        if (!model) return null;
         const text = model.getValue();
         const anchorMatch = text.match(new RegExp(`(?:&|#)aname\\(${anchorName}\\)`));
 
-        if (anchorMatch) {
+        if (anchorMatch && anchorMatch.index !== undefined) {
           const anchorIndex = anchorMatch.index;
           const anchorPosition = model.getPositionAt(anchorIndex);
 
@@ -112,12 +131,12 @@ export function setupSeesaawikiLinkProvider(monaco) {
         }
       } else if (type === 'page') {
         if (!context.getWikiPageUrl) return null;
-        const target = link.target;
+        const target = seesaawikiLink.target ?? '';
         const anchorMatch = target.match(pageNameWithAnchorRegex);
         if (anchorMatch) {
-          return { url: context.getWikiPageUrl(anchorMatch[1]) + anchorMatch[2] };
+          return { range: link.range, url: context.getWikiPageUrl(anchorMatch[1]) + anchorMatch[2] };
         } else {
-          return { url: context.getWikiPageUrl(target) };
+          return { range: link.range, url: context.getWikiPageUrl(target) };
         }
       }
 

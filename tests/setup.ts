@@ -14,12 +14,12 @@ const builtinKeys = [
   'Error',
   'URIError',
   'EvalError',
-];
+] as const;
 for (const key of builtinKeys) {
   Object.defineProperty(window, key, {
     configurable: true,
     writable: true,
-    value: globalThis[key],
+    value: (globalThis as Record<string, unknown>)[key],
   });
 }
 
@@ -38,14 +38,14 @@ const globalKeys = [
   'DOMParser',
   'XMLSerializer',
   'navigator',
-];
+] as const;
 
 for (const key of globalKeys) {
   if (!(key in globalThis) && key in window) {
     Object.defineProperty(globalThis, key, {
       configurable: true,
       writable: true,
-      value: window[key],
+      value: (window as unknown as Record<string, unknown>)[key],
     });
   }
 }

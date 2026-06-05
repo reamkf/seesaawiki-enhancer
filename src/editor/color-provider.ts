@@ -1,10 +1,21 @@
-export function setupSeesaawikiColorProvider(monaco) {
+import type * as monacoNs from 'monaco-editor';
+
+type MonacoNamespace = typeof monacoNs;
+
+interface RGBA {
+  red: number;
+  green: number;
+  blue: number;
+  alpha: number;
+}
+
+export function setupSeesaawikiColorProvider(monaco: MonacoNamespace): void {
   const colorTestElement = document.createElement('div');
   colorTestElement.id = 'color-test';
   colorTestElement.style.display = 'none';
   document.body.appendChild(colorTestElement);
 
-  function colorNameToRGB(colorName) {
+  function colorNameToRGB(colorName: string): RGBA | null {
     colorTestElement.style.color = colorName;
     const color = window.getComputedStyle(colorTestElement).getPropertyValue('color');
 
@@ -17,7 +28,7 @@ export function setupSeesaawikiColorProvider(monaco) {
     return null;
   }
 
-  function hexToRGB(hex) {
+  function hexToRGB(hex: string): RGBA {
     hex = hex.replace(/^#/, '');
     let alpha = 1;
 
@@ -36,7 +47,7 @@ export function setupSeesaawikiColorProvider(monaco) {
     return { red: r / 255, green: g / 255, blue: b / 255, alpha };
   }
 
-  function parseColor(color) {
+  function parseColor(color: string | null | undefined): RGBA | null {
     if (!color) return null;
     color = color.trim();
     if (color.startsWith('#')) {
@@ -46,7 +57,7 @@ export function setupSeesaawikiColorProvider(monaco) {
     }
   }
 
-  function rgbaToHex(r, g, b, a) {
+  function rgbaToHex(r: number, g: number, b: number, a: number): string {
     r = Math.round(r * 255);
     g = Math.round(g * 255);
     b = Math.round(b * 255);
@@ -59,7 +70,7 @@ export function setupSeesaawikiColorProvider(monaco) {
   }
 
   monaco.languages.registerColorProvider('seesaawiki', {
-    provideDocumentColors: function (model) {
+    provideDocumentColors(model) {
       const text = model.getValue();
       const hexRegex = '[0-9A-Fa-f]';
       const colorRepresentationRegex = `#${hexRegex}{8}|#${hexRegex}{6}|#${hexRegex}{3}|[a-zA-Z]+`;
@@ -67,8 +78,8 @@ export function setupSeesaawikiColorProvider(monaco) {
         `(&color\\(|#color\\(|color\\(|bgcolor\\()\\s*(${colorRepresentationRegex})?\\s*(?:,\\s*(${colorRepresentationRegex})\\s*)?\\)`,
         'g'
       );
-      let match;
-      const colors = [];
+      let match: RegExpExecArray | null;
+      const colors: monacoNs.languages.IColorInformation[] = [];
 
       while ((match = colorRegex.exec(text)) !== null) {
         const fullMatch = match[0];
@@ -80,43 +91,52 @@ export function setupSeesaawikiColorProvider(monaco) {
           if (firstColor) {
             const firstColorStart = match.index + prefix.length;
             const firstColorEnd = firstColorStart + firstColor.length;
-            colors.push({
-              range: {
-                startLineNumber: model.getPositionAt(firstColorStart).lineNumber,
-                startColumn: model.getPositionAt(firstColorStart).column,
-                endLineNumber: model.getPositionAt(firstColorEnd).lineNumber,
-                endColumn: model.getPositionAt(firstColorEnd).column,
-              },
-              color: parseColor(firstColor),
-            });
+            const parsed = parseColor(firstColor);
+            if (parsed) {
+              colors.push({
+                range: {
+                  startLineNumber: model.getPositionAt(firstColorStart).lineNumber,
+                  startColumn: model.getPositionAt(firstColorStart).column,
+                  endLineNumber: model.getPositionAt(firstColorEnd).lineNumber,
+                  endColumn: model.getPositionAt(firstColorEnd).column,
+                },
+                color: parsed,
+              });
+            }
           }
           if (secondColor) {
             const secondColorStart = fullMatch.lastIndexOf(secondColor);
             const secondColorEnd = secondColorStart + secondColor.length;
-            colors.push({
-              range: {
-                startLineNumber: model.getPositionAt(match.index + secondColorStart).lineNumber,
-                startColumn: model.getPositionAt(match.index + secondColorStart).column,
-                endLineNumber: model.getPositionAt(match.index + secondColorEnd).lineNumber,
-                endColumn: model.getPositionAt(match.index + secondColorEnd).column,
-              },
-              color: parseColor(secondColor),
-            });
+            const parsed = parseColor(secondColor);
+            if (parsed) {
+              colors.push({
+                range: {
+                  startLineNumber: model.getPositionAt(match.index + secondColorStart).lineNumber,
+                  startColumn: model.getPositionAt(match.index + secondColorStart).column,
+                  endLineNumber: model.getPositionAt(match.index + secondColorEnd).lineNumber,
+                  endColumn: model.getPositionAt(match.index + secondColorEnd).column,
+                },
+                color: parsed,
+              });
+            }
           }
         } else {
           const colorValue = firstColor || secondColor;
           if (colorValue) {
             const colorStart = fullMatch.indexOf(colorValue);
             const colorEnd = colorStart + colorValue.length;
-            colors.push({
-              range: {
-                startLineNumber: model.getPositionAt(match.index + colorStart).lineNumber,
-                startColumn: model.getPositionAt(match.index + colorStart).column,
-                endLineNumber: model.getPositionAt(match.index + colorEnd).lineNumber,
-                endColumn: model.getPositionAt(match.index + colorEnd).column,
-              },
-              color: parseColor(colorValue),
-            });
+            const parsed = parseColor(colorValue);
+            if (parsed) {
+              colors.push({
+                range: {
+                  startLineNumber: model.getPositionAt(match.index + colorStart).lineNumber,
+                  startColumn: model.getPositionAt(match.index + colorStart).column,
+                  endLineNumber: model.getPositionAt(match.index + colorEnd).lineNumber,
+                  endColumn: model.getPositionAt(match.index + colorEnd).column,
+                },
+                color: parsed,
+              });
+            }
           }
         }
       }
@@ -124,7 +144,7 @@ export function setupSeesaawikiColorProvider(monaco) {
       return colors;
     },
 
-    provideColorPresentations: function (model, colorInfo) {
+    provideColorPresentations(_model, colorInfo) {
       const newColor = rgbaToHex(
         colorInfo.color.red,
         colorInfo.color.green,

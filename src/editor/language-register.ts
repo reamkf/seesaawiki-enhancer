@@ -1,3 +1,4 @@
+import type * as monacoNs from 'monaco-editor';
 import {
   setupSeesaawikiLanguageConfig,
   setupSeesaawikiTokens,
@@ -9,7 +10,9 @@ import { setupSeesaawikiLinkProvider } from './link-provider.js';
 import { setupSeesaawikiHoverProvider } from './hover-provider.js';
 import { setupSeesaawikiCompletionProvider } from './completion-provider.js';
 
-export function registerSeesaaWikiLanguage(monaco) {
+type MonacoNamespace = typeof monacoNs;
+
+export function registerSeesaaWikiLanguage(monaco: MonacoNamespace): void {
   setupSeesaawikiLanguageConfig(monaco);
   setupSeesaawikiTokens(monaco);
   setupSeesaawikiTheme(monaco);

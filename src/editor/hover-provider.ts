@@ -1,14 +1,17 @@
+import type * as monacoNs from 'monaco-editor';
 import { context } from './context.js';
 
-export function setupSeesaawikiHoverProvider(monaco) {
+type MonacoNamespace = typeof monacoNs;
+
+export function setupSeesaawikiHoverProvider(monaco: MonacoNamespace): void {
   const imageUrlRegex =
     /(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;%=]+)?\.(png|jpg|jpeg|gif|webp)(\?[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;%=]+)?/gi;
 
   monaco.languages.registerHoverProvider('seesaawiki', {
-    provideHover: function (model, position) {
+    provideHover(model, position) {
       const lineContent = model.getLineContent(position.lineNumber);
 
-      let match;
+      let match: RegExpExecArray | null;
       imageUrlRegex.lastIndex = 0;
       while ((match = imageUrlRegex.exec(lineContent)) !== null) {
         const startIndex = match.index + 1;
@@ -44,7 +47,7 @@ export function setupSeesaawikiHoverProvider(monaco) {
         if (position.column >= startIndex && position.column <= endIndex) {
           const originalEntity = match[0];
           const decodedChar = context.decodeHTMLEntities(originalEntity);
-          let description;
+          let description: string | undefined;
 
           if (match[1]) {
             description = 'Decimal Character Reference';

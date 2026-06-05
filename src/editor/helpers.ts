@@ -1,14 +1,24 @@
-export function escapeHTML(text) {
+import type * as monacoNs from 'monaco-editor';
+
+type MonacoNamespace = typeof monacoNs;
+type Editor = monacoNs.editor.IStandaloneCodeEditor;
+
+export function escapeHTML(text: string): string {
   return text
     .split('')
     .map((char) => `&#${char.charCodeAt(0)};`)
     .join('');
 }
 
-export function wrapSelectedText(monaco, editor, prefix, suffix) {
-  const selections = editor.getSelections() ?? [editor.getSelection()];
-  const model = editor.getModel();
-  const newSelections = new Array(selections.length);
+export function wrapSelectedText(
+  monaco: MonacoNamespace,
+  editor: Editor,
+  prefix: string,
+  suffix: string
+): void {
+  const selections = editor.getSelections() ?? [editor.getSelection()!];
+  const model = editor.getModel()!;
+  const newSelections: monacoNs.Selection[] = new Array(selections.length);
   const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
 
   selectionsWithIndex.sort((a, b) => {
@@ -35,7 +45,7 @@ export function wrapSelectedText(monaco, editor, prefix, suffix) {
     .forEach(({ selection, index }) => {
       const startOffset = model.getOffsetAt(selection.getStartPosition());
       const selectedText = model.getValueInRange(selection);
-      let text;
+      let text: string;
 
       if (!selection.isEmpty()) {
         if (selectedText.startsWith(prefix) && selectedText.endsWith(suffix)) {
@@ -78,10 +88,15 @@ export function wrapSelectedText(monaco, editor, prefix, suffix) {
   editor.setSelections(newSelections);
 }
 
-export function insertAtBeginningOfLine(monaco, editor, prefix, maxLevel = 1) {
-  const selections = editor.getSelections() ?? [editor.getSelection()];
-  const model = editor.getModel();
-  const lineNumberSet = new Set();
+export function insertAtBeginningOfLine(
+  monaco: MonacoNamespace,
+  editor: Editor,
+  prefix: string,
+  maxLevel = 1
+): void {
+  const selections = editor.getSelections() ?? [editor.getSelection()!];
+  const model = editor.getModel()!;
+  const lineNumberSet = new Set<number>();
 
   selections.forEach((selection) => {
     const startLine = selection.getStartPosition().lineNumber;
@@ -92,7 +107,7 @@ export function insertAtBeginningOfLine(monaco, editor, prefix, maxLevel = 1) {
   });
 
   const lineNumbers = Array.from(lineNumberSet).sort((a, b) => b - a);
-  const edits = [];
+  const edits: monacoNs.editor.IIdentifiedSingleEditOperation[] = [];
 
   lineNumbers.forEach((lineNumber) => {
     const line = model.getLineContent(lineNumber);

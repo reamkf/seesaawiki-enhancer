@@ -7,4 +7,6 @@ export const WikiPageType = {
   DIFF: 'DIFF',
   HISTORY: 'HISTORY',
   SEARCH: 'SEARCH',
-};
+} as const;
+
+export type WikiPageType = (typeof WikiPageType)[keyof typeof WikiPageType];

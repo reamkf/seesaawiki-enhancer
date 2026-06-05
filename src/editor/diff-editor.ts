@@ -1,4 +1,13 @@
-export function createSeesaawikiDiffEditor(monaco, container, oldContent, newContent) {
+import type * as monacoNs from 'monaco-editor';
+
+type MonacoNamespace = typeof monacoNs;
+
+export function createSeesaawikiDiffEditor(
+  monaco: MonacoNamespace,
+  container: HTMLElement,
+  oldContent: string,
+  newContent: string
+): monacoNs.editor.IStandaloneDiffEditor {
   const diffEditor = monaco.editor.createDiffEditor(container, {
     readOnly: true,
     renderSideBySide: false,

@@ -9,16 +9,16 @@
 // そこでMonaco読み込み前に、非ネイティブな場合のみ仕様準拠の実装へ戻す。
 // 仕様互換なメソッド(map/filter等)はPrototype版のままでもMonacoは動くため
 // 触らず、Seesaa側コードへの影響を最小化する。
-// このモジュールはimport時の副作用として適用される(api.jsでmonacoより前にimport)。
+// このモジュールはimport時の副作用として適用される(api.tsでmonacoより前にimport)。
 
-function isNative(fn) {
+function isNative(fn: unknown): boolean {
   return (
     typeof fn === 'function' &&
     /\{\s*\[native code\]\s*\}/.test(Function.prototype.toString.call(fn))
   );
 }
 
-function define(target, name, value) {
+function define(target: object, name: string, value: unknown): void {
   Object.defineProperty(target, name, {
     value,
     writable: true,
@@ -27,16 +27,27 @@ function define(target, name, value) {
   });
 }
 
-export function specReduce(callback, initialValue) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ReduceCallback = (accumulator: any, value: any, index: number, array: ArrayLike<any>) => any;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function specReduce(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  this: ArrayLike<any>,
+  callback?: ReduceCallback,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  initialValue?: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any {
   // Prototype.js 1.6互換: 引数が関数でなければ従来の畳み込み(単一要素化)を行う。
   // これによりSeesaa側がPrototype流にreduce()を呼んでも従来通り動作する。
   if (typeof callback !== 'function') {
     return this.length > 1 ? this : this[0];
   }
-  const O = Object(this);
+  const O = Object(this) as ArrayLike<unknown>;
   const len = O.length >>> 0;
   let k = 0;
-  let accumulator;
+  let accumulator: unknown;
   if (arguments.length >= 2) {
     accumulator = initialValue;
   } else {
@@ -53,7 +64,11 @@ export function specReduce(callback, initialValue) {
   return accumulator;
 }
 
-export function specFrom(items, mapFn, thisArg) {
+export function specFrom<T, U = T>(
+  items: Iterable<T> | ArrayLike<T> | null | undefined,
+  mapFn?: ((value: T, index: number) => U) | string,
+  thisArg?: unknown
+): U[] | T[] {
   // Prototype.jsの$A互換: nullish時は空配列を返す(仕様はthrowだがMonacoは渡さない)。
   if (items == null) {
     return [];
@@ -62,23 +77,25 @@ export function specFrom(items, mapFn, thisArg) {
   if (mapping && typeof mapFn !== 'function') {
     throw new TypeError(String(mapFn) + ' is not a function');
   }
-  const result = [];
-  const iteratorFn = items[Symbol.iterator];
+  const mapper = mapFn as ((value: T, index: number) => U) | undefined;
+  const result: (U | T)[] = [];
+  const iteratorFn = (items as Iterable<T>)[Symbol.iterator];
   if (typeof iteratorFn === 'function') {
-    const iterator = iteratorFn.call(items);
+    const iterator = iteratorFn.call(items as Iterable<T>);
     let i = 0;
-    let step;
+    let step: IteratorResult<T>;
     while (!(step = iterator.next()).done) {
-      result.push(mapping ? mapFn.call(thisArg, step.value, i) : step.value);
+      result.push(mapping ? mapper!.call(thisArg, step.value, i) : step.value);
       i++;
     }
   } else {
-    const len = items.length >>> 0;
+    const arrayLike = items as ArrayLike<T>;
+    const len = arrayLike.length >>> 0;
     for (let i = 0; i < len; i++) {
-      result.push(mapping ? mapFn.call(thisArg, items[i], i) : items[i]);
+      result.push(mapping ? mapper!.call(thisArg, arrayLike[i], i) : arrayLike[i]);
     }
   }
-  return result;
+  return result as U[] | T[];
 }
 
 if (!isNative(Array.prototype.reduce)) {

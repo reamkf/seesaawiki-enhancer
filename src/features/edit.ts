@@ -1,29 +1,61 @@
+import type * as monacoNs from 'monaco-editor';
 import { addCSS } from '../utils/dom.js';
-import { api } from '../editor/api.js';
+import { api, type SeesaawikiEditorApi } from '../editor/api.js';
 import { editStyles } from '../editor/styles.js';
+import type { GetWikiPageUrlFn } from '../utils/url.js';
+import type { DecodeHTMLEntitiesFn } from '../utils/encoding.js';
 
-function setupLoginReturn(url) {
+interface SeesaaItemSearch {
+  hide(self: unknown): void;
+}
+
+interface SeesaaWideAreaMode {
+  is_wide: boolean;
+}
+
+interface SeesaaEditorTools {
+  toPreview?: () => void;
+}
+
+interface SeesaaGlobalEditor {
+  item_search?: SeesaaItemSearch;
+  wide_area_mode?: SeesaaWideAreaMode;
+  tools?: SeesaaEditorTools;
+}
+
+declare global {
+  // eslint-disable-next-line no-var
+  var editor: SeesaaGlobalEditor | undefined;
+}
+
+interface InsertEventDetail {
+  text?: unknown;
+  selected?: boolean;
+}
+
+function setupLoginReturn(url: string): void {
   const login = document.getElementsByClassName('login');
   if (login && login[0]) {
-    const elem = login[0].firstChild;
+    const elem = login[0].firstChild as HTMLAnchorElement | null;
     if (elem && elem.href && !elem.href.includes('&return_to=')) {
       elem.href += '&return_to=' + encodeURIComponent(url);
     }
   }
 }
 
-function setupSearchFile() {
+function setupSearchFile(): void {
   const searchDescriptionInput = document.getElementById('search-description');
   if (searchDescriptionInput) {
     searchDescriptionInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
-        searchDescriptionInput.nextElementSibling.click();
+        const next = searchDescriptionInput.nextElementSibling as HTMLElement | null;
+        next?.click();
       }
     });
   }
 }
 
-function setupItemSearchEscape() {
+function setupItemSearchEscape(): void {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && globalThis.editor?.item_search) {
       globalThis.editor.item_search.hide(globalThis.editor.item_search);
@@ -31,7 +63,7 @@ function setupItemSearchEscape() {
   });
 }
 
-function setupEditorWidth() {
+function setupEditorWidth(): void {
   const wikiContainer = document.getElementById('wiki-container');
   const wikiContent = document.getElementById('wiki-content');
   if (!wikiContainer || !wikiContent) return;
@@ -40,7 +72,7 @@ function setupEditorWidth() {
   const originalMargin0 = wikiContainer.style.getPropertyValue('margin');
   const originalMargin1 = wikiContent.style.getPropertyValue('margin');
 
-  const widen = () => {
+  const widen = (): void => {
     wikiContent.style.setProperty(
       'width',
       `max(calc(100vw - 100px), ${originalWidth})`,
@@ -49,7 +81,7 @@ function setupEditorWidth() {
     wikiContainer.style.setProperty('margin', '0', 'important');
     wikiContent.style.setProperty('margin', '10px 20px 0', 'important');
   };
-  const narrow = () => {
+  const narrow = (): void => {
     wikiContent.style.setProperty('width', originalWidth);
     wikiContainer.style.setProperty('margin', originalMargin0);
     wikiContent.style.setProperty('margin', originalMargin1);
@@ -89,38 +121,49 @@ function setupEditorWidth() {
   `);
 }
 
-function bindToolbar(api, editor) {
-  const click = (selector, handler, byClass = false) => {
+function bindToolbar(
+  apiRef: SeesaawikiEditorApi,
+  editor: monacoNs.editor.IStandaloneCodeEditor
+): void {
+  const click = (selector: string, handler: (e: Event) => void, byClass = false): void => {
     const el = byClass
-      ? document.getElementsByClassName(selector)[0]
+      ? (document.getElementsByClassName(selector)[0] as HTMLElement | undefined)
       : document.getElementById(selector);
     if (el) el.addEventListener('click', handler);
   };
 
-  click('bt-undo', () => editor.trigger('source', 'undo'), true);
-  click('bt-redo', () => editor.trigger('source', 'redo'), true);
-  click('bold', () => api.wrapSelectedText(editor, "''", "''"));
-  click('italic', () => api.wrapSelectedText(editor, "'''", "'''"));
-  click('underline', () => api.wrapSelectedText(editor, '%%%', '%%%'));
-  click('ul', () => api.insertAtBeginningOfLine(editor, '-', 3));
-  click('ol', () => api.insertAtBeginningOfLine(editor, '+', 3));
-  click('h2', () => api.insertAtBeginningOfLine(editor, '+', 3));
-  click('strike', () => api.wrapSelectedText(editor, '%%', '%%'));
-  click('toggle_open', () => api.wrapSelectedText(editor, '[+]\n', '\n[END]'));
-  click('toggle_close', () => api.wrapSelectedText(editor, '[-]\n', '\n[END]'));
-  click('blockquote', () => api.insertAtBeginningOfLine(editor, '>', 1));
-  click('annotation', () => api.wrapSelectedText(editor, '((', '))'));
+  click('bt-undo', () => editor.trigger('source', 'undo', null), true);
+  click('bt-redo', () => editor.trigger('source', 'redo', null), true);
+  click('bold', () => apiRef.wrapSelectedText(editor, "''", "''"));
+  click('italic', () => apiRef.wrapSelectedText(editor, "'''", "'''"));
+  click('underline', () => apiRef.wrapSelectedText(editor, '%%%', '%%%'));
+  click('ul', () => apiRef.insertAtBeginningOfLine(editor, '-', 3));
+  click('ol', () => apiRef.insertAtBeginningOfLine(editor, '+', 3));
+  click('h2', () => apiRef.insertAtBeginningOfLine(editor, '+', 3));
+  click('strike', () => apiRef.wrapSelectedText(editor, '%%', '%%'));
+  click('toggle_open', () => apiRef.wrapSelectedText(editor, '[+]\n', '\n[END]'));
+  click('toggle_close', () => apiRef.wrapSelectedText(editor, '[-]\n', '\n[END]'));
+  click('blockquote', () => apiRef.insertAtBeginningOfLine(editor, '>', 1));
+  click('annotation', () => apiRef.wrapSelectedText(editor, '((', '))'));
 }
 
-function setupOutlineView({ outlineContent, editor }) {
+interface SetupOutlineViewArgs {
+  outlineContent: HTMLElement;
+  editor: monacoNs.editor.IStandaloneCodeEditor;
+}
+
+function setupOutlineView({ outlineContent, editor }: SetupOutlineViewArgs): void {
   const symbolProvider = new api.SymbolProvider(api.monaco);
   if (!outlineContent) return;
 
-  const renderSymbols = (symbols) => {
+  const renderSymbols = (symbols: monacoNs.languages.DocumentSymbol[] | undefined): void => {
     outlineContent.innerHTML = '';
 
-    const renderSymbolsRecursive = (symbols, container) => {
-      symbols.forEach((symbol) => {
+    const renderSymbolsRecursive = (
+      symbolsToRender: monacoNs.languages.DocumentSymbol[],
+      container: HTMLElement
+    ): void => {
+      symbolsToRender.forEach((symbol) => {
         const item = document.createElement('div');
         item.className = 'swe-outline-item';
         item.textContent = symbol.name;
@@ -151,23 +194,30 @@ function setupOutlineView({ outlineContent, editor }) {
       });
     };
 
-    renderSymbolsRecursive(symbols, outlineContent);
+    if (symbols) {
+      renderSymbolsRecursive(symbols, outlineContent);
+    }
   };
 
-  const update = () => {
-    let symbols;
+  const update = (): void => {
+    const model = editor.getModel();
+    if (!model) return;
+    let symbols: monacoNs.languages.DocumentSymbol[] | PromiseLike<monacoNs.languages.DocumentSymbol[] | undefined> | undefined;
     try {
-      symbols = symbolProvider.provideDocumentSymbols(editor.getModel());
+      symbols = symbolProvider.provideDocumentSymbols(model);
     } catch (error) {
       console.error('Error retrieving document symbols:', error);
       return;
     }
-    if (symbols && typeof symbols.then === 'function') {
-      symbols.then(renderSymbols).catch((error) => {
-        console.error('Error retrieving document symbols:', error);
-      });
+    if (symbols && typeof (symbols as unknown as PromiseLike<unknown>).then === 'function') {
+      (symbols as unknown as PromiseLike<monacoNs.languages.DocumentSymbol[] | undefined>).then(
+        renderSymbols,
+        (error) => {
+          console.error('Error retrieving document symbols:', error);
+        }
+      );
     } else {
-      renderSymbols(symbols);
+      renderSymbols(symbols as monacoNs.languages.DocumentSymbol[] | undefined);
     }
   };
 
@@ -175,11 +225,16 @@ function setupOutlineView({ outlineContent, editor }) {
   update();
 }
 
-function setupFormSubmit({ textarea, editor }) {
-  let lastSavedVersionId = editor.getModel().getAlternativeVersionId();
+interface SetupFormSubmitArgs {
+  textarea: HTMLTextAreaElement;
+  editor: monacoNs.editor.IStandaloneCodeEditor;
+}
 
-  const isDirty = () =>
-    editor.getModel().getAlternativeVersionId() !== lastSavedVersionId;
+function setupFormSubmit({ textarea, editor }: SetupFormSubmitArgs): void {
+  let lastSavedVersionId = editor.getModel()!.getAlternativeVersionId();
+
+  const isDirty = (): boolean =>
+    editor.getModel()!.getAlternativeVersionId() !== lastSavedVersionId;
 
   window.addEventListener('beforeunload', (event) => {
     if (isDirty()) {
@@ -192,8 +247,8 @@ function setupFormSubmit({ textarea, editor }) {
   if (form) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      lastSavedVersionId = editor.getModel().getAlternativeVersionId();
-      textarea.value = editor.getModel().getValue();
+      lastSavedVersionId = editor.getModel()!.getAlternativeVersionId();
+      textarea.value = editor.getModel()!.getValue();
       form.submit();
     });
   }
@@ -201,7 +256,7 @@ function setupFormSubmit({ textarea, editor }) {
   document.querySelectorAll('.preview > a').forEach((preview) => {
     preview.addEventListener('click', (e) => {
       e.preventDefault();
-      textarea.value = editor.getModel().getValue();
+      textarea.value = editor.getModel()!.getValue();
       if (globalThis.editor?.tools?.toPreview) {
         globalThis.editor.tools.toPreview();
       } else {
@@ -212,14 +267,18 @@ function setupFormSubmit({ textarea, editor }) {
   });
 }
 
-function setupItemSearchTemplate(api, editor) {
+function setupItemSearchTemplate(
+  apiRef: SeesaawikiEditorApi,
+  editor: monacoNs.editor.IStandaloneCodeEditor
+): void {
   const insertEventName = 'seesaawiki:insertFromItemSearch';
 
-  window.addEventListener(insertEventName, (event) => {
-    const { text, selected = true } = event.detail || {};
+  window.addEventListener(insertEventName, (event: Event) => {
+    const customEvent = event as CustomEvent<InsertEventDetail | undefined>;
+    const { text, selected = true } = customEvent.detail ?? {};
     if (typeof text !== 'string') return;
-    const position = editor.getPosition();
-    const range = new api.monaco.Range(
+    const position = editor.getPosition()!;
+    const range = new apiRef.monaco.Range(
       position.lineNumber,
       position.column,
       position.lineNumber,
@@ -227,13 +286,13 @@ function setupItemSearchTemplate(api, editor) {
     );
     editor.executeEdits('', [
       {
-        range: selected ? editor.getSelection() : range,
+        range: selected ? editor.getSelection()! : range,
         text,
       },
     ]);
   });
 
-  const itemSearchTemplateTextArea = document.querySelector(
+  const itemSearchTemplateTextArea = document.querySelector<HTMLTextAreaElement>(
     'textarea#itemsearch_results.template'
   );
   if (!itemSearchTemplateTextArea) return;
@@ -247,8 +306,13 @@ function setupItemSearchTemplate(api, editor) {
   itemSearchTemplateTextArea.value = content;
 }
 
-function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }) {
-  const textarea = document.getElementById('content');
+interface InitMonacoEditorArgs {
+  getWikiPageUrl: GetWikiPageUrlFn | null;
+  decodeHTMLEntities: DecodeHTMLEntitiesFn;
+}
+
+function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }: InitMonacoEditorArgs): void {
+  const textarea = document.getElementById('content') as HTMLTextAreaElement | null;
   if (!textarea) return;
   textarea.style.display = 'none';
   textarea.readOnly = true;
@@ -288,7 +352,7 @@ function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }) {
     });
   }
 
-  textarea.parentNode.insertBefore(root, textarea);
+  textarea.parentNode!.insertBefore(root, textarea);
 
   api.setContext({ getWikiPageUrl, decodeHTMLEntities });
 
@@ -300,7 +364,17 @@ function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }) {
   setupItemSearchTemplate(api, editor);
 }
 
-export function setupEditPage({ url, getWikiPageUrl, decodeHTMLEntities }) {
+export interface SetupEditPageDeps {
+  url: string;
+  getWikiPageUrl: GetWikiPageUrlFn | null;
+  decodeHTMLEntities: DecodeHTMLEntitiesFn;
+}
+
+export function setupEditPage({
+  url,
+  getWikiPageUrl,
+  decodeHTMLEntities,
+}: SetupEditPageDeps): void {
   initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities });
   setupLoginReturn(url);
   setupSearchFile();

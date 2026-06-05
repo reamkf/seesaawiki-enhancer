@@ -1,18 +1,27 @@
-import { wrapSelectedText, insertAtBeginningOfLine, escapeHTML } from './helpers.js';
+import type * as monacoNs from 'monaco-editor';
+import { wrapSelectedText, escapeHTML } from './helpers.js';
 import { context } from './context.js';
 
-function getTableCellRanges(monaco, editor, lineNumber) {
+type MonacoNamespace = typeof monacoNs;
+type Editor = monacoNs.editor.IStandaloneCodeEditor;
+
+function getTableCellRanges(
+  monaco: MonacoNamespace,
+  editor: Editor,
+  lineNumber: number
+): monacoNs.Range[] | null {
   const model = editor.getModel();
+  if (!model) return null;
   const lineContent = model.getLineContent(lineNumber);
 
   const tableMatch = lineContent.match(/^\|([^|]*\|)+c?$/);
   if (!tableMatch) return null;
 
   const cellContents = lineContent.split('|');
-  const cellRanges = [];
+  const cellRanges: monacoNs.Range[] = [];
 
   let cellStart = 1;
-  let cellEnd;
+  let cellEnd: number;
 
   for (let i = 0; i < cellContents.length; i++) {
     cellEnd = cellStart + cellContents[i].length;
@@ -23,10 +32,14 @@ function getTableCellRanges(monaco, editor, lineNumber) {
   return cellRanges;
 }
 
-function insertTextAtCursor(monaco, editor, text) {
-  const selections = editor.getSelections() ?? [editor.getSelection()];
-  const model = editor.getModel();
-  const newSelections = new Array(selections.length);
+function insertTextAtCursor(
+  monaco: MonacoNamespace,
+  editor: Editor,
+  text: string
+): void {
+  const selections = editor.getSelections() ?? [editor.getSelection()!];
+  const model = editor.getModel()!;
+  const newSelections: monacoNs.Selection[] = new Array(selections.length);
   const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
 
   selectionsWithIndex.sort((a, b) => {
@@ -82,7 +95,11 @@ function insertTextAtCursor(monaco, editor, text) {
   editor.setSelections(newSelections);
 }
 
-function setupEditorKeybindings(monaco, editor) {
+interface SnippetController {
+  insert(template: string): void;
+}
+
+function setupEditorKeybindings(monaco: MonacoNamespace, editor: Editor): void {
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB, () => {
     wrapSelectedText(monaco, editor, "''", "''");
   });
@@ -108,8 +125,8 @@ function setupEditorKeybindings(monaco, editor) {
     () => {
       const selections = editor.getSelections();
       if (selections && selections.length > 1) {
-        const model = editor.getModel();
-        const newSelections = new Array(selections.length);
+        const model = editor.getModel()!;
+        const newSelections: monacoNs.Selection[] = new Array(selections.length);
         const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
 
         selectionsWithIndex.sort((a, b) => {
@@ -227,8 +244,8 @@ function setupEditorKeybindings(monaco, editor) {
         return;
       }
 
-      const model = editor.getModel();
-      const position = editor.getPosition();
+      const model = editor.getModel()!;
+      const position = editor.getPosition()!;
       const lineContent = model.getLineContent(position.lineNumber);
 
       const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(?!-)(.*)$/);
@@ -329,7 +346,7 @@ function setupEditorKeybindings(monaco, editor) {
   editor.addCommand(
     monaco.KeyMod.Shift | monaco.KeyCode.Enter,
     () => {
-      const position = editor.getPosition();
+      const position = editor.getPosition()!;
       const cellRanges = getTableCellRanges(monaco, editor, position.lineNumber);
       if (cellRanges) {
         const prevLineNumber = position.lineNumber - 1;
@@ -357,8 +374,8 @@ function setupEditorKeybindings(monaco, editor) {
     () => {
       const selections = editor.getSelections();
       if (selections && selections.length > 0) {
-        const model = editor.getModel();
-        const lineNumberSet = new Set();
+        const model = editor.getModel()!;
+        const lineNumberSet = new Set<number>();
 
         selections.forEach((selection) => {
           const startLine = selection.getStartPosition().lineNumber;
@@ -369,7 +386,7 @@ function setupEditorKeybindings(monaco, editor) {
         });
 
         const lineNumbers = Array.from(lineNumberSet).sort((a, b) => b - a);
-        const edits = [];
+        const edits: monacoNs.editor.IIdentifiedSingleEditOperation[] = [];
 
         lineNumbers.forEach((lineNumber) => {
           const lineContent = model.getLineContent(lineNumber);
@@ -394,8 +411,8 @@ function setupEditorKeybindings(monaco, editor) {
         }
       }
 
-      const model = editor.getModel();
-      const position = editor.getPosition();
+      const model = editor.getModel()!;
+      const position = editor.getPosition()!;
       const lineContent = model.getLineContent(position.lineNumber);
 
       const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(?!-)(.*)$/);
@@ -419,7 +436,7 @@ function setupEditorKeybindings(monaco, editor) {
         );
 
         if (currentCellIndex !== -1) {
-          let targetRange;
+          let targetRange: monacoNs.Range | undefined;
           if (currentCellIndex < cellRanges.length - 1) {
             targetRange = cellRanges[currentCellIndex + 1];
           } else {
@@ -450,8 +467,8 @@ function setupEditorKeybindings(monaco, editor) {
     () => {
       const selections = editor.getSelections();
       if (selections && selections.length > 0) {
-        const model = editor.getModel();
-        const lineNumberSet = new Set();
+        const model = editor.getModel()!;
+        const lineNumberSet = new Set<number>();
 
         selections.forEach((selection) => {
           const startLine = selection.getStartPosition().lineNumber;
@@ -462,7 +479,7 @@ function setupEditorKeybindings(monaco, editor) {
         });
 
         const lineNumbers = Array.from(lineNumberSet).sort((a, b) => b - a);
-        const edits = [];
+        const edits: monacoNs.editor.IIdentifiedSingleEditOperation[] = [];
 
         lineNumbers.forEach((lineNumber) => {
           const lineContent = model.getLineContent(lineNumber);
@@ -487,8 +504,8 @@ function setupEditorKeybindings(monaco, editor) {
         }
       }
 
-      const model = editor.getModel();
-      const position = editor.getPosition();
+      const model = editor.getModel()!;
+      const position = editor.getPosition()!;
       const lineContent = model.getLineContent(position.lineNumber);
 
       const bulletMatch = lineContent.match(/^((?:-|\+){1,3})(\s*)([^-]*)$/);
@@ -512,7 +529,7 @@ function setupEditorKeybindings(monaco, editor) {
         );
 
         if (currentCellIndex !== -1) {
-          let targetRange;
+          let targetRange: monacoNs.Range | undefined;
           if (currentCellIndex > 0) {
             targetRange = cellRanges[currentCellIndex - 1];
           } else {
@@ -545,13 +562,15 @@ function setupEditorKeybindings(monaco, editor) {
         const clipboardText = await navigator.clipboard.readText();
         let pasteText = clipboardText.trim();
 
-        const snippetController = editor.getContribution('snippetController2');
+        const snippetController = editor.getContribution(
+          'snippetController2'
+        ) as unknown as SnippetController | null;
 
         if (/^(https?:\/\/[^\s/$.?#].[^\s]*)$/i.test(pasteText)) {
           const url = new URL(pasteText);
           const domain = url.hostname;
           const path = url.pathname;
-          const extension = path.split('.').pop();
+          const extension = path.split('.').pop() ?? '';
 
           if (/^(jpg|jpeg|png|gif|bmp|webp|tiff|svg)$/i.test(extension)) {
             pasteText = `&ref(${clipboardText})`;
@@ -574,7 +593,7 @@ function setupEditorKeybindings(monaco, editor) {
               }
             }
           } else {
-            snippetController.insert(`[[\${1:リンクテキスト}\${2|>,>>,>>>|}${clipboardText}]]`);
+            snippetController?.insert(`[[\${1:リンクテキスト}\${2|>,>>,>>>|}${clipboardText}]]`);
             return;
           }
         }
@@ -588,16 +607,16 @@ function setupEditorKeybindings(monaco, editor) {
   );
 }
 
-function setupEditorContextMenu(editor) {
+function setupEditorContextMenu(monaco: MonacoNamespace, editor: Editor): void {
   editor.addAction({
     id: 'escape-html',
     label: 'Escape as HTML Entity',
     contextMenuGroupId: 'modification',
     contextMenuOrder: 1.5,
-    run: function (ed) {
-      const selections = ed.getSelections() ?? [ed.getSelection()];
-      const model = ed.getModel();
-      const newSelections = new Array(selections.length);
+    run(ed) {
+      const selections = ed.getSelections() ?? [ed.getSelection()!];
+      const model = ed.getModel()!;
+      const newSelections: monacoNs.Selection[] = new Array(selections.length);
       const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
 
       selectionsWithIndex.sort((a, b) => {
@@ -649,10 +668,10 @@ function setupEditorContextMenu(editor) {
     label: 'Unescape HTML Entity',
     contextMenuGroupId: 'modification',
     contextMenuOrder: 1.6,
-    run: function (ed) {
-      const selections = ed.getSelections() ?? [ed.getSelection()];
-      const model = ed.getModel();
-      const newSelections = new Array(selections.length);
+    run(ed) {
+      const selections = ed.getSelections() ?? [ed.getSelection()!];
+      const model = ed.getModel()!;
+      const newSelections: monacoNs.Selection[] = new Array(selections.length);
       const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
 
       selectionsWithIndex.sort((a, b) => {
@@ -700,7 +719,15 @@ function setupEditorContextMenu(editor) {
   });
 }
 
-export function createEditor(monaco, container, { value = '' } = {}) {
+export interface CreateEditorOptions {
+  value?: string;
+}
+
+export function createEditor(
+  monaco: MonacoNamespace,
+  container: HTMLElement,
+  { value = '' }: CreateEditorOptions = {}
+): Editor {
   const editor = monaco.editor.create(container, {
     value,
     language: 'seesaawiki',
@@ -714,13 +741,12 @@ export function createEditor(monaco, container, { value = '' } = {}) {
       invisibleCharacters: false,
       nonBasicASCII: false,
     },
-    find: { return: false },
     wordSeparators:
       './\\()"\'-:,.;<>~!@#$%^&*|+=[]{}`~?。．、，　：；（）「」［］｛｝《》！？＜＞てにをはがのともへでや',
-  });
+  } as monacoNs.editor.IStandaloneEditorConstructionOptions);
 
   setupEditorKeybindings(monaco, editor);
-  setupEditorContextMenu(editor);
+  setupEditorContextMenu(monaco, editor);
 
   return editor;
 }

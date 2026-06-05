@@ -1,7 +1,7 @@
 import { WikiPageType } from '../constants.js';
 import { convertCharRef, encodeEUCJP } from './encoding.js';
 
-export function getWikiPageType(url) {
+export function getWikiPageType(url: string): WikiPageType | null {
   const parsedUrl = new URL(url);
   const path = parsedUrl.pathname;
   const searchParams = parsedUrl.searchParams;
@@ -30,7 +30,7 @@ export function getWikiPageType(url) {
   return null;
 }
 
-export function getWikiId(url) {
+export function getWikiId(url: string): string | null {
   let match;
 
   match = url.match(/^https?:\/\/seesaawiki\.jp\/((?:w\/)?[^\/]+)/);
@@ -46,7 +46,9 @@ export function getWikiId(url) {
   return null;
 }
 
-export function makeGetWikiPageUrl(wikiId) {
+export type GetWikiPageUrlFn = (pageName: string) => string;
+
+export function makeGetWikiPageUrl(wikiId: string): GetWikiPageUrlFn {
   return (pageName) =>
     `https://seesaawiki.jp/${wikiId}/d/${encodeEUCJP(convertCharRef(pageName))}`;
 }

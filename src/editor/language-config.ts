@@ -1,4 +1,8 @@
-export function setupSeesaawikiLanguageConfig(monaco) {
+import type * as monacoNs from 'monaco-editor';
+
+type MonacoNamespace = typeof monacoNs;
+
+export function setupSeesaawikiLanguageConfig(monaco: MonacoNamespace): void {
   monaco.languages.register({
     id: 'seesaawiki',
     extensions: ['.seesaawiki'],
@@ -39,7 +43,7 @@ export function setupSeesaawikiLanguageConfig(monaco) {
   });
 }
 
-export function setupSeesaawikiTokens(monaco) {
+export function setupSeesaawikiTokens(monaco: MonacoNamespace): void {
   monaco.languages.setMonarchTokensProvider('seesaawiki', {
     anchorName: /[a-zA-Z0-9\-_\.:]+/,
     tableParams: /(?:center|left|right|(?:color|bgcolor|size|w|h)\(.*?\)):?/,
@@ -172,10 +176,10 @@ export function setupSeesaawikiTokens(monaco) {
         [/@tableParams/, 'keyword.parameter'],
       ],
     },
-  });
+  } as monacoNs.languages.IMonarchLanguage);
 }
 
-export function setupSeesaawikiTheme(monaco) {
+export function setupSeesaawikiTheme(monaco: MonacoNamespace): void {
   monaco.editor.defineTheme('seesaawikiTheme', {
     base: 'vs-dark',
     inherit: true,

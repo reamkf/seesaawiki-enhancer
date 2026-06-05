@@ -1,7 +1,7 @@
 import Encoding from 'encoding-japanese';
 import { nonEscapedCharSet } from '../nonEscapedChars.js';
 
-export function convertCharRef(s) {
+export function convertCharRef(s: string): string {
   return s
     .split('')
     .map((char) =>
@@ -10,7 +10,14 @@ export function convertCharRef(s) {
     .join('');
 }
 
-export function decodeHTMLEntities(text, options = {}) {
+export interface DecodeHTMLEntitiesOptions {
+  stripAnchors?: boolean;
+}
+
+export function decodeHTMLEntities(
+  text: string,
+  options: DecodeHTMLEntitiesOptions = {}
+): string {
   const { stripAnchors = false } = options;
   let html = text;
 
@@ -29,7 +36,9 @@ export function decodeHTMLEntities(text, options = {}) {
   return textarea.value;
 }
 
-export function encodeEUCJP(str) {
+export type DecodeHTMLEntitiesFn = typeof decodeHTMLEntities;
+
+export function encodeEUCJP(str: string): string {
   const eucjpArray = Encoding.convert(Encoding.stringToCode(str), 'EUCJP', 'UNICODE');
   let result = '';
   for (let i = 0; i < eucjpArray.length; i++) {

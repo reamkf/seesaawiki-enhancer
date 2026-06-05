@@ -1,8 +1,14 @@
 import { addCSS } from '../utils/dom.js';
 import { api } from '../editor/api.js';
 import { diffStyles } from '../editor/styles.js';
+import type { DecodeHTMLEntitiesFn } from '../utils/encoding.js';
 
-function extractDiffContent(decodeHTMLEntities) {
+interface DiffContent {
+  oldContent: string;
+  newContent: string;
+}
+
+function extractDiffContent(decodeHTMLEntities: DecodeHTMLEntitiesFn): DiffContent | null {
   const diffBox = document.querySelector('.diff-box');
   if (!diffBox) return null;
 
@@ -22,12 +28,16 @@ function extractDiffContent(decodeHTMLEntities) {
   return { oldContent, newContent };
 }
 
-export function setupDiffPage({ decodeHTMLEntities }) {
-  const diffBox = document.querySelector('.diff-box');
+export interface SetupDiffPageDeps {
+  decodeHTMLEntities: DecodeHTMLEntitiesFn;
+}
+
+export function setupDiffPage({ decodeHTMLEntities }: SetupDiffPageDeps): void {
+  const diffBox = document.querySelector<HTMLElement>('.diff-box');
   if (!diffBox) return;
 
   diffBox.style.display = 'none';
-  const infoBox = document.getElementsByClassName('information-box')[0];
+  const infoBox = document.getElementsByClassName('information-box')[0] as HTMLElement | undefined;
   if (infoBox) infoBox.style.display = 'none';
 
   const diffContent = extractDiffContent(decodeHTMLEntities);
@@ -41,7 +51,7 @@ export function setupDiffPage({ decodeHTMLEntities }) {
   container.style.height = 'max(calc(100vh - 350px), 500px)';
   container.style.border = '1px solid #ccc';
   container.style.marginBottom = '20px';
-  diffBox.parentNode.insertBefore(container, diffBox);
+  diffBox.parentNode!.insertBefore(container, diffBox);
 
   const diffEditor = api.createDiffEditor(
     container,

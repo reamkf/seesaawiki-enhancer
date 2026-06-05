@@ -1,4 +1,10 @@
-function getSeesaawikiSnippets(monaco) {
+import type * as monacoNs from 'monaco-editor';
+
+type MonacoNamespace = typeof monacoNs;
+
+type SnippetTemplate = Omit<monacoNs.languages.CompletionItem, 'range'>;
+
+function getSeesaawikiSnippets(monaco: MonacoNamespace): SnippetTemplate[] {
   const Snippet = monaco.languages.CompletionItemKind.Snippet;
   const Keyword = monaco.languages.CompletionItemKind.Keyword;
   const insertAsSnippet = monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
@@ -341,12 +347,12 @@ function getSeesaawikiSnippets(monaco) {
   ];
 }
 
-export function setupSeesaawikiCompletionProvider(monaco) {
+export function setupSeesaawikiCompletionProvider(monaco: MonacoNamespace): void {
   const seesaawikiSnippets = getSeesaawikiSnippets(monaco);
 
   monaco.languages.registerCompletionItemProvider('seesaawiki', {
     triggerCharacters: ['&', '#'],
-    provideCompletionItems: function (model, position) {
+    provideCompletionItems(model, position) {
       const textUntilPosition = model.getValueInRange({
         startLineNumber: position.lineNumber,
         startColumn: 1,
@@ -356,13 +362,14 @@ export function setupSeesaawikiCompletionProvider(monaco) {
 
       const match = textUntilPosition.match(/[&#]?\w*$/);
       const prefix = match ? match[0] : '';
-      if (!prefix) return null;
+      if (!prefix) return { suggestions: [] };
 
-      const filteredSnippets = seesaawikiSnippets.filter((snippet) =>
-        snippet.label.toLowerCase().startsWith(prefix.toLowerCase())
-      );
+      const filteredSnippets = seesaawikiSnippets.filter((snippet) => {
+        const label = typeof snippet.label === 'string' ? snippet.label : snippet.label.label;
+        return label.toLowerCase().startsWith(prefix.toLowerCase());
+      });
 
-      const suggestions = filteredSnippets.map((snippet) => ({
+      const suggestions: monacoNs.languages.CompletionItem[] = filteredSnippets.map((snippet) => ({
         ...snippet,
         range: {
           startLineNumber: position.lineNumber,

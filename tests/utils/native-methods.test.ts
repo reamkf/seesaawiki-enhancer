@@ -3,26 +3,26 @@ import { specReduce, specFrom } from '../../src/utils/native-methods.js';
 
 describe('specReduce (Array.prototype.reduce replacement)', () => {
   it('reduces with a callback and initial value', () => {
-    const result = specReduce.call([1, 2, 3, 4], (acc, x) => acc + x, 0);
+    const result = specReduce.call([1, 2, 3, 4], (acc: number, x: number) => acc + x, 0);
     expect(result).toBe(10);
   });
 
   it('reduces with a callback and no initial value', () => {
-    const result = specReduce.call([1, 2, 3, 4], (acc, x) => acc + x);
+    const result = specReduce.call([1, 2, 3, 4], (acc: number, x: number) => acc + x);
     expect(result).toBe(10);
   });
 
   it('returns initialValue when array is empty and initial is provided', () => {
-    expect(specReduce.call([], (acc, x) => acc + x, 99)).toBe(99);
+    expect(specReduce.call([], (acc: number, x: number) => acc + x, 99)).toBe(99);
   });
 
   it('throws TypeError on empty array without initial value', () => {
-    expect(() => specReduce.call([], (acc, x) => acc + x)).toThrow(TypeError);
+    expect(() => specReduce.call([], (acc: number, x: number) => acc + x)).toThrow(TypeError);
   });
 
   it('passes (accumulator, value, index, array) to the callback', () => {
-    const calls = [];
-    specReduce.call(['a', 'b'], (acc, v, i, arr) => {
+    const calls: Array<[string, string, number, number]> = [];
+    specReduce.call(['a', 'b'], (acc: string, v: string, i: number, arr: ArrayLike<string>) => {
       calls.push([acc, v, i, arr.length]);
       return v;
     }, 'init');
@@ -42,9 +42,10 @@ describe('specReduce (Array.prototype.reduce replacement)', () => {
   });
 
   it('skips holes in sparse arrays', () => {
+    // eslint-disable-next-line no-sparse-arrays
     const sparse = [1, , 3];
-    const seen = [];
-    specReduce.call(sparse, (acc, v) => {
+    const seen: number[] = [];
+    specReduce.call(sparse, (acc: number, v: number) => {
       seen.push(v);
       return acc;
     }, 0);
@@ -64,7 +65,7 @@ describe('specFrom (Array.from replacement)', () => {
   });
 
   it('converts a Map to an array of [key, value] pairs', () => {
-    const map = new Map([['a', 1], ['b', 2]]);
+    const map = new Map<string, number>([['a', 1], ['b', 2]]);
     expect(specFrom(map)).toEqual([['a', 1], ['b', 2]]);
   });
 
@@ -78,7 +79,7 @@ describe('specFrom (Array.from replacement)', () => {
   });
 
   it('passes (value, index) to the mapFn', () => {
-    const calls = [];
+    const calls: Array<[string, number]> = [];
     specFrom(['a', 'b'], (v, i) => {
       calls.push([v, i]);
       return v;
@@ -90,14 +91,14 @@ describe('specFrom (Array.from replacement)', () => {
   });
 
   it('respects thisArg for the mapFn', () => {
-    const result = specFrom([1, 2], function (x) {
+    const result = specFrom([1, 2], function (this: { offset: number }, x: number) {
       return x + this.offset;
     }, { offset: 10 });
     expect(result).toEqual([11, 12]);
   });
 
   it('throws TypeError when mapFn is not a function', () => {
-    expect(() => specFrom([1], 'not a function')).toThrow(TypeError);
+    expect(() => specFrom([1], 'not a function' as unknown as (value: number, index: number) => number)).toThrow(TypeError);
   });
 
   it('converts an iterable string to an array of characters', () => {
