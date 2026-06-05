@@ -95,7 +95,7 @@ function insertTextAtCursor(
   editor.setSelections(newSelections);
 }
 
-interface SnippetController {
+interface SnippetController extends monacoNs.editor.IEditorContribution {
   insert(template: string): void;
 }
 
@@ -562,9 +562,7 @@ function setupEditorKeybindings(monaco: MonacoNamespace, editor: Editor): void {
         const clipboardText = await navigator.clipboard.readText();
         let pasteText = clipboardText.trim();
 
-        const snippetController = editor.getContribution(
-          'snippetController2'
-        ) as unknown as SnippetController | null;
+        const snippetController = editor.getContribution<SnippetController>('snippetController2');
 
         if (/^(https?:\/\/[^\s/$.?#].[^\s]*)$/i.test(pasteText)) {
           const url = new URL(pasteText);
