@@ -1,5 +1,10 @@
 import type * as monacoNs from 'monaco-editor';
-import { wrapSelectedText, escapeHTML } from './helpers.js';
+import {
+  wrapSelectedText,
+  escapeHTML,
+  transformSelections,
+  compareSelectionsByPosition,
+} from './helpers.js';
 import { context } from './context.js';
 
 type MonacoNamespace = typeof monacoNs;
@@ -42,22 +47,7 @@ function insertTextAtCursor(
   const newSelections: monacoNs.Selection[] = new Array(selections.length);
   const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
 
-  selectionsWithIndex.sort((a, b) => {
-    const aStart = a.selection.getStartPosition();
-    const bStart = b.selection.getStartPosition();
-    if (aStart.lineNumber !== bStart.lineNumber) {
-      return aStart.lineNumber - bStart.lineNumber;
-    }
-    if (aStart.column !== bStart.column) {
-      return aStart.column - bStart.column;
-    }
-    const aEnd = a.selection.getEndPosition();
-    const bEnd = b.selection.getEndPosition();
-    if (aEnd.lineNumber !== bEnd.lineNumber) {
-      return aEnd.lineNumber - bEnd.lineNumber;
-    }
-    return aEnd.column - bEnd.column;
-  });
+  selectionsWithIndex.sort(compareSelectionsByPosition);
 
   editor.pushUndoStop();
   selectionsWithIndex
@@ -612,52 +602,9 @@ function setupEditorContextMenu(monaco: MonacoNamespace, editor: Editor): void {
     contextMenuGroupId: 'modification',
     contextMenuOrder: 1.5,
     run(ed) {
-      const selections = ed.getSelections() ?? [ed.getSelection()!];
-      const model = ed.getModel()!;
-      const newSelections: monacoNs.Selection[] = new Array(selections.length);
-      const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
-
-      selectionsWithIndex.sort((a, b) => {
-        const aStart = a.selection.getStartPosition();
-        const bStart = b.selection.getStartPosition();
-        if (aStart.lineNumber !== bStart.lineNumber) {
-          return aStart.lineNumber - bStart.lineNumber;
-        }
-        if (aStart.column !== bStart.column) {
-          return aStart.column - bStart.column;
-        }
-        const aEnd = a.selection.getEndPosition();
-        const bEnd = b.selection.getEndPosition();
-        if (aEnd.lineNumber !== bEnd.lineNumber) {
-          return aEnd.lineNumber - bEnd.lineNumber;
-        }
-        return aEnd.column - bEnd.column;
-      });
-
-      ed.pushUndoStop();
-      selectionsWithIndex
-        .slice()
-        .reverse()
-        .forEach(({ selection, index }) => {
-          const selectedText = model.getValueInRange(selection);
-          if (!selectedText) {
-            newSelections[index] = selection;
-            return;
-          }
-
-          const escapedText = escapeHTML(selectedText);
-          const startOffset = model.getOffsetAt(selection.getStartPosition());
-          ed.executeEdits('escape-html', [{ range: selection, text: escapedText }]);
-          const endPosition = model.getPositionAt(startOffset + escapedText.length);
-          newSelections[index] = new monaco.Selection(
-            selection.getStartPosition().lineNumber,
-            selection.getStartPosition().column,
-            endPosition.lineNumber,
-            endPosition.column
-          );
-        });
-      ed.pushUndoStop();
-      ed.setSelections(newSelections);
+      transformSelections(monaco, ed, 'escape-html', (selectedText) =>
+        selectedText ? escapeHTML(selectedText) : null
+      );
     },
   });
 
@@ -667,52 +614,11 @@ function setupEditorContextMenu(monaco: MonacoNamespace, editor: Editor): void {
     contextMenuGroupId: 'modification',
     contextMenuOrder: 1.6,
     run(ed) {
-      const selections = ed.getSelections() ?? [ed.getSelection()!];
-      const model = ed.getModel()!;
-      const newSelections: monacoNs.Selection[] = new Array(selections.length);
-      const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
-
-      selectionsWithIndex.sort((a, b) => {
-        const aStart = a.selection.getStartPosition();
-        const bStart = b.selection.getStartPosition();
-        if (aStart.lineNumber !== bStart.lineNumber) {
-          return aStart.lineNumber - bStart.lineNumber;
-        }
-        if (aStart.column !== bStart.column) {
-          return aStart.column - bStart.column;
-        }
-        const aEnd = a.selection.getEndPosition();
-        const bEnd = b.selection.getEndPosition();
-        if (aEnd.lineNumber !== bEnd.lineNumber) {
-          return aEnd.lineNumber - bEnd.lineNumber;
-        }
-        return aEnd.column - bEnd.column;
-      });
-
-      ed.pushUndoStop();
-      selectionsWithIndex
-        .slice()
-        .reverse()
-        .forEach(({ selection, index }) => {
-          const selectedText = model.getValueInRange(selection);
-          if (!selectedText || !context.decodeHTMLEntities) {
-            newSelections[index] = selection;
-            return;
-          }
-
-          const unescapedText = context.decodeHTMLEntities(selectedText);
-          const startOffset = model.getOffsetAt(selection.getStartPosition());
-          ed.executeEdits('unescape-html', [{ range: selection, text: unescapedText }]);
-          const endPosition = model.getPositionAt(startOffset + unescapedText.length);
-          newSelections[index] = new monaco.Selection(
-            selection.getStartPosition().lineNumber,
-            selection.getStartPosition().column,
-            endPosition.lineNumber,
-            endPosition.column
-          );
-        });
-      ed.pushUndoStop();
-      ed.setSelections(newSelections);
+      transformSelections(monaco, ed, 'unescape-html', (selectedText) =>
+        selectedText && context.decodeHTMLEntities
+          ? context.decodeHTMLEntities(selectedText)
+          : null
+      );
     },
   });
 }

@@ -3,6 +3,74 @@ import type * as monacoNs from 'monaco-editor';
 type MonacoNamespace = typeof monacoNs;
 type Editor = monacoNs.editor.IStandaloneCodeEditor;
 
+interface SelectionWithIndex {
+  selection: monacoNs.Selection;
+  index: number;
+}
+
+// 複数選択を文書順（開始位置→終了位置）に並べるための比較関数。
+export function compareSelectionsByPosition(
+  a: SelectionWithIndex,
+  b: SelectionWithIndex
+): number {
+  const aStart = a.selection.getStartPosition();
+  const bStart = b.selection.getStartPosition();
+  if (aStart.lineNumber !== bStart.lineNumber) {
+    return aStart.lineNumber - bStart.lineNumber;
+  }
+  if (aStart.column !== bStart.column) {
+    return aStart.column - bStart.column;
+  }
+  const aEnd = a.selection.getEndPosition();
+  const bEnd = b.selection.getEndPosition();
+  if (aEnd.lineNumber !== bEnd.lineNumber) {
+    return aEnd.lineNumber - bEnd.lineNumber;
+  }
+  return aEnd.column - bEnd.column;
+}
+
+// 各選択範囲のテキストをtransformで置換し、置換後のテキスト全体を再選択する。
+// transformがnullを返した選択範囲は変更せずそのまま維持する。
+export function transformSelections(
+  monaco: MonacoNamespace,
+  editor: monacoNs.editor.ICodeEditor,
+  editId: string,
+  transform: (selectedText: string, selection: monacoNs.Selection) => string | null
+): void {
+  const selections = editor.getSelections() ?? [editor.getSelection()!];
+  const model = editor.getModel()!;
+  const newSelections: monacoNs.Selection[] = new Array(selections.length);
+  const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
+
+  selectionsWithIndex.sort(compareSelectionsByPosition);
+
+  editor.pushUndoStop();
+  selectionsWithIndex
+    .slice()
+    .reverse()
+    .forEach(({ selection, index }) => {
+      const selectedText = model.getValueInRange(selection);
+      const replacement = transform(selectedText, selection);
+      if (replacement === null) {
+        newSelections[index] = selection;
+        return;
+      }
+
+      const startPosition = selection.getStartPosition();
+      const startOffset = model.getOffsetAt(startPosition);
+      editor.executeEdits(editId, [{ range: selection, text: replacement }]);
+      const endPosition = model.getPositionAt(startOffset + replacement.length);
+      newSelections[index] = new monaco.Selection(
+        startPosition.lineNumber,
+        startPosition.column,
+        endPosition.lineNumber,
+        endPosition.column
+      );
+    });
+  editor.pushUndoStop();
+  editor.setSelections(newSelections);
+}
+
 export function escapeHTML(text: string): string {
   return text
     .split('')
@@ -21,22 +89,7 @@ export function wrapSelectedText(
   const newSelections: monacoNs.Selection[] = new Array(selections.length);
   const selectionsWithIndex = selections.map((selection, index) => ({ selection, index }));
 
-  selectionsWithIndex.sort((a, b) => {
-    const aStart = a.selection.getStartPosition();
-    const bStart = b.selection.getStartPosition();
-    if (aStart.lineNumber !== bStart.lineNumber) {
-      return aStart.lineNumber - bStart.lineNumber;
-    }
-    if (aStart.column !== bStart.column) {
-      return aStart.column - bStart.column;
-    }
-    const aEnd = a.selection.getEndPosition();
-    const bEnd = b.selection.getEndPosition();
-    if (aEnd.lineNumber !== bEnd.lineNumber) {
-      return aEnd.lineNumber - bEnd.lineNumber;
-    }
-    return aEnd.column - bEnd.column;
-  });
+  selectionsWithIndex.sort(compareSelectionsByPosition);
 
   editor.pushUndoStop();
   selectionsWithIndex
