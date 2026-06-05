@@ -233,11 +233,32 @@ function setupFormSubmit({ textarea, editor }: SetupFormSubmitArgs): void {
 
   const form = textarea.closest('form');
   if (form) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
+    const submitForm = (): void => {
       lastSavedVersionId = editor.getModel()!.getAlternativeVersionId();
       textarea.value = editor.getModel()!.getValue();
       form.submit();
+    };
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      submitForm();
+    });
+
+    editor.addAction({
+      id: 'seesaawiki.submitForm',
+      label: 'ページを保存',
+      keybindings: [
+        api.monaco.KeyMod.CtrlCmd | api.monaco.KeyCode.Enter,
+      ],
+      run: submitForm,
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (editor.hasWidgetFocus()) return;
+        e.preventDefault();
+        submitForm();
+      }
     });
   }
 
