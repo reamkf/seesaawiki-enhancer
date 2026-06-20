@@ -12,6 +12,10 @@ export interface SeesaawikiDiagnostic {
 
 const FOLDING_OPEN_REGEX = /^\[(\+|-)\]/;
 const FOLDING_CLOSE_REGEX = /^\[END\]/;
+const TABLE_ROW_PREFIX_REGEX = /^\|/;
+const TABLE_ROW_VALID_REGEX = /^\|.*\|c?$/;
+const TABLE_BLOCK_OPEN_REGEX = /^\{\|/;
+const TABLE_BLOCK_CLOSE_REGEX = /^\|\}\s*$/;
 
 export function computeSeesaawikiDiagnostics(
   lines: string[]
@@ -49,7 +53,80 @@ export function computeSeesaawikiDiagnostics(
     });
   }
 
+  collectTableDiagnostics(lines, diagnostics);
+
   return diagnostics;
+}
+
+type TableMode = 'none' | 'implicit' | 'explicit';
+
+function collectTableDiagnostics(
+  lines: string[],
+  diagnostics: SeesaawikiDiagnostic[]
+): void {
+  let mode: TableMode = 'none';
+  const pending: { lineIndex: number; text: string }[] = [];
+
+  const flushPending = (): void => {
+    for (const p of pending) {
+      const isBlank = p.text.trim().length === 0;
+      diagnostics.push({
+        line: p.lineIndex + 1,
+        startColumn: 1,
+        endColumn: Math.max(p.text.length + 1, 2),
+        message: isBlank
+          ? '表の途中に空行があります。'
+          : '表の途中に | で囲まれていない行があります。',
+      });
+    }
+    pending.length = 0;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const text = lines[i];
+    const isBlank = text.trim().length === 0;
+
+    if (TABLE_BLOCK_OPEN_REGEX.test(text)) {
+      pending.length = 0;
+      mode = 'explicit';
+      continue;
+    }
+    if (TABLE_BLOCK_CLOSE_REGEX.test(text)) {
+      if (mode === 'explicit') {
+        flushPending();
+      } else {
+        pending.length = 0;
+      }
+      mode = 'none';
+      continue;
+    }
+
+    if (TABLE_ROW_PREFIX_REGEX.test(text)) {
+      if (!TABLE_ROW_VALID_REGEX.test(text)) {
+        diagnostics.push({
+          line: i + 1,
+          startColumn: 1,
+          endColumn: text.length + 1,
+          message: '表の行は | または |c で終わる必要があります。',
+        });
+      }
+      flushPending();
+      if (mode === 'none') mode = 'implicit';
+      continue;
+    }
+
+    if (mode === 'implicit') {
+      if (isBlank) {
+        // 暗黙的な表は空行で終了とみなし、空行自体はエラーにしない。
+        pending.length = 0;
+        mode = 'none';
+      } else {
+        pending.push({ lineIndex: i, text });
+      }
+    } else if (mode === 'explicit') {
+      pending.push({ lineIndex: i, text });
+    }
+  }
 }
 
 export const SEESAAWIKI_DIAGNOSTICS_OWNER = 'seesaawiki';
