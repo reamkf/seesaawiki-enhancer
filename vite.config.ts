@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from 'vite';
 import monkey from 'vite-plugin-monkey';
+import pkg from './package.json' with { type: 'json' };
 
 /**
  * UserScriptがHMR WebSocket経由で送ってくる実行時エラーを受け取り、
@@ -31,7 +32,7 @@ export default defineConfig({
       userscript: {
         name: 'Seesaa Wiki Enhancer',
         namespace: 'https://github.com/reamkf/seesaawiki-enhancer',
-        version: '0.11.0',
+        version: pkg.version,
         author: '@_ream_kf',
         license: 'MIT',
         icon: 'https://www.google.com/s2/favicons?domain=seesaawiki.jp',
