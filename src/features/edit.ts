@@ -213,6 +213,96 @@ function setupOutlineView({ outlineContent, editor }: SetupOutlineViewArgs): voi
   update();
 }
 
+interface SetupProblemsViewArgs {
+  problemsContainer: HTMLElement;
+  problemsContent: HTMLElement;
+  problemsCount: HTMLElement;
+  editor: monacoNs.editor.IStandaloneCodeEditor;
+}
+
+function setupProblemsView({
+  problemsContainer,
+  problemsContent,
+  problemsCount,
+  editor,
+}: SetupProblemsViewArgs): void {
+  const monaco = api.monaco;
+
+  const render = (): void => {
+    const model = editor.getModel();
+    if (!model) return;
+    const markers = monaco.editor
+      .getModelMarkers({ resource: model.uri })
+      .filter((m) => m.severity === monaco.MarkerSeverity.Error)
+      .slice()
+      .sort((a, b) =>
+        a.startLineNumber !== b.startLineNumber
+          ? a.startLineNumber - b.startLineNumber
+          : a.startColumn - b.startColumn
+      );
+
+    problemsContent.replaceChildren();
+    if (markers.length === 0) {
+      problemsContainer.classList.remove('has-problems');
+      problemsCount.textContent = '0';
+      return;
+    }
+
+    problemsContainer.classList.add('has-problems');
+    problemsCount.textContent = String(markers.length);
+
+    for (const marker of markers) {
+      const item = document.createElement('div');
+      item.className = 'swe-problem-item';
+
+      const icon = document.createElement('span');
+      icon.className = 'swe-problem-icon';
+      icon.textContent = '⚠';
+
+      const body = document.createElement('div');
+      body.className = 'swe-problem-body';
+
+      const message = document.createElement('span');
+      message.className = 'swe-problem-message';
+      message.textContent = marker.message;
+
+      const location = document.createElement('span');
+      location.className = 'swe-problem-location';
+      location.textContent = `行 ${marker.startLineNumber}, 列 ${marker.startColumn}`;
+
+      body.append(message, location);
+      item.append(icon, body);
+
+      item.onclick = () => {
+        problemsContent
+          .querySelectorAll('.swe-problem-item')
+          .forEach((el) => el.classList.remove('is-active'));
+        item.classList.add('is-active');
+        editor.revealLineInCenter(marker.startLineNumber);
+        editor.setPosition({
+          lineNumber: marker.startLineNumber,
+          column: marker.startColumn,
+        });
+        editor.focus();
+      };
+
+      problemsContent.appendChild(item);
+    }
+  };
+
+  monaco.editor.onDidChangeMarkers((resources) => {
+    const model = editor.getModel();
+    if (!model) return;
+    const modelUriStr = model.uri.toString();
+    if (resources.some((r) => r.toString() === modelUriStr)) {
+      render();
+    }
+  });
+
+  editor.onDidChangeModel(render);
+  render();
+}
+
 interface SetupFormSubmitArgs {
   textarea: HTMLTextAreaElement;
   editor: monacoNs.editor.IStandaloneCodeEditor;
@@ -343,7 +433,24 @@ function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }: InitMonacoEdit
   const outlineContent = document.createElement('div');
   outlineContent.className = 'swe-outline-content';
 
-  outlineContainer.append(outlineLabel, outlineContent);
+  const problemsContainer = document.createElement('div');
+  problemsContainer.className = 'swe-problems-container';
+
+  const problemsLabel = document.createElement('div');
+  problemsLabel.className = 'swe-problems-label';
+  const problemsLabelText = document.createElement('span');
+  problemsLabelText.textContent = 'PROBLEMS';
+  const problemsCount = document.createElement('span');
+  problemsCount.className = 'swe-problems-count';
+  problemsCount.textContent = '0';
+  problemsLabel.append(problemsLabelText, problemsCount);
+
+  const problemsContent = document.createElement('div');
+  problemsContent.className = 'swe-problems-content';
+
+  problemsContainer.append(problemsLabel, problemsContent);
+
+  outlineContainer.append(outlineLabel, outlineContent, problemsContainer);
 
   const container = document.createElement('div');
   container.className = 'swe-monaco-container';
@@ -369,6 +476,7 @@ function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }: InitMonacoEdit
 
   bindToolbar(api, editor);
   setupOutlineView({ outlineContent, editor });
+  setupProblemsView({ problemsContainer, problemsContent, problemsCount, editor });
   setupFormSubmit({ textarea, editor });
   setupItemSearchTemplate(api, editor);
 }
