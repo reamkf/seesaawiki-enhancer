@@ -6,6 +6,7 @@ import {
 } from './language-config.js';
 import { SeesaaWikiDocumentSymbolProvider } from './symbol-provider.js';
 import { SeesaaWikiFoldingRangeProvider } from './folding-range-provider.js';
+import { setupSeesaawikiDiagnostics } from './diagnostics.js';
 import { setupSeesaawikiColorProvider } from './color-provider.js';
 import { setupSeesaawikiLinkProvider } from './link-provider.js';
 import { setupSeesaawikiHoverProvider } from './hover-provider.js';
@@ -29,4 +30,5 @@ export function registerSeesaaWikiLanguage(monaco: MonacoNamespace): void {
   setupSeesaawikiLinkProvider(monaco);
   setupSeesaawikiHoverProvider(monaco);
   setupSeesaawikiCompletionProvider(monaco);
+  setupSeesaawikiDiagnostics(monaco);
 }
