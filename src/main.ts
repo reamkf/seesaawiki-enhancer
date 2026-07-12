@@ -15,7 +15,7 @@ const getWikiPageUrl = wikiId ? makeGetWikiPageUrl(wikiId) : null;
 if (pageType === WikiPageType.EDIT) {
   setupEditPage({ url, getWikiPageUrl, decodeHTMLEntities });
 } else if (pageType === WikiPageType.DIFF) {
-  setupDiffPage({ decodeHTMLEntities });
+  setupDiffPage({ decodeHTMLEntities, getWikiPageUrl });
 } else if (pageType === WikiPageType.PAGE) {
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'e') {

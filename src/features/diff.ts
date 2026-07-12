@@ -2,6 +2,7 @@ import { addCSS } from '../utils/dom.js';
 import { api } from '../editor/api.js';
 import { diffStyles } from '../editor/styles.js';
 import type { DecodeHTMLEntitiesFn } from '../utils/encoding.js';
+import type { GetWikiPageUrlFn } from '../utils/url.js';
 
 interface DiffContent {
   oldContent: string;
@@ -30,9 +31,10 @@ function extractDiffContent(decodeHTMLEntities: DecodeHTMLEntitiesFn): DiffConte
 
 export interface SetupDiffPageDeps {
   decodeHTMLEntities: DecodeHTMLEntitiesFn;
+  getWikiPageUrl: GetWikiPageUrlFn | null;
 }
 
-export function setupDiffPage({ decodeHTMLEntities }: SetupDiffPageDeps): void {
+export function setupDiffPage({ decodeHTMLEntities, getWikiPageUrl }: SetupDiffPageDeps): void {
   const diffBox = document.querySelector<HTMLElement>('.diff-box');
   if (!diffBox) return;
 
@@ -42,6 +44,8 @@ export function setupDiffPage({ decodeHTMLEntities }: SetupDiffPageDeps): void {
 
   const diffContent = extractDiffContent(decodeHTMLEntities);
   if (!diffContent) return;
+
+  api.setContext({ getWikiPageUrl, decodeHTMLEntities });
 
   addCSS(diffStyles);
 
