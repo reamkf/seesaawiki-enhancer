@@ -1,33 +1,9 @@
 import { addCSS } from '../utils/dom.js';
 import { api } from '../editor/api.js';
 import { diffStyles } from '../editor/styles.js';
+import { extractDiffContent } from './diff-content.js';
 import type { DecodeHTMLEntitiesFn } from '../utils/encoding.js';
 import type { GetWikiPageUrlFn } from '../utils/url.js';
-
-interface DiffContent {
-  oldContent: string;
-  newContent: string;
-}
-
-function extractDiffContent(decodeHTMLEntities: DecodeHTMLEntitiesFn): DiffContent | null {
-  const diffBox = document.querySelector('.diff-box');
-  if (!diffBox) return null;
-
-  let innerHTML = diffBox.innerHTML;
-  innerHTML = innerHTML.replace(/<br>|<\/span>/g, '');
-  innerHTML = decodeHTMLEntities(innerHTML, { stripAnchors: true });
-
-  const oldContent = innerHTML.replace(
-    /<span class="line-add">.*?\n|<span class="line-delete">/g,
-    ''
-  );
-  const newContent = innerHTML.replace(
-    /<span class="line-delete">.*?\n|<span class="line-add">/g,
-    ''
-  );
-
-  return { oldContent, newContent };
-}
 
 export interface SetupDiffPageDeps {
   decodeHTMLEntities: DecodeHTMLEntitiesFn;
@@ -42,8 +18,7 @@ export function setupDiffPage({ decodeHTMLEntities, getWikiPageUrl }: SetupDiffP
   const infoBox = document.getElementsByClassName('information-box')[0] as HTMLElement | undefined;
   if (infoBox) infoBox.style.display = 'none';
 
-  const diffContent = extractDiffContent(decodeHTMLEntities);
-  if (!diffContent) return;
+  const diffContent = extractDiffContent(diffBox.innerHTML, decodeHTMLEntities);
 
   api.setContext({ getWikiPageUrl, decodeHTMLEntities });
 
