@@ -1,5 +1,8 @@
 import type { DecodeHTMLEntitiesFn } from '../utils/encoding.js';
 
+const lineAddMarker = '';
+const lineDeleteMarker = '';
+
 export interface DiffContent {
   oldContent: string;
   newContent: string;
@@ -9,16 +12,22 @@ export function extractDiffContent(
   innerHTML: string,
   decodeHTMLEntities: DecodeHTMLEntitiesFn
 ): DiffContent {
-  innerHTML = innerHTML.replace(/<br>|<\/span>/g, '');
+  innerHTML = innerHTML.replace(
+    /<br\s*\/?>|<\/span>|<span class="line-add">|<span class="line-delete">/g,
+    (tag) => {
+      if (tag.endsWith('line-add">')) return lineAddMarker;
+      if (tag.endsWith('line-delete">')) return lineDeleteMarker;
+      return '';
+    }
+  );
   innerHTML = decodeHTMLEntities(innerHTML, { stripAnchors: true });
-  innerHTML = innerHTML.replace(/(?:<\/span>\s*)+$/g, '');
 
   const oldContent = innerHTML.replace(
-    /<span class="line-add">.*?\n|<span class="line-delete">/g,
+    new RegExp(`${lineAddMarker}.*?\n|${lineDeleteMarker}`, 'g'),
     ''
   );
   const newContent = innerHTML.replace(
-    /<span class="line-delete">.*?\n|<span class="line-add">/g,
+    new RegExp(`${lineDeleteMarker}.*?\n|${lineAddMarker}`, 'g'),
     ''
   );
 
