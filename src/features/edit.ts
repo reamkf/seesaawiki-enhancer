@@ -2,6 +2,8 @@ import type * as monacoNs from 'monaco-editor';
 import { addCSS } from '../utils/dom.js';
 import { api, type SeesaawikiEditorApi } from '../editor/api.js';
 import { editStyles } from '../editor/styles.js';
+import { previewStyles } from '../preview/styles.js';
+import { createPreviewDom, setupPreviewPane } from '../preview/preview.js';
 import type { GetWikiPageUrlFn } from '../utils/url.js';
 import type { DecodeHTMLEntitiesFn } from '../utils/encoding.js';
 
@@ -406,17 +408,25 @@ function setupItemSearchTemplate(
 }
 
 interface InitMonacoEditorArgs {
+  wikiId: string | null;
+  pageUrl: string;
   getWikiPageUrl: GetWikiPageUrlFn | null;
   decodeHTMLEntities: DecodeHTMLEntitiesFn;
 }
 
-function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }: InitMonacoEditorArgs): void {
+function initMonacoEditor({
+  wikiId,
+  pageUrl,
+  getWikiPageUrl,
+  decodeHTMLEntities,
+}: InitMonacoEditorArgs): void {
   const textarea = document.getElementById('content') as HTMLTextAreaElement | null;
   if (!textarea) return;
   textarea.style.display = 'none';
   textarea.readOnly = true;
 
   addCSS(editStyles);
+  addCSS(previewStyles);
 
   const root = document.createElement('div');
   root.className = 'swe-edit-container';
@@ -455,7 +465,20 @@ function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }: InitMonacoEdit
   const container = document.createElement('div');
   container.className = 'swe-monaco-container';
 
-  root.append(outlineContainer, container);
+  const mainSplit = document.createElement('div');
+  mainSplit.className = 'swe-main-split';
+
+  let editorRef: monacoNs.editor.IStandaloneCodeEditor | null = null;
+  const {
+    wrapper: previewWrapper,
+    frame: previewFrame,
+    fabButton: previewFab,
+  } = createPreviewDom(() => {
+    editorRef?.layout();
+  });
+  mainSplit.append(container, previewWrapper, previewFab);
+
+  root.append(outlineContainer, mainSplit);
 
   const wideAreaButton = document.getElementById('wide_area_button');
   if (wideAreaButton) {
@@ -473,6 +496,16 @@ function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }: InitMonacoEdit
   api.setContext({ getWikiPageUrl, decodeHTMLEntities });
 
   const editor = api.createEditor(container, { value: textarea.value });
+  editorRef = editor;
+
+  setupPreviewPane({
+    editor,
+    rightPane: previewWrapper,
+    frame: previewFrame,
+    getWikiPageUrl,
+    wikiId,
+    pageUrl,
+  });
 
   bindToolbar(api, editor);
   setupOutlineView({ outlineContent, editor });
@@ -483,16 +516,18 @@ function initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities }: InitMonacoEdit
 
 export interface SetupEditPageDeps {
   url: string;
+  wikiId: string | null;
   getWikiPageUrl: GetWikiPageUrlFn | null;
   decodeHTMLEntities: DecodeHTMLEntitiesFn;
 }
 
 export function setupEditPage({
   url,
+  wikiId,
   getWikiPageUrl,
   decodeHTMLEntities,
 }: SetupEditPageDeps): void {
-  initMonacoEditor({ getWikiPageUrl, decodeHTMLEntities });
+  initMonacoEditor({ wikiId, pageUrl: url, getWikiPageUrl, decodeHTMLEntities });
   setupLoginReturn(url);
   setupSearchFile();
   setupItemSearchEscape();

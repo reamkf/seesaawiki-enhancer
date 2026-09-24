@@ -101,14 +101,20 @@ describe('makeGetWikiPageUrl', () => {
     expect(url.startsWith('https://seesaawiki.jp/example/d/')).toBe(true);
   });
 
-  it('percent-encodes every byte (including ASCII) via EUC-JP', () => {
+  it('leaves ASCII page names mostly as-is (like real wiki URLs)', () => {
     const getUrl = makeGetWikiPageUrl('example');
-    expect(getUrl('Foo')).toBe('https://seesaawiki.jp/example/d/%46%6F%6F');
+    expect(getUrl('Foo')).toBe('https://seesaawiki.jp/example/d/Foo');
+    expect(getUrl('Dear my friends')).toBe('https://seesaawiki.jp/example/d/Dear%20my%20friends');
   });
 
-  it('encodes Japanese characters as EUC-JP percent escapes', () => {
+  it('encodes Japanese characters as lowercase EUC-JP percent escapes', () => {
     const getUrl = makeGetWikiPageUrl('example');
-    expect(getUrl('あ')).toBe('https://seesaawiki.jp/example/d/%A4%A2');
+    expect(getUrl('あ')).toBe('https://seesaawiki.jp/example/d/%a4%a2');
+  });
+
+  it('encodes wave dash as EUC-JP bytes (like real wiki URLs)', () => {
+    const getUrl = makeGetWikiPageUrl('example');
+    expect(getUrl('〜')).toBe('https://seesaawiki.jp/example/d/%a1%c1');
   });
 
   it('escapes characters outside the non-escaped charset as numeric refs', () => {

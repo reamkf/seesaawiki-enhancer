@@ -13,7 +13,7 @@ const wikiId = getWikiId(url);
 const getWikiPageUrl = wikiId ? makeGetWikiPageUrl(wikiId) : null;
 
 if (pageType === WikiPageType.EDIT) {
-  setupEditPage({ url, getWikiPageUrl, decodeHTMLEntities });
+  setupEditPage({ url, wikiId, getWikiPageUrl, decodeHTMLEntities });
 } else if (pageType === WikiPageType.DIFF) {
   setupDiffPage({ decodeHTMLEntities, getWikiPageUrl });
 } else if (pageType === WikiPageType.PAGE) {

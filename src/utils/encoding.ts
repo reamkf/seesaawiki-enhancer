@@ -39,10 +39,24 @@ export function decodeHTMLEntities(
 export type DecodeHTMLEntitiesFn = typeof decodeHTMLEntities;
 
 export function encodeEUCJP(str: string): string {
-  const eucjpArray = Encoding.convert(Encoding.stringToCode(str), 'EUCJP', 'UNICODE');
+  // 実ページのURL形式に合わせる: unreserved文字は素通し、
+  // それ以外はEUC-JPバイト列を小文字%XXで表す。
   let result = '';
-  for (let i = 0; i < eucjpArray.length; i++) {
-    result += '%' + eucjpArray[i].toString(16).padStart(2, '0').toUpperCase();
+  for (const ch of str) {
+    if (/[A-Za-z0-9\-_.~]/.test(ch)) {
+      result += ch;
+      continue;
+    }
+    // 波ダッシュ問題: PHPのEUC-JP変換に合わせてU+301Cは0xA1C1にする
+    // (encoding-japaneseはJIS X 0213の0x8FA1C1を返してしまう)
+    if (ch === '〜') {
+      result += '%a1%c1';
+      continue;
+    }
+    const bytes = Encoding.convert(Encoding.stringToCode(ch), 'EUCJP', 'UNICODE');
+    for (let i = 0; i < bytes.length; i++) {
+      result += '%' + bytes[i].toString(16).padStart(2, '0');
+    }
   }
   return result;
 }
