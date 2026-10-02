@@ -200,8 +200,36 @@ describe('setupPreviewPane', () => {
     ) => Event;
   }
 
-  it('次のiframeが読み込まれるまで現在の表示とスクロールを保持する', () => {
-    const source = { value: '古い本文' };
+  it('初回load前の変更は最新内容に収束し、iframeを再利用する', () => {
+    const source = { value: '初期本文' };
+    const { wrapper, frame } = createPreviewDom();
+    document.body.append(wrapper);
+    const pane = setupPreviewPane({
+      editor: makeEditor(source),
+      rightPane: wrapper,
+      frame,
+      debounceMs: 0,
+    });
+    const EventCtor = eventConstructor();
+
+    try {
+      source.value = '最新本文';
+      pane.update();
+      frame.dispatchEvent(new EventCtor('load'));
+
+      expect(wrapper.querySelectorAll('iframe')).toHaveLength(1);
+      expect(frame.contentDocument?.body.innerHTML).toContain('最新本文');
+      expect(frame.contentDocument?.body.innerHTML).not.toContain('初期本文');
+    } finally {
+      pane.dispose();
+      wrapper.remove();
+    }
+  });
+
+  it('差分更新で画像・折り畳み状態・リンク属性を保持する', () => {
+    const source = {
+      value: '[+]折り畳み\n中身\n[END]\n[[外部>>https://example.com/a]]\n&ref(https://example.com/image.png)',
+    };
     const { wrapper, frame } = createPreviewDom();
     document.body.append(wrapper);
     const pane = setupPreviewPane({
@@ -214,39 +242,57 @@ describe('setupPreviewPane', () => {
 
     try {
       frame.dispatchEvent(new EventCtor('load'));
-      const oldDoc = frame.contentDocument;
-      expect(oldDoc?.body.innerHTML).toContain('古い本文');
-      if (!oldDoc) throw new Error('初回プレビュー文書がありません');
-      oldDoc.documentElement.scrollTop = 321;
-      oldDoc.documentElement.scrollLeft = 12;
+      const doc = frame.contentDocument;
+      if (!doc) throw new Error('初回プレビュー文書がありません');
+      doc.documentElement.scrollTop = 321;
+      doc.documentElement.scrollLeft = 12;
+      const image = doc.querySelector('img[src="https://example.com/image.png"]');
+      const toggle = doc.querySelector('[data-swe-toggle]') as HTMLElement;
+      const paneElement = doc.getElementById(
+        toggle.getAttribute('data-swe-toggle') ?? ''
+      ) as HTMLElement;
+      const link = doc.querySelector('a[href="https://example.com/a"]') as HTMLAnchorElement;
+      expect(image).not.toBeNull();
+      toggle.dispatchEvent(new EventCtor('click', { bubbles: true }));
+      expect(paneElement.style.display).toBe('');
 
-      source.value = '新しい本文';
+      source.value =
+        '先頭に追加\n[+]折り畳み\n中身\n[END]\n[[外部>>https://example.com/a]]\n&ref(https://example.com/image.png)';
       pane.update();
 
-      const frames = Array.from(wrapper.querySelectorAll('iframe'));
-      expect(frames).toHaveLength(2);
-      expect(frame.isConnected).toBe(true);
-      expect(frame.contentDocument?.body.innerHTML).toContain('古い本文');
-      const nextFrame = frames[1] as HTMLIFrameElement;
-      expect(nextFrame.style.visibility).toBe('hidden');
+      expect(wrapper.querySelectorAll('iframe')).toHaveLength(1);
+      expect(getScrollPosition(doc)).toEqual({ top: 321, left: 12 });
+      expect(frame.contentDocument?.querySelector('img[src="https://example.com/image.png"]')).toBe(image);
+      const nextToggle = doc.querySelector('[data-swe-toggle]') as HTMLElement;
+      const nextPane = doc.getElementById(
+        nextToggle.getAttribute('data-swe-toggle') ?? ''
+      ) as HTMLElement;
+      expect(nextPane).toBe(paneElement);
+      expect(nextPane.style.display).toBe('');
+      expect(nextToggle.classList.contains('toggle-link-open')).toBe(true);
+      expect(link.target).toBe('_blank');
+      expect(link.rel).toBe('noopener');
 
-      nextFrame.dispatchEvent(new EventCtor('load'));
+      source.value =
+        'さらに追加\n先頭に追加\n[+]折り畳み\n中身\n[END]\n[[外部>>https://example.com/a]]\n&ref(https://example.com/image.png)';
+      pane.update();
+      const finalToggle = doc.querySelector('[data-swe-toggle]') as HTMLElement;
+      const finalPane = doc.getElementById(
+        finalToggle.getAttribute('data-swe-toggle') ?? ''
+      ) as HTMLElement;
+      expect(finalPane).toBe(paneElement);
+      expect(finalPane.style.display).toBe('');
+      expect(finalToggle.classList.contains('toggle-link-open')).toBe(true);
 
-      expect(frame.isConnected).toBe(false);
-      expect(nextFrame.isConnected).toBe(true);
-      expect(nextFrame.style.visibility).toBe('visible');
-      expect(nextFrame.contentDocument?.body.innerHTML).toContain('新しい本文');
-      expect(getScrollPosition(nextFrame.contentDocument)).toEqual({
-        top: 321,
-        left: 12,
-      });
+      finalToggle.dispatchEvent(new EventCtor('click', { bubbles: true }));
+      expect(nextPane.style.display).toBe('none');
     } finally {
       pane.dispose();
       wrapper.remove();
     }
   });
 
-  it('古い待機中のiframeが新しい描画を上書きしない', () => {
+  it('連続更新では最後の内容だけを表示する', () => {
     const source = { value: '初期' };
     const { wrapper, frame } = createPreviewDom();
     document.body.append(wrapper);
@@ -260,25 +306,64 @@ describe('setupPreviewPane', () => {
 
     try {
       frame.dispatchEvent(new EventCtor('load'));
-      source.value = '古い更新';
+      source.value = '挿入';
       pane.update();
-      const staleFrame = wrapper.querySelectorAll('iframe')[1] as HTMLIFrameElement;
-
-      source.value = '最新更新';
+      source.value = '削除後の最新';
       pane.update();
-      const latestFrame = wrapper.querySelectorAll('iframe')[1] as HTMLIFrameElement;
-      expect(staleFrame.isConnected).toBe(false);
-      expect(frame.isConnected).toBe(true);
-      expect(frame.contentDocument?.body.innerHTML).toContain('初期');
 
-      staleFrame.dispatchEvent(new EventCtor('load'));
-      expect(frame.isConnected).toBe(true);
-      expect(latestFrame.style.visibility).toBe('hidden');
-
-      latestFrame.dispatchEvent(new EventCtor('load'));
-      expect(frame.isConnected).toBe(false);
-      expect(latestFrame.contentDocument?.body.innerHTML).toContain('最新更新');
+      expect(wrapper.querySelectorAll('iframe')).toHaveLength(1);
+      expect(frame.contentDocument?.body.innerHTML).toContain('削除後の最新');
+      expect(frame.contentDocument?.body.innerHTML).not.toContain('挿入');
     } finally {
+      pane.dispose();
+      wrapper.remove();
+    }
+  });
+
+  it('欠落ページの古い非同期応答は新しいリンクを上書きしない', async () => {
+    const originalFetch = globalThis.fetch;
+    const resolvers: ((response: Response) => void)[] = [];
+    globalThis.fetch = (() =>
+      new Promise<Response>((resolve) => {
+        resolvers.push(resolve);
+      })) as unknown as typeof fetch;
+
+    const source = { value: '[[古いページ]]' };
+    const { wrapper, frame } = createPreviewDom();
+    document.body.append(wrapper);
+    const pane = setupPreviewPane({
+      editor: makeEditor(source),
+      rightPane: wrapper,
+      frame,
+      debounceMs: 0,
+      wikiId: 'test-wiki',
+      pageUrl: 'https://test.seesaawiki.jp/test-wiki/e/edit',
+      getWikiPageUrl: (name) => `https://test.seesaawiki.jp/test-wiki/${name}`,
+    });
+    const EventCtor = eventConstructor();
+    const missingResponse = {
+      ok: false,
+      url: 'https://test.seesaawiki.jp/test-wiki/e/add',
+    } as Response;
+
+    try {
+      frame.dispatchEvent(new EventCtor('load'));
+      source.value = '[[新しいページ]]';
+      pane.update();
+      expect(resolvers).toHaveLength(2);
+
+      resolvers[0](missingResponse);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(frame.contentDocument?.body.innerHTML).toContain('新しいページ');
+      expect(frame.contentDocument?.body.innerHTML).not.toContain('color:gray');
+
+      resolvers[1](missingResponse);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(frame.contentDocument?.body.innerHTML).toContain('color:gray');
+      expect(frame.contentDocument?.body.innerHTML).toContain('新しいページ');
+      expect(frame.contentDocument?.body.innerHTML).not.toContain('古いページ');
+    } finally {
+      globalThis.fetch = originalFetch;
       pane.dispose();
       wrapper.remove();
     }

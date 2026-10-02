@@ -76,6 +76,47 @@ export function setScrollPosition(
   el.scrollLeft = pos.left;
 }
 
+interface ToggleState {
+  sourceOpen: boolean;
+  open: boolean;
+}
+
+const processedPreviewDocuments = new WeakSet<Document>();
+const toggleStates = new WeakMap<Element, ToggleState>();
+
+function isToggleLink(element: Element): boolean {
+  return element.hasAttribute('data-swe-toggle');
+}
+
+function isTogglePane(element: Element): boolean {
+  return element.classList.contains('toggle-display');
+}
+
+function getTogglePane(doc: Document, toggle: Element): HTMLElement | null {
+  const paneId = toggle.getAttribute('data-swe-toggle');
+  return paneId ? (doc.getElementById(paneId) as HTMLElement | null) : null;
+}
+
+function rememberToggleState(toggle: Element, pane: HTMLElement): ToggleState {
+  const state = toggleStates.get(toggle) ?? toggleStates.get(pane);
+  if (!state) {
+    const sourceOpen = pane.style.display !== 'none';
+    const created = { sourceOpen, open: sourceOpen };
+    toggleStates.set(toggle, created);
+    toggleStates.set(pane, created);
+    return created;
+  }
+  toggleStates.set(toggle, state);
+  toggleStates.set(pane, state);
+  return state;
+}
+
+function applyToggleState(toggle: Element, pane: HTMLElement, state: ToggleState): void {
+  pane.style.display = state.open ? '' : 'none';
+  toggle.classList.toggle('toggle-link-open', state.open);
+  toggle.classList.toggle('toggle-link-close', !state.open);
+}
+
 /** プレビュー文書内のリンク・トグルを整える(iframe文書・テスト文書の両対応) */
 export function postProcessPreviewDocument(doc: Document): void {
   const anchors = doc.querySelectorAll('a[href]');
@@ -87,21 +128,26 @@ export function postProcessPreviewDocument(doc: Document): void {
     el.rel = 'noopener';
   });
 
+  const toggles = doc.querySelectorAll('[data-swe-toggle]');
+  toggles.forEach((element) => {
+    const toggle = element as HTMLElement;
+    const pane = getTogglePane(doc, toggle);
+    if (pane) applyToggleState(toggle, pane, rememberToggleState(toggle, pane));
+  });
+
+  if (processedPreviewDocuments.has(doc)) return;
+  processedPreviewDocuments.add(doc);
   doc.addEventListener('click', (e) => {
     const target = e.target as HTMLElement | null;
     const toggle = target?.closest?.('[data-swe-toggle]') as HTMLElement | null;
     if (toggle && doc.contains(toggle)) {
-      const paneId = toggle.getAttribute('data-swe-toggle');
-      if (paneId) {
-        const pane = doc.getElementById(paneId);
-        if (pane) {
-          e.preventDefault();
-          const hidden = pane.style.display === 'none';
-          pane.style.display = hidden ? '' : 'none';
-          toggle.classList.toggle('toggle-link-open', hidden);
-          toggle.classList.toggle('toggle-link-close', !hidden);
-          return;
-        }
+      const pane = getTogglePane(doc, toggle);
+      if (pane) {
+        e.preventDefault();
+        const state = rememberToggleState(toggle, pane);
+        state.open = !state.open;
+        applyToggleState(toggle, pane, state);
+        return;
       }
     }
     // ページ内リンク(#断片)はiframeの遷移に任せず、プレビュー内へスクロールするだけにする
@@ -155,23 +201,227 @@ export function buildWikiAddUrl(
 }
 
 const pageExistsCache = new Map<string, boolean>();
-const pageCheckPending = new Set<string>();
+const pageCheckPending = new Map<string, Promise<boolean>>();
 
-async function checkPageExists(viewUrl: string): Promise<boolean> {
+function checkPageExists(viewUrl: string): Promise<boolean> {
   const cached = pageExistsCache.get(viewUrl);
-  if (cached !== undefined) return cached;
-  if (pageCheckPending.has(viewUrl)) return true;
-  pageCheckPending.add(viewUrl);
-  try {
-    const res = await fetch(viewUrl, { method: 'HEAD', redirect: 'follow' });
-    const exists = res.ok && !res.url.includes('/e/add');
-    pageExistsCache.set(viewUrl, exists);
-    return exists;
-  } catch {
-    return true;
-  } finally {
-    pageCheckPending.delete(viewUrl);
+  if (cached !== undefined) return Promise.resolve(cached);
+  const pending = pageCheckPending.get(viewUrl);
+  if (pending) return pending;
+
+  const request = fetch(viewUrl, { method: 'HEAD', redirect: 'follow' })
+    .then((res) => {
+      const exists = res.ok && !res.url.includes('/e/add');
+      pageExistsCache.set(viewUrl, exists);
+      return exists;
+    })
+    .catch(() => true)
+    .finally(() => {
+      pageCheckPending.delete(viewUrl);
+    });
+  pageCheckPending.set(viewUrl, request);
+  return request;
+}
+
+function isDynamicPreviewId(id: string): boolean {
+  return /^(?:content_block_\d+(?:-(?:inside|body))?|content_\d+(?:_\d+)*|region_plugin_content_\d+)$/.test(
+    id
+  );
+}
+
+function stableElementKey(element: Element): string | null {
+  const tagName = element.tagName.toLowerCase();
+  const pageName = element.getAttribute('data-wiki-page');
+  if (pageName) return `wiki:${pageName}`;
+  if (isTogglePane(element)) return 'toggle-pane';
+  if (isToggleLink(element)) return 'toggle-link';
+  if (tagName === 'a') {
+    const href = element.getAttribute('href');
+    if (href) return `a:${href}`;
   }
+  if (tagName === 'img' || tagName === 'video' || tagName === 'audio') {
+    const src = element.getAttribute('src');
+    if (src) return `${tagName}:src:${src}`;
+  }
+  const toggleTitle = Array.from(element.children).find((child) =>
+    child.classList.contains('toggle-title')
+  );
+  if (toggleTitle) return `toggle:${toggleTitle.textContent ?? ''}`;
+  const id = element.getAttribute('id');
+  if (id && !isDynamicPreviewId(id)) return `id:${id}`;
+  return null;
+}
+
+function elementKey(node: Node): string | null {
+  return node.nodeType === 1 ? stableElementKey(node as Element) : null;
+}
+
+function canPatchNode(oldNode: Node, newNode: Node): boolean {
+  if (oldNode.nodeType !== newNode.nodeType) return false;
+  if (oldNode.nodeType !== 1) return true;
+  return (oldNode as Element).tagName === (newNode as Element).tagName;
+}
+
+function shouldPreserveLinkAttribute(
+  oldElement: Element,
+  newElement: Element,
+  name: string
+): boolean {
+  if (name !== 'target' && name !== 'rel') return false;
+  if (newElement.tagName.toLowerCase() !== 'a') return false;
+  const href = newElement.getAttribute('href') ?? '';
+  return !href.startsWith('#') && oldElement.tagName.toLowerCase() === 'a';
+}
+
+function syncElementAttributes(oldElement: Element, newElement: Element): void {
+  const oldToggleState = isTogglePane(oldElement) ? toggleStates.get(oldElement) : undefined;
+  const sourceOpen = oldToggleState
+    ? (newElement as HTMLElement).style.display !== 'none'
+    : null;
+  if (oldToggleState && sourceOpen !== null && oldToggleState.sourceOpen !== sourceOpen) {
+    oldToggleState.sourceOpen = sourceOpen;
+    oldToggleState.open = sourceOpen;
+  }
+
+  for (const attribute of Array.from(oldElement.attributes)) {
+    if (
+      !newElement.hasAttribute(attribute.name) &&
+      !shouldPreserveLinkAttribute(oldElement, newElement, attribute.name) &&
+      !(isToggleLink(oldElement) && isToggleLink(newElement) && attribute.name === 'class')
+    ) {
+      oldElement.removeAttribute(attribute.name);
+    }
+  }
+  for (const attribute of Array.from(newElement.attributes)) {
+    if (
+      (isToggleLink(oldElement) && isToggleLink(newElement) && attribute.name === 'class') ||
+      shouldPreserveLinkAttribute(oldElement, newElement, attribute.name)
+    ) {
+      continue;
+    }
+    if (oldElement.getAttribute(attribute.name) !== attribute.value) {
+      oldElement.setAttribute(attribute.name, attribute.value);
+    }
+  }
+
+  if (oldToggleState && isTogglePane(newElement)) {
+    (oldElement as HTMLElement).style.display = oldToggleState.open ? '' : 'none';
+  }
+}
+
+interface NodePool {
+  nodes: Node[];
+  next: number;
+}
+
+interface NodePools {
+  keyed: Map<string, NodePool>;
+  unkeyed: Map<string, NodePool>;
+}
+
+function nodeShape(node: Node): string {
+  return node.nodeType === 1
+    ? `element:${(node as Element).tagName}`
+    : `node:${node.nodeType}`;
+}
+
+function addToPool(pools: Map<string, NodePool>, key: string, node: Node): void {
+  const pool = pools.get(key);
+  if (pool) {
+    pool.nodes.push(node);
+  } else {
+    pools.set(key, { nodes: [node], next: 0 });
+  }
+}
+
+function makeNodePools(oldChildren: Node[]): NodePools {
+  const pools: NodePools = { keyed: new Map(), unkeyed: new Map() };
+  oldChildren.forEach((oldNode) => {
+    const key = elementKey(oldNode);
+    addToPool(key === null ? pools.unkeyed : pools.keyed, key ?? nodeShape(oldNode), oldNode);
+  });
+  return pools;
+}
+
+function takeFromPool(
+  pools: Map<string, NodePool>,
+  key: string,
+  newNode: Node,
+  used: Set<Node>
+): Node | null {
+  const pool = pools.get(key);
+  if (!pool) return null;
+  while (pool.next < pool.nodes.length) {
+    const oldNode = pool.nodes[pool.next++];
+    if (!used.has(oldNode) && canPatchNode(oldNode, newNode)) return oldNode;
+  }
+  return null;
+}
+
+function findReusableNode(
+  newNode: Node,
+  oldChildren: Node[],
+  pools: NodePools,
+  used: Set<Node>,
+  index: number
+): Node | null {
+  const newKey = elementKey(newNode);
+  if (newKey !== null) return takeFromPool(pools.keyed, newKey, newNode, used);
+
+  const atIndex = oldChildren[index];
+  if (
+    atIndex &&
+    !used.has(atIndex) &&
+    elementKey(atIndex) === null &&
+    canPatchNode(atIndex, newNode)
+  ) {
+    return atIndex;
+  }
+  return takeFromPool(pools.unkeyed, nodeShape(newNode), newNode, used);
+}
+
+function morphNode(oldNode: Node, newNode: Node): void {
+  if (oldNode.nodeType === 3 || oldNode.nodeType === 4) {
+    if (oldNode.nodeValue !== newNode.nodeValue) oldNode.nodeValue = newNode.nodeValue;
+    return;
+  }
+  if (oldNode.nodeType !== 1 || newNode.nodeType !== 1) return;
+  const oldElement = oldNode as Element;
+  const newElement = newNode as Element;
+  syncElementAttributes(oldElement, newElement);
+  morphChildren(oldElement, Array.from(newElement.childNodes));
+}
+
+function morphChildren(parent: Node, newChildren: Node[]): void {
+  const oldChildren = Array.from(parent.childNodes);
+  const pools = makeNodePools(oldChildren);
+  const used = new Set<Node>();
+  let cursor = parent.firstChild;
+
+  newChildren.forEach((newNode, index) => {
+    const reusable = findReusableNode(newNode, oldChildren, pools, used, index);
+    if (!reusable) {
+      parent.insertBefore(newNode, cursor);
+      cursor = newNode.nextSibling;
+      return;
+    }
+    used.add(reusable);
+    if (reusable !== cursor) parent.insertBefore(reusable, cursor);
+    morphNode(reusable, newNode);
+    cursor = reusable.nextSibling;
+  });
+
+  oldChildren.forEach((oldNode) => {
+    if (!used.has(oldNode) && oldNode.parentNode === parent) parent.removeChild(oldNode);
+  });
+}
+
+function patchPreviewBody(doc: Document, bodyHtml: string): void {
+  const userArea = doc.querySelector('#main .user-area') ?? doc.querySelector('.user-area');
+  if (!userArea) return;
+  const template = doc.createElement('div');
+  template.innerHTML = bodyHtml;
+  morphChildren(userArea, Array.from(template.childNodes));
 }
 
 function refreshMissingPageMarks(
@@ -187,10 +437,14 @@ function refreshMissingPageMarks(
     if (!pageName) return;
     const viewUrl = el.href;
     if (!viewUrl || viewUrl.endsWith('#')) return;
+    const expectedPageName = pageName;
+    const expectedViewUrl = viewUrl;
     void checkPageExists(viewUrl).then((exists) => {
       if (exists) return;
       if (!el.isConnected) return;
-      const addUrl = buildWikiAddUrl(wikiId, pageUrl, pageName);
+      if (el.getAttribute('data-wiki-page') !== expectedPageName) return;
+      if (el.href !== expectedViewUrl) return;
+      const addUrl = buildWikiAddUrl(wikiId, pageUrl, expectedPageName);
       const template = doc.createElement('div');
       template.innerHTML = renderMissingPageHtml(el.innerHTML, addUrl);
       el.replaceWith(...Array.from(template.childNodes));
@@ -200,68 +454,47 @@ function refreshMissingPageMarks(
 
 export function setupPreviewPane({
   editor,
-  rightPane,
+  rightPane: _rightPane,
   frame,
   getWikiPageUrl = null,
   debounceMs = PREVIEW_DEBOUNCE_MS,
   wikiId = null,
   pageUrl = null,
 }: SetupPreviewPaneArgs): PreviewPane {
+  void _rightPane;
   const stylesheets: string[] = getPreviewStylesheets();
   let disposed = false;
-  let activeFrame = frame;
-  let pendingFrame: HTMLIFrameElement | null = null;
-  let updateId = 0;
-  let hasInitialFrame = false;
+  let initialLoadStarted = false;
+  let documentReady = false;
+  let latestBodyHtml = '';
   let savedScroll: ScrollPosition = { top: 0, left: 0 };
-  const frameStage = frame.parentElement ?? rightPane;
 
-  const processLoadedFrame = (loadedFrame: HTMLIFrameElement, id: number): void => {
-    if (disposed || id !== updateId) return;
-    const doc = frameDocument(loadedFrame);
+  const processInitialFrame = (): void => {
+    if (disposed) return;
+    const doc = frameDocument(frame);
     if (!doc) return;
+    documentReady = true;
+    patchPreviewBody(doc, latestBodyHtml);
     postProcessPreviewDocument(doc);
     refreshMissingPageMarks(doc, wikiId, pageUrl);
-
-    if (loadedFrame === activeFrame) {
-      setScrollPosition(doc, savedScroll);
-      return;
-    }
-
-    const currentScroll = getScrollPosition(frameDocument(activeFrame));
-    setScrollPosition(doc, currentScroll);
-    loadedFrame.style.visibility = 'visible';
-    activeFrame.remove();
-    activeFrame = loadedFrame;
-    pendingFrame = null;
+    setScrollPosition(doc, savedScroll);
   };
 
   const writeFrame = (bodyHtml: string): void => {
-    const id = ++updateId;
-    const srcdoc = buildPreviewSrcdoc(stylesheets, bodyHtml);
-    savedScroll = getScrollPosition(frameDocument(activeFrame));
-
-    if (!hasInitialFrame) {
-      hasInitialFrame = true;
-      activeFrame.addEventListener(
-        'load',
-        () => processLoadedFrame(activeFrame, id),
-        { once: true }
-      );
-      activeFrame.srcdoc = srcdoc;
+    latestBodyHtml = bodyHtml;
+    if (!initialLoadStarted) {
+      initialLoadStarted = true;
+      savedScroll = getScrollPosition(frameDocument(frame));
+      frame.addEventListener('load', processInitialFrame, { once: true });
+      frame.srcdoc = buildPreviewSrcdoc(stylesheets, bodyHtml);
       return;
     }
-
-    pendingFrame?.remove();
-    const nextFrame = frame.cloneNode(false) as HTMLIFrameElement;
-    nextFrame.removeAttribute('srcdoc');
-    nextFrame.style.visibility = 'hidden';
-    pendingFrame = nextFrame;
-    nextFrame.addEventListener('load', () => processLoadedFrame(nextFrame, id), {
-      once: true,
-    });
-    nextFrame.srcdoc = srcdoc;
-    frameStage.append(nextFrame);
+    if (!documentReady) return;
+    const doc = frameDocument(frame);
+    if (!doc) return;
+    patchPreviewBody(doc, bodyHtml);
+    postProcessPreviewDocument(doc);
+    refreshMissingPageMarks(doc, wikiId, pageUrl);
   };
 
   const update = (): void => {
@@ -288,8 +521,6 @@ export function setupPreviewPane({
       disposed = true;
       debounced.dispose();
       disposable.dispose();
-      pendingFrame?.remove();
-      pendingFrame = null;
     },
   };
 }
@@ -348,9 +579,6 @@ export function createPreviewDom(onToggle?: (hidden: boolean) => void): CreatePr
   );
   frame.title = 'Seesaa Wiki プレビュー';
 
-  const stage = document.createElement('div');
-  stage.className = 'swe-preview-stage';
-  stage.append(frame);
-  wrapper.append(label, stage);
+  wrapper.append(label, frame);
   return { wrapper, frame, toggleButton, fabButton };
 }

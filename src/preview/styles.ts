@@ -45,14 +45,7 @@ export const previewStyles = `
   }
   /* 本文はiframe内の独立文書で描画し、wikiのテーマCSSをそのまま適用する。
      ここではレイアウトのみ指定する。 */
-  .swe-preview-stage {
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
-    display: grid;
-  }
   .swe-preview-frame {
-    grid-area: 1 / 1;
     flex: 1;
     min-height: 0;
     width: 100%;
