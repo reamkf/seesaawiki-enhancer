@@ -1,5 +1,8 @@
 import type * as monacoNs from 'monaco-editor';
-import { renderMissingPageHtml, renderSeesaawikiToHtml } from './renderer.js';
+import {
+  createIncrementalWikiRenderer,
+  renderMissingPageHtml,
+} from './renderer.js';
 import {
   buildPreviewSrcdoc,
   getPreviewStylesheets,
@@ -463,6 +466,9 @@ export function setupPreviewPane({
 }: SetupPreviewPaneArgs): PreviewPane {
   void _rightPane;
   const stylesheets: string[] = getPreviewStylesheets();
+  const wikiRenderer = createIncrementalWikiRenderer({
+    getWikiPageUrl: getWikiPageUrl ?? undefined,
+  });
   let disposed = false;
   let initialLoadStarted = false;
   let documentReady = false;
@@ -501,9 +507,7 @@ export function setupPreviewPane({
     const model = editor.getModel();
     if (!model) return;
     try {
-      const html = renderSeesaawikiToHtml(model.getValue(), {
-        getWikiPageUrl: getWikiPageUrl ?? undefined,
-      });
+      const html = wikiRenderer.render(model.getValue());
       writeFrame(html);
     } catch (error) {
       console.error('プレビューの更新に失敗しました:', error);

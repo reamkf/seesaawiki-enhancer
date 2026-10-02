@@ -1,7 +1,10 @@
 // 実ページ(HTML)と記法ソースのセットを使った回帰テスト。
 // fixtureは https://seesaawiki.jp/kemono_friends3_5ch/ の実ページから取得。
 import { describe, it, expect } from 'bun:test';
-import { renderSeesaawikiToHtml } from '../../src/preview/renderer.js';
+import {
+  createIncrementalWikiRenderer,
+  renderSeesaawikiToHtml,
+} from '../../src/preview/renderer.js';
 import { makeGetWikiPageUrl } from '../../src/utils/url.js';
 import { encodeEUCJP } from '../../src/utils/encoding.js';
 import { normalizePreviewHtml } from './normalize.js';
@@ -58,5 +61,24 @@ describe('実ページフィクスチャ', () => {
       getWikiAddUrl: (name) => `https://seesaawiki.jp/${WIKI_ID}/e/add?pagename=${encodeEUCJP(name)}`,
     });
     assertSameStructure('chikara', actual, expected);
+  });
+
+  it('差分レンダラーは既存フィクスチャの全文出力と一致する', async () => {
+    const options = {
+      getWikiPageUrl,
+      isExistingPage: (name: string) => !MISSING_PAGES.has(name),
+      getWikiAddUrl: (name: string) =>
+        `https://seesaawiki.jp/${WIKI_ID}/e/add?pagename=${encodeEUCJP(name)}`,
+    };
+    for (const name of ['yogo', 'chikara']) {
+      const { src } = await loadFixture(name);
+      const renderer = createIncrementalWikiRenderer(options);
+      const expected = renderSeesaawikiToHtml(src, options);
+      expect(renderer.render(src)).toBe(expected);
+      expect(renderer.render(src)).toBe(expected);
+      const stats = renderer.getLastStats();
+      expect(stats.reusedBlocks).toBe(stats.totalBlocks);
+      expect(stats.renderedBlocks).toBe(0);
+    }
   });
 });

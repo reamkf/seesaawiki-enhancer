@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'bun:test';
-import { renderSeesaawikiToHtml } from '../../src/preview/renderer.js';
+import {
+  createIncrementalWikiRenderer,
+  renderSeesaawikiToHtml,
+} from '../../src/preview/renderer.js';
 
 describe('renderSeesaawikiToHtml', () => {
   it('見出しをh3/h4/h5に変換する', () => {
@@ -262,5 +265,76 @@ describe('renderSeesaawikiToHtml', () => {
     const explicit = renderSeesaawikiToHtml(`[[${'あ'.repeat(54)}>https://example.com]]`);
     expect(explicit).toContain(`${'あ'.repeat(54)}</a>`);
     expect(explicit).not.toContain('...</a>');
+  });
+
+  it('差分レンダラーは変更していない行のHTML生成を再利用する', () => {
+    const renderer = createIncrementalWikiRenderer();
+    const initial = '一行目\n二行目\n三行目';
+    expect(renderer.render(initial)).toBe(renderSeesaawikiToHtml(initial));
+    expect(renderer.getLastStats()).toMatchObject({
+      renderedBlocks: 3,
+      reusedBlocks: 0,
+      totalBlocks: 3,
+      fullRender: true,
+    });
+
+    const next = '一行目\n変更行\n三行目';
+    expect(renderer.render(next)).toBe(renderSeesaawikiToHtml(next));
+    expect(renderer.getLastStats()).toMatchObject({
+      renderedBlocks: 1,
+      reusedBlocks: 2,
+      totalBlocks: 3,
+      fullRender: false,
+    });
+  });
+
+  it('複数行ブロックと見出し依存を保ったまま差分を再利用する', () => {
+    const options = {
+      getWikiPageUrl: (name: string) => `https://example.test/${name}`,
+    };
+    const renderer = createIncrementalWikiRenderer(options);
+    const initial = [
+      '前置き',
+      '*一つ目',
+      '[+]折り畳み',
+      '内部((脚注))',
+      '[END]',
+      '#contents',
+      '*二つ目',
+      '|a|b|',
+      '|c|d|',
+    ].join('\n');
+    expect(renderer.render(initial)).toBe(renderSeesaawikiToHtml(initial, options));
+
+    const next = initial.replace('内部((脚注))', '変更内部((脚注))');
+    expect(renderer.render(next)).toBe(renderSeesaawikiToHtml(next, options));
+    expect(renderer.getLastStats().reusedBlocks).toBeGreaterThan(0);
+
+    const final = next.replace('*二つ目', '*二つ目\n本文');
+    expect(renderer.render(final)).toBe(renderSeesaawikiToHtml(final, options));
+    expect(renderer.getLastStats().reusedBlocks).toBeGreaterThan(0);
+  });
+
+  it('脚注番号と連続編集を毎回全文レンダーと一致させる', () => {
+    const renderer = createIncrementalWikiRenderer();
+    const sources = [
+      '*見出し\n本文((一))\n*次\n後((二))',
+      '*見出し\n変更((一))\n*次\n後((二))',
+      '*見出し\n変更((一))\n*次\n追加\n後((二))',
+      '*見出し\n変更\n*次\n追加\n後((二))',
+    ];
+    for (const source of sources) {
+      expect(renderer.render(source)).toBe(renderSeesaawikiToHtml(source));
+    }
+  });
+
+  it('明示表内の見出し風行を表の境界内に保つ', () => {
+    const renderer = createIncrementalWikiRenderer();
+    const source = '{|class="wide"\n*表の本文\n|a|b|\n|}\n*見出し\n本文';
+    expect(renderer.render(source)).toBe(renderSeesaawikiToHtml(source));
+
+    const next = source.replace('表の本文', '変更した表の本文');
+    expect(renderer.render(next)).toBe(renderSeesaawikiToHtml(next));
+    expect(renderer.getLastStats().reusedBlocks).toBe(1);
   });
 });

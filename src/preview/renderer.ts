@@ -26,6 +26,12 @@ interface FootnoteEntry {
   raw: string;
 }
 
+interface HeadingUse {
+  key: string;
+  id: string;
+  queued: boolean;
+}
+
 interface RenderContext {
   getWikiPageUrl?: ((pageName: string) => string) | null;
   isExistingPage?: ((pageName: string) => boolean) | null;
@@ -33,6 +39,7 @@ interface RenderContext {
   footnotes: FootnoteEntry[];
   headings: HeadingEntry[];
   headingIds: Map<string, (string | null)[]>;
+  consumedHeadingIds: HeadingUse[];
   h3ord: number;
   h4seq: number;
   h5seq: number;
@@ -237,6 +244,7 @@ export function renderInline(src: string, ctx?: Partial<RenderContext>): string 
     footnotes: ctx?.footnotes ?? [],
     headings: ctx?.headings ?? [],
     headingIds: ctx?.headingIds ?? new Map(),
+    consumedHeadingIds: ctx?.consumedHeadingIds ?? [],
     h3ord: ctx?.h3ord ?? 0,
     h4seq: ctx?.h4seq ?? 0,
     h5seq: ctx?.h5seq ?? 0,
@@ -1496,28 +1504,38 @@ function takeHeadingId(ctx: RenderContext, level: 1 | 2 | 3, raw: string): strin
   const key = `${level} ${raw}`;
   const list = ctx.headingIds.get(key);
   if (list && list.length > 0) {
-    const id = list.shift();
-    if (id) return id;
-    return '';
+    const queued = list.shift();
+    const id = queued ?? '';
+    ctx.consumedHeadingIds.push({ key, id, queued: true });
+    return id;
   }
   ctx.fallbackSeq += 1;
-  return `content-x${ctx.fallbackSeq}`;
+  const id = `content-x${ctx.fallbackSeq}`;
+  ctx.consumedHeadingIds.push({ key, id, queued: false });
+  return id;
 }
 
-export function renderSeesaawikiToHtml(
-  source: string,
-  options: PreviewRenderOptions = {}
-): string {
-  const lines = source.replace(/\r\n?/g, '\n').split('\n');
-  // 末尾の改行由来の空行1つは除去する(実ページも末尾<br />を出さない)
-  if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
-  const ctx: RenderContext = {
+function appendFootnotes(body: string, ctx: RenderContext): string {
+  if (ctx.footnotes.length === 0) return body;
+  body = chompTrailingBr(body);
+  let footnotesHtml = '<div class="footer-footnote">\n<hr />\n<ul class="list-1">\n';
+  ctx.footnotes.forEach((note, idx) => {
+    const num = idx + 1;
+    footnotesHtml += `<li><a href="#footnote${num}" name="footer-footnote${num}">*${num} </a> : ${note.html}</li>\n`;
+  });
+  footnotesHtml += '</ul>\n</div>\n';
+  return body + footnotesHtml;
+}
+
+function createRenderContext(options: PreviewRenderOptions): RenderContext {
+  return {
     getWikiPageUrl: options.getWikiPageUrl ?? null,
     isExistingPage: options.isExistingPage ?? null,
     getWikiAddUrl: options.getWikiAddUrl ?? null,
     footnotes: [],
     headings: [],
     headingIds: new Map(),
+    consumedHeadingIds: [],
     h3ord: 0,
     h4seq: 0,
     h5seq: 0,
@@ -1528,18 +1546,358 @@ export function renderSeesaawikiToHtml(
     inToggle: 0,
     fallbackSeq: 0,
   };
+}
+
+export function renderSeesaawikiToHtml(
+  source: string,
+  options: PreviewRenderOptions = {}
+): string {
+  const lines = source.replace(/\r\n?/g, '\n').split('\n');
+  // 末尾の改行由来の空行1つは除去する(実ページも末尾<br />を出さない)
+  if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+  const ctx = createRenderContext(options);
   scanHeadings(lines, ctx);
-  let body = renderFlow(lines, ctx);
-  let footnotesHtml = '';
-  if (ctx.footnotes.length > 0) {
-    // フッター直前の<br />を1つ吸収する(実ページ通り)
-    body = chompTrailingBr(body);
-    footnotesHtml = '<div class="footer-footnote">\n<hr />\n<ul class="list-1">\n';
-    ctx.footnotes.forEach((note, idx) => {
-      const num = idx + 1;
-      footnotesHtml += `<li><a href="#footnote${num}" name="footer-footnote${num}">*${num} </a> : ${note.html}</li>\n`;
+  return appendFootnotes(renderFlow(lines, ctx), ctx);
+}
+
+export interface IncrementalRenderStats {
+  renderedBlocks: number;
+  reusedBlocks: number;
+  totalBlocks: number;
+  fullRender: boolean;
+  fallbackReason?: string;
+}
+
+type IncrementalBlockKind = 'prefix' | 'section' | 'line' | 'root';
+
+interface IncrementalBlock {
+  kind: IncrementalBlockKind;
+  lines: string[];
+  source: string;
+  isFinal: boolean;
+  hasToc: boolean;
+}
+
+interface RenderCounterState {
+  blockNum: number;
+  regionNum: number;
+  fallbackSeq: number;
+}
+
+interface CachedIncrementalBlock extends IncrementalBlock {
+  html: string;
+  start: RenderCounterState;
+  end: RenderCounterState;
+  footnoteStart: number;
+  footnotes: FootnoteEntry[];
+  headingUses: HeadingUse[];
+  headingSignature: string;
+}
+
+interface IncrementalDocumentCache {
+  blocks: CachedIncrementalBlock[];
+  headingSignature: string;
+}
+
+function normalizedWikiLines(source: string): string[] {
+  const lines = source.replace(/\r\n?/g, '\n').split('\n');
+  if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+  return lines;
+}
+
+function findTopLevelHeadingLines(lines: string[]): number[] {
+  const starts: number[] = [];
+  let foldDepth = 0;
+  let inPre = false;
+  let inExplicitTable = false;
+  lines.forEach((line, index) => {
+    if (inPre) {
+      if (/^\|\|=\s*$/.test(line)) inPre = false;
+      return;
+    }
+    if (inExplicitTable) {
+      if (/^\|\}\s*$/.test(line)) inExplicitTable = false;
+      return;
+    }
+    if (/^=\|[^|]*\|\s*$/.test(line)) {
+      inPre = true;
+      return;
+    }
+    if (/^\{\|/.test(line)) {
+      inExplicitTable = true;
+      return;
+    }
+    if (/^\[(\+|-)\]/.test(line)) {
+      foldDepth++;
+      return;
+    }
+    if (/^\[END\]/.test(line)) {
+      foldDepth = Math.max(0, foldDepth - 1);
+      return;
+    }
+    if (foldDepth > 0) return;
+    if (/^(\*{1,3})(?!\*)/.test(line)) starts.push(index);
+  });
+  return starts;
+}
+
+function isContentsLine(line: string): boolean {
+  return (
+    /^[&#]?contents(?:\(\d\))?\s*$/i.test(line) ||
+    /^#contents(?:\((1|2)\))?\s*$/.test(line)
+  );
+}
+
+function isSimpleInlineLine(line: string): boolean {
+  if (/^\s*$/.test(line) || /^\/\//.test(line)) return false;
+  if (/^(\*{1,3})(?!\*)/.test(line)) return false;
+  if (/^(?:=\||\[END\]|\[(\+|-)\]|\{\||\|\}|\|)/.test(line)) return false;
+  if (/^(?:----|(-{1,3}|\+{1,3})(?!-))/.test(line)) return false;
+  if (/^:(.*)$/.test(line) || /^(>+| +)/.test(line)) return false;
+  if (isContentsLine(line)) return false;
+  return true;
+}
+
+function splitIncrementalBlocks(lines: string[]): IncrementalBlock[] {
+  if (lines.length === 0) return [];
+  const headingStarts = findTopLevelHeadingLines(lines);
+  if (headingStarts.length > 0) {
+    const blocks: IncrementalBlock[] = [];
+    const first = headingStarts[0];
+    if (first > 0) {
+      const prefixLines = lines.slice(0, first);
+      blocks.push({
+        kind: 'prefix',
+        lines: prefixLines,
+        source: prefixLines.join('\n'),
+        isFinal: false,
+        hasToc: prefixLines.some(isContentsLine),
+      });
+    }
+    headingStarts.forEach((start, index) => {
+      const end = headingStarts[index + 1] ?? lines.length;
+      const sectionLines = lines.slice(start, end);
+      blocks.push({
+        kind: 'section',
+        lines: sectionLines,
+        source: sectionLines.join('\n'),
+        isFinal: end === lines.length,
+        hasToc: sectionLines.some(isContentsLine),
+      });
     });
-    footnotesHtml += '</ul>\n</div>\n';
+    return blocks;
   }
-  return body + footnotesHtml;
+
+  if (lines.length > 1 && lines.every(isSimpleInlineLine)) {
+    return lines.map((line) => ({
+      kind: 'line',
+      lines: [line],
+      source: line,
+      isFinal: false,
+      hasToc: false,
+    }));
+  }
+
+  return [
+    {
+      kind: 'root',
+      lines,
+      source: lines.join('\n'),
+      isFinal: true,
+      hasToc: lines.some(isContentsLine),
+    },
+  ];
+}
+
+function headingSignature(ctx: RenderContext): string {
+  return ctx.headings
+    .map((heading) => `${heading.level}\u0000${heading.raw}\u0000${heading.id ?? ''}`)
+    .join('\u0001');
+}
+
+function counterState(ctx: RenderContext): RenderCounterState {
+  return {
+    blockNum: ctx.blockNum,
+    regionNum: ctx.regionNum,
+    fallbackSeq: ctx.fallbackSeq,
+  };
+}
+
+function sameCounterState(a: RenderCounterState, b: RenderCounterState): boolean {
+  return a.blockNum === b.blockNum && a.regionNum === b.regionNum && a.fallbackSeq === b.fallbackSeq;
+}
+
+function cacheKey(block: IncrementalBlock): string {
+  return `${block.kind}\u0000${block.isFinal ? '1' : '0'}\u0000${block.source}`;
+}
+
+function canReplayHeadingUses(ctx: RenderContext, uses: HeadingUse[]): boolean {
+  let fallbackSeq = ctx.fallbackSeq;
+  for (const use of uses) {
+    if (use.queued) {
+      const list = ctx.headingIds.get(use.key);
+      if (!list || list.length === 0 || (list[0] ?? '') !== use.id) return false;
+    } else {
+      fallbackSeq += 1;
+      if (use.id !== `content-x${fallbackSeq}`) return false;
+    }
+  }
+  return true;
+}
+
+function replayHeadingUses(ctx: RenderContext, uses: HeadingUse[]): void {
+  for (const use of uses) {
+    if (use.queued) {
+      ctx.headingIds.get(use.key)?.shift();
+    } else {
+      ctx.fallbackSeq += 1;
+    }
+  }
+  ctx.consumedHeadingIds.push(...uses);
+}
+
+function canReuseIncrementalBlock(
+  block: IncrementalBlock,
+  cached: CachedIncrementalBlock,
+  ctx: RenderContext,
+  currentHeadingSignature: string
+): boolean {
+  if (block.hasToc && cached.headingSignature !== currentHeadingSignature) return false;
+  if (ctx.footnotes.length !== cached.footnoteStart) return false;
+  if (!sameCounterState(counterState(ctx), cached.start)) return false;
+  return canReplayHeadingUses(ctx, cached.headingUses);
+}
+
+function reuseIncrementalBlock(cached: CachedIncrementalBlock, ctx: RenderContext): string {
+  replayHeadingUses(ctx, cached.headingUses);
+  ctx.footnotes.push(...cached.footnotes);
+  ctx.blockNum = cached.end.blockNum;
+  ctx.regionNum = cached.end.regionNum;
+  ctx.fallbackSeq = cached.end.fallbackSeq;
+  return cached.html;
+}
+
+function renderIncrementalBlock(
+  block: IncrementalBlock,
+  ctx: RenderContext,
+  currentHeadingSignature: string
+): CachedIncrementalBlock {
+  const start = counterState(ctx);
+  const footnoteStart = ctx.footnotes.length;
+  const headingStart = ctx.consumedHeadingIds.length;
+  const html = renderFlow(block.lines, ctx, block.isFinal);
+  return {
+    ...block,
+    html,
+    start,
+    end: counterState(ctx),
+    footnoteStart,
+    footnotes: ctx.footnotes.slice(footnoteStart),
+    headingUses: ctx.consumedHeadingIds.slice(headingStart),
+    headingSignature: currentHeadingSignature,
+  };
+}
+
+function composeIncrementalBody(
+  blocks: IncrementalBlock[],
+  rendered: CachedIncrementalBlock[],
+  ctx: RenderContext
+): string {
+  const fragments: string[] = [];
+  blocks.forEach((block, index) => {
+    if (block.kind === 'section' && index > 0 && blocks[index - 1]?.kind === 'section') {
+      const previous = fragments[fragments.length - 1];
+      if (previous !== undefined) fragments[fragments.length - 1] = chompTrailingBr(previous);
+    }
+    fragments.push(rendered[index]?.html ?? '');
+  });
+  return appendFootnotes(fragments.join(''), ctx);
+}
+
+export class IncrementalWikiRenderer {
+  private previous: IncrementalDocumentCache | null = null;
+  private lastStats: IncrementalRenderStats = {
+    renderedBlocks: 0,
+    reusedBlocks: 0,
+    totalBlocks: 0,
+    fullRender: true,
+  };
+
+  public constructor(private readonly options: PreviewRenderOptions = {}) {}
+
+  public render(source: string): string {
+    const lines = normalizedWikiLines(source);
+    const ctx = createRenderContext(this.options);
+    scanHeadings(lines, ctx);
+    const currentHeadingSignature = headingSignature(ctx);
+    const blocks = splitIncrementalBlocks(lines);
+    const previous = this.previous;
+    const candidates = new Map<string, CachedIncrementalBlock[]>();
+    previous?.blocks.forEach((block) => {
+      const key = cacheKey(block);
+      const list = candidates.get(key);
+      if (list) list.push(block);
+      else candidates.set(key, [block]);
+    });
+    const used = new Set<CachedIncrementalBlock>();
+    const rendered: CachedIncrementalBlock[] = [];
+    let renderedBlocks = 0;
+    let reusedBlocks = 0;
+
+    blocks.forEach((block) => {
+      const list = candidates.get(cacheKey(block)) ?? [];
+      const cached = list.find(
+        (candidate) =>
+          !used.has(candidate) &&
+          canReuseIncrementalBlock(block, candidate, ctx, currentHeadingSignature)
+      );
+      if (cached) {
+        used.add(cached);
+        rendered.push(cached);
+        reuseIncrementalBlock(cached, ctx);
+        reusedBlocks++;
+        return;
+      }
+      const next = renderIncrementalBlock(block, ctx, currentHeadingSignature);
+      rendered.push(next);
+      renderedBlocks++;
+    });
+
+    this.previous = { blocks: rendered, headingSignature: currentHeadingSignature };
+    const fullRender = previous === null || renderedBlocks === blocks.length;
+    this.lastStats = {
+      renderedBlocks,
+      reusedBlocks,
+      totalBlocks: blocks.length,
+      fullRender,
+      ...(previous === null
+        ? { fallbackReason: 'initial-render' }
+        : blocks.length === 1 && blocks[0]?.kind === 'root'
+          ? { fallbackReason: 'no-safe-top-level-boundary' }
+          : fullRender
+            ? { fallbackReason: 'all-blocks-invalidated' }
+            : {}),
+    };
+    return composeIncrementalBody(blocks, rendered, ctx);
+  }
+
+  public getLastStats(): IncrementalRenderStats {
+    return { ...this.lastStats };
+  }
+
+  public reset(): void {
+    this.previous = null;
+    this.lastStats = {
+      renderedBlocks: 0,
+      reusedBlocks: 0,
+      totalBlocks: 0,
+      fullRender: true,
+    };
+  }
+}
+
+export function createIncrementalWikiRenderer(
+  options: PreviewRenderOptions = {}
+): IncrementalWikiRenderer {
+  return new IncrementalWikiRenderer(options);
 }
