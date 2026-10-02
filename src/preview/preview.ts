@@ -200,30 +200,68 @@ function refreshMissingPageMarks(
 
 export function setupPreviewPane({
   editor,
-  rightPane: _rightPane,
+  rightPane,
   frame,
   getWikiPageUrl = null,
   debounceMs = PREVIEW_DEBOUNCE_MS,
   wikiId = null,
   pageUrl = null,
 }: SetupPreviewPaneArgs): PreviewPane {
-  void _rightPane;
   const stylesheets: string[] = getPreviewStylesheets();
   let disposed = false;
+  let activeFrame = frame;
+  let pendingFrame: HTMLIFrameElement | null = null;
+  let updateId = 0;
+  let hasInitialFrame = false;
   let savedScroll: ScrollPosition = { top: 0, left: 0 };
+  const frameStage = frame.parentElement ?? rightPane;
 
-  const writeFrame = (bodyHtml: string): void => {
-    savedScroll = getScrollPosition(frameDocument(frame));
-    frame.srcdoc = buildPreviewSrcdoc(stylesheets, bodyHtml);
-  };
-
-  const onFrameLoad = (): void => {
-    if (disposed) return;
-    const doc = frameDocument(frame);
+  const processLoadedFrame = (loadedFrame: HTMLIFrameElement, id: number): void => {
+    if (disposed || id !== updateId) return;
+    const doc = frameDocument(loadedFrame);
     if (!doc) return;
     postProcessPreviewDocument(doc);
     refreshMissingPageMarks(doc, wikiId, pageUrl);
-    setScrollPosition(doc, savedScroll);
+
+    if (loadedFrame === activeFrame) {
+      setScrollPosition(doc, savedScroll);
+      return;
+    }
+
+    const currentScroll = getScrollPosition(frameDocument(activeFrame));
+    setScrollPosition(doc, currentScroll);
+    loadedFrame.style.visibility = 'visible';
+    activeFrame.remove();
+    activeFrame = loadedFrame;
+    pendingFrame = null;
+  };
+
+  const writeFrame = (bodyHtml: string): void => {
+    const id = ++updateId;
+    const srcdoc = buildPreviewSrcdoc(stylesheets, bodyHtml);
+    savedScroll = getScrollPosition(frameDocument(activeFrame));
+
+    if (!hasInitialFrame) {
+      hasInitialFrame = true;
+      activeFrame.addEventListener(
+        'load',
+        () => processLoadedFrame(activeFrame, id),
+        { once: true }
+      );
+      activeFrame.srcdoc = srcdoc;
+      return;
+    }
+
+    pendingFrame?.remove();
+    const nextFrame = frame.cloneNode(false) as HTMLIFrameElement;
+    nextFrame.removeAttribute('srcdoc');
+    nextFrame.style.visibility = 'hidden';
+    pendingFrame = nextFrame;
+    nextFrame.addEventListener('load', () => processLoadedFrame(nextFrame, id), {
+      once: true,
+    });
+    nextFrame.srcdoc = srcdoc;
+    frameStage.append(nextFrame);
   };
 
   const update = (): void => {
@@ -239,8 +277,6 @@ export function setupPreviewPane({
     }
   };
 
-  frame.addEventListener('load', onFrameLoad);
-
   const debounced = debounce(update, debounceMs);
   const disposable = editor.onDidChangeModelContent(() => debounced.run());
 
@@ -252,7 +288,8 @@ export function setupPreviewPane({
       disposed = true;
       debounced.dispose();
       disposable.dispose();
-      frame.removeEventListener('load', onFrameLoad);
+      pendingFrame?.remove();
+      pendingFrame = null;
     },
   };
 }
@@ -311,6 +348,9 @@ export function createPreviewDom(onToggle?: (hidden: boolean) => void): CreatePr
   );
   frame.title = 'Seesaa Wiki プレビュー';
 
-  wrapper.append(label, frame);
+  const stage = document.createElement('div');
+  stage.className = 'swe-preview-stage';
+  stage.append(frame);
+  wrapper.append(label, stage);
   return { wrapper, frame, toggleButton, fabButton };
 }

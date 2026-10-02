@@ -4,6 +4,8 @@ import {
   getScrollPosition,
   postProcessPreviewDocument,
   setScrollPosition,
+  setupPreviewPane,
+  type SetupPreviewPaneArgs,
 } from '../../src/preview/preview.js';
 
 function makeDoc(): Document {
@@ -179,5 +181,106 @@ describe('ページ内リンク', () => {
     const event = new EventCtor('click', { bubbles: true, cancelable: true });
     link.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
+  });
+});
+
+describe('setupPreviewPane', () => {
+  function makeEditor(source: { value: string }): SetupPreviewPaneArgs['editor'] {
+    return {
+      getModel: () => ({ getValue: () => source.value }),
+      onDidChangeModelContent: () => ({ dispose: () => undefined }),
+    } as unknown as SetupPreviewPaneArgs['editor'];
+  }
+
+  function eventConstructor(): new (type: string, init?: Record<string, unknown>) => Event {
+    const happyWindow = (globalThis as unknown as { window: Record<string, unknown> }).window;
+    return happyWindow['Event'] as new (
+      type: string,
+      init?: Record<string, unknown>
+    ) => Event;
+  }
+
+  it('次のiframeが読み込まれるまで現在の表示とスクロールを保持する', () => {
+    const source = { value: '古い本文' };
+    const { wrapper, frame } = createPreviewDom();
+    document.body.append(wrapper);
+    const pane = setupPreviewPane({
+      editor: makeEditor(source),
+      rightPane: wrapper,
+      frame,
+      debounceMs: 0,
+    });
+    const EventCtor = eventConstructor();
+
+    try {
+      frame.dispatchEvent(new EventCtor('load'));
+      const oldDoc = frame.contentDocument;
+      expect(oldDoc?.body.innerHTML).toContain('古い本文');
+      if (!oldDoc) throw new Error('初回プレビュー文書がありません');
+      oldDoc.documentElement.scrollTop = 321;
+      oldDoc.documentElement.scrollLeft = 12;
+
+      source.value = '新しい本文';
+      pane.update();
+
+      const frames = Array.from(wrapper.querySelectorAll('iframe'));
+      expect(frames).toHaveLength(2);
+      expect(frame.isConnected).toBe(true);
+      expect(frame.contentDocument?.body.innerHTML).toContain('古い本文');
+      const nextFrame = frames[1] as HTMLIFrameElement;
+      expect(nextFrame.style.visibility).toBe('hidden');
+
+      nextFrame.dispatchEvent(new EventCtor('load'));
+
+      expect(frame.isConnected).toBe(false);
+      expect(nextFrame.isConnected).toBe(true);
+      expect(nextFrame.style.visibility).toBe('visible');
+      expect(nextFrame.contentDocument?.body.innerHTML).toContain('新しい本文');
+      expect(getScrollPosition(nextFrame.contentDocument)).toEqual({
+        top: 321,
+        left: 12,
+      });
+    } finally {
+      pane.dispose();
+      wrapper.remove();
+    }
+  });
+
+  it('古い待機中のiframeが新しい描画を上書きしない', () => {
+    const source = { value: '初期' };
+    const { wrapper, frame } = createPreviewDom();
+    document.body.append(wrapper);
+    const pane = setupPreviewPane({
+      editor: makeEditor(source),
+      rightPane: wrapper,
+      frame,
+      debounceMs: 0,
+    });
+    const EventCtor = eventConstructor();
+
+    try {
+      frame.dispatchEvent(new EventCtor('load'));
+      source.value = '古い更新';
+      pane.update();
+      const staleFrame = wrapper.querySelectorAll('iframe')[1] as HTMLIFrameElement;
+
+      source.value = '最新更新';
+      pane.update();
+      const latestFrame = wrapper.querySelectorAll('iframe')[1] as HTMLIFrameElement;
+      expect(staleFrame.isConnected).toBe(false);
+      expect(frame.isConnected).toBe(true);
+      expect(frame.contentDocument?.body.innerHTML).toContain('初期');
+
+      staleFrame.dispatchEvent(new EventCtor('load'));
+      expect(frame.isConnected).toBe(true);
+      expect(latestFrame.style.visibility).toBe('hidden');
+
+      latestFrame.dispatchEvent(new EventCtor('load'));
+      expect(frame.isConnected).toBe(false);
+      expect(latestFrame.contentDocument?.body.innerHTML).toContain('最新更新');
+    } finally {
+      pane.dispose();
+      wrapper.remove();
+    }
   });
 });
