@@ -127,6 +127,122 @@ function parseDimension(value: string): { px: string } | { percent: string } | n
   return null;
 }
 
+interface RefImageOptions {
+  widthPx: string | null;
+  widthPercent: string | null;
+  heightPx: string | null;
+  heightPercent: string | null;
+  align: '' | 'left' | 'right';
+  center: boolean;
+  noLink: boolean;
+}
+
+function parseRefOptions(opts: string[]): RefImageOptions {
+  let widthPx: string | null = null;
+  let widthPercent: string | null = null;
+  let heightPx: string | null = null;
+  let heightPercent: string | null = null;
+  let align: '' | 'left' | 'right' = '';
+  let center = false;
+  let noLink = false;
+
+  const setDimension = (dim: { px: string } | { percent: string }, slot: number): void => {
+    const widthSet = widthPx !== null || widthPercent !== null;
+    const heightSet = heightPx !== null || heightPercent !== null;
+    if (slot === 0 && !widthSet) {
+      if ('px' in dim) widthPx = dim.px;
+      else widthPercent = dim.percent;
+    } else if (!heightSet) {
+      if ('px' in dim) heightPx = dim.px;
+      else heightPercent = dim.percent;
+    }
+  };
+
+  let slot = 0;
+  for (const raw of opts) {
+    const o = raw.trim();
+    if (!o) {
+      slot++;
+      continue;
+    }
+    const lower = o.toLowerCase();
+    if (lower === 'left' || lower === 'right') {
+      align = lower;
+      continue;
+    }
+    if (lower === 'center') {
+      center = true;
+      continue;
+    }
+    if (lower === 'no_link' || lower === 'nolink') {
+      noLink = true;
+      continue;
+    }
+    if (
+      lower === 'zoom' ||
+      lower === 'around' ||
+      lower === 'noimg' ||
+      lower === 'noicon' ||
+      lower === 'button'
+    ) {
+      continue;
+    }
+    const wh = o.match(
+      /^(\d+(?:\.\d+)?(?:px|%)?)?\s*[xX×]\s*(\d+(?:\.\d+)?(?:px|%)?)?$/
+    );
+    if (wh && (wh[1] || wh[2])) {
+      if (wh[1]) {
+        const dim = parseDimension(wh[1]);
+        if (dim && widthPx === null && widthPercent === null) {
+          if ('px' in dim) widthPx = dim.px;
+          else widthPercent = dim.percent;
+        }
+      }
+      if (wh[2]) {
+        const dim = parseDimension(wh[2]);
+        if (dim && heightPx === null && heightPercent === null) {
+          if ('px' in dim) heightPx = dim.px;
+          else heightPercent = dim.percent;
+        }
+      }
+      slot = 2;
+      continue;
+    }
+    const dim = parseDimension(o);
+    if (!dim) continue;
+    setDimension(dim, slot);
+    slot++;
+  }
+
+  return { widthPx, widthPercent, heightPx, heightPercent, align, center, noLink };
+}
+
+function renderAttachPlaceholder(
+  name: string,
+  first: string,
+  title: string | null,
+  parsed: RefImageOptions
+): string {
+  let style = '';
+  if (parsed.widthPx !== null) style += `width:${parsed.widthPx}px;`;
+  else if (parsed.widthPercent !== null) style += `width:${parsed.widthPercent}%;`;
+  if (parsed.heightPx !== null) style += `height:${parsed.heightPx}px;`;
+  else if (parsed.heightPercent !== null) style += `height:${parsed.heightPercent}%;`;
+  if (parsed.align === 'left') style += 'float:left;';
+  else if (parsed.align === 'right') style += 'float:right;';
+  if (style) style = `display:inline-block;${style}`;
+
+  let span = '<span class="swe-preview-attach"';
+  if (title != null && title !== '') span += ` title="${escapeAttr(title)}"`;
+  if (style) span += ` style="${escapeAttr(style)}"`;
+  span += `>[${escapeHtmlBasic(name)}:${escapeHtmlBasic(first)}]</span>`;
+
+  if (parsed.center && !parsed.align) {
+    return `<div style="text-align:center;">${span}</div>`;
+  }
+  return span;
+}
+
 function truncateLinkText(text: string): string {
   return text.length > 50 ? text.slice(0, 50) + '...' : text;
 }
@@ -194,44 +310,22 @@ function renderRefImage(
   const opts = rawArgs.slice(1);
   const imgSrc = sanitizeImgSrc(first);
   if (!imgSrc) return null;
-  let widthPx: string | null = null;
-  let heightPx: string | null = null;
-  let heightPercent: string | null = null;
-  let alignAttr = '';
-  let centerWrap = false;
-  opts.forEach((o, index) => {
-    if (!o) return;
-    if (o === 'left' || o === 'right') {
-      alignAttr = o;
-      return;
-    }
-    if (o === 'center') {
-      centerWrap = true;
-      return;
-    }
-    if (o === 'no_link') return;
-    const dim = parseDimension(o);
-    if (!dim) return;
-    if (index === 0) {
-      if ('px' in dim) widthPx = dim.px;
-    } else if (heightPx === null && heightPercent === null) {
-      if ('px' in dim) heightPx = dim.px;
-      else heightPercent = dim.percent;
-    }
-  });
-  if (opts.includes('no_link')) noLink = true;
+  const parsed = parseRefOptions(opts);
+  noLink ||= parsed.noLink;
   let imgTag = `<img src="${escapeAttr(imgSrc)}" border="0"`;
   if (title != null) {
     imgTag += ` alt="${escapeAttr(title)}" title="${escapeAttr(title)}"`;
   }
   imgTag += ' loading="lazy"';
-  if (widthPx !== null) imgTag += ` width="${escapeAttr(widthPx)}"`;
-  if (heightPx !== null) imgTag += ` height="${escapeAttr(heightPx)}"`;
-  if (heightPercent !== null) imgTag += ` height="${escapeAttr(heightPercent)}%"`;
-  if (alignAttr) imgTag += ` align="${alignAttr}"`;
-  imgTag += ' style="max-width:100%;" />';
+  if (parsed.widthPx !== null) imgTag += ` width="${escapeAttr(parsed.widthPx)}"`;
+  if (parsed.heightPx !== null) imgTag += ` height="${escapeAttr(parsed.heightPx)}"`;
+  if (parsed.align) imgTag += ` align="${parsed.align}"`;
+  let style = 'max-width:100%;';
+  if (parsed.widthPercent !== null) style += `width:${parsed.widthPercent}%;`;
+  if (parsed.heightPercent !== null) style += `height:${parsed.heightPercent}%;`;
+  imgTag += ` style="${style}" />`;
   const linked = noLink ? imgTag : `<a href="${escapeAttr(imgSrc)}">${imgTag}</a>`;
-  if (centerWrap && !alignAttr) {
+  if (parsed.center && !parsed.align) {
     return `<div style="text-align:center;">${linked}</div>`;
   }
   return linked;
@@ -549,11 +643,23 @@ function tryRenderCommand(
           end: p,
         };
       }
+      const first = parsed.args.split(',')[0]?.trim() ?? '';
+      if (
+        name === 'attachref' &&
+        (first === '' ||
+          parseDimension(first) !== null ||
+          /^\d+(?:\.\d+)?(?:px|%)?\s*[xX×]\s*\d+(?:\.\d+)?(?:px|%)?$/.test(first))
+      ) {
+        return {
+          html: '<div class="attachref"><a>添付する</a></div>',
+          end: p,
+        };
+      }
       const html = renderRefImage(parsed.args, title, false, ctx);
       if (html === null) {
-        const first = parsed.args.split(',')[0]?.trim() ?? '';
+        const [, ...opts] = parsed.args.split(',').map((arg) => arg.trim());
         return {
-          html: `<span class="swe-preview-attach">[${escapeHtmlBasic(name)}:${escapeHtmlBasic(first)}]</span>`,
+          html: renderAttachPlaceholder(name, first, title, parseRefOptions(opts)),
           end: p,
         };
       }

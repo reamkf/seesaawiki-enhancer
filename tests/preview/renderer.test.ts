@@ -131,6 +131,41 @@ describe('renderSeesaawikiToHtml', () => {
     expect(pct).not.toContain('width="100%"');
   });
 
+  it('attachrefのサイズ指定を画像と添付プレースホルダに反映する', () => {
+    const image = renderSeesaawikiToHtml('&attachref(https://example.com/a.png,200x100)');
+    expect(image).toContain('width="200"');
+    expect(image).toContain('height="100"');
+
+    const local = renderSeesaawikiToHtml('&attachref(a.png,120,80)');
+    expect(local).toContain('class="swe-preview-attach"');
+    expect(local).toContain('width:120px;');
+    expect(local).toContain('height:80px;');
+
+    const percent = renderSeesaawikiToHtml('&attachref(a.png,50%)');
+    expect(percent).toContain('width:50%;');
+    expect(percent).not.toContain('width:50px;');
+  });
+
+  it('画像未添付のattachrefはサイズ指定があっても添付ボタンを表示する', () => {
+    for (const source of ['&attachref()', '&attachref(50%)', '&attachref(200,200)']) {
+      const html = renderSeesaawikiToHtml(source);
+      expect(html).toContain('<div class="attachref"><a>添付する</a></div>');
+      expect(html).not.toContain('[attachref:');
+      expect(html).not.toContain('width:');
+    }
+  });
+
+  it('画像サイズと配置の混在、および高さのみの指定を扱う', () => {
+    const aligned = renderSeesaawikiToHtml('&attachref(https://example.com/a.png,left,200,100)');
+    expect(aligned).toContain('width="200"');
+    expect(aligned).toContain('height="100"');
+    expect(aligned).toContain('align="left"');
+
+    const heightOnly = renderSeesaawikiToHtml('&attachref(a.png,,100)');
+    expect(heightOnly).toContain('height:100px;');
+    expect(heightOnly).not.toContain('width:');
+  });
+
   it('画像の配置とtitle/altを実ページ形式で反映する', () => {
     const left = renderSeesaawikiToHtml('&ref(https://example.com/a.png,left)');
     expect(left).toContain('align="left"');
