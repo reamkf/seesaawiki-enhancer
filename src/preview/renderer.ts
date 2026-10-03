@@ -700,12 +700,19 @@ function renderWikiLink(inner: string, ctx: RenderContext): string {
   // 外部URL直指定のときのみoutlinkを付与し、wiki内ページは素のaにする。
   const imageOnly = tryRenderImageToken(textPart, ctx);
   if (imageOnly !== null) {
+    // 外部URLはresolveLinkTargetより先に処理する(ページ名として扱わせない)。
+    // 通常テキストリンクの外部URL分岐と同等にする。
+    const trimmedTarget = target.trim();
+    if (/^https?:\/\//i.test(trimmedTarget) || /^ftp:\/\//i.test(trimmedTarget)) {
+      const href = sanitizeHref(trimmedTarget) ?? '#';
+      if (isSeesaawikiUrl(href)) {
+        return `<a href="${escapeAttr(href)}"${extra}>${imageOnly}</a>`;
+      }
+      return `<a href="${escapeAttr(href)}"${extra} class="outlink" rel="nofollow">${imageOnly}</a>`;
+    }
     const href = resolveLinkTarget(target, ctx);
     if (href === null) return `<span class="swe-preview-special">${imageOnly}</span>`;
-    const external = /^(https?:\/\/|ftp:\/\/)/i.test(target.trim())
-      ? ' class="outlink" rel="nofollow"'
-      : '';
-    return `<a href="${escapeAttr(href)}"${external}${extra}>${imageOnly}</a>`;
+    return `<a href="${escapeAttr(href)}"${extra}>${imageOnly}</a>`;
   }
 
   // リンクテキスト自体が素URLの場合はプレーンテキスト化し(入れ子a防止)、
@@ -1481,7 +1488,9 @@ function scanHeadings(lines: string[], ctx: RenderContext): void {
     const level = m[1].length as 1 | 2 | 3;
     const raw = m[2].trim();
     if (foldDepth > 0) {
-      push(level, raw, null);
+      // トグル内の見出しは目次に出さず、idキューにも入れない。
+      // キューに入れると同名の外側見出しがnullを取り、目次リンクが切れる。
+      ctx.headings.push({ level, raw, id: null });
       continue;
     }
     if (level === 1) {

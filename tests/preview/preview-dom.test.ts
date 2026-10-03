@@ -182,6 +182,58 @@ describe('ページ内リンク', () => {
     link.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
   });
+
+  it('nameアンカーへの#リンクも遷移せずスクロールする', () => {
+    const happyWindow = (globalThis as unknown as { window: Record<string, unknown> }).window;
+    const doc = (happyWindow['document'] as Document).implementation.createHTMLDocument(
+      'footnote'
+    );
+    doc.body.innerHTML = [
+      '<a href="#footer-footnote1">*1</a>',
+      '<a name="footer-footnote1">注釈</a>',
+    ].join('');
+    postProcessPreviewDocument(doc);
+    const EventCtor = happyWindow['Event'] as new (
+      type: string,
+      init?: Record<string, unknown>
+    ) => Event;
+    const link = doc.querySelector('a[href="#footer-footnote1"]') as HTMLAnchorElement;
+    const event = new EventCtor('click', { bubbles: true, cancelable: true });
+    link.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('スクロール済みでも移動先を通り過ぎない', () => {
+    const { doc } = makeAnchorDoc();
+    const happyWindow = (globalThis as unknown as { window: Record<string, unknown> }).window;
+    const EventCtor = happyWindow['Event'] as new (
+      type: string,
+      init?: Record<string, unknown>
+    ) => Event;
+    const link = doc.querySelector('a[href="#sec1"]') as HTMLAnchorElement;
+    const scroller = (doc.scrollingElement ?? doc.documentElement) as HTMLElement;
+    const rect = (top: number): DOMRect =>
+      ({
+        top,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        x: 0,
+        y: top,
+        width: 0,
+        height: 0,
+        toJSON: () => ({}),
+      }) as unknown as DOMRect;
+    // 実文書のスクロール要素はスクロール分だけrect.topが負になる
+    scroller.getBoundingClientRect = () => rect(-100);
+    const dest = doc.getElementById('sec1') as HTMLElement;
+    dest.getBoundingClientRect = () => rect(150);
+    scroller.scrollTop = 100;
+    const event = new EventCtor('click', { bubbles: true, cancelable: true });
+    link.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(scroller.scrollTop).toBe(250);
+  });
 });
 
 describe('setupPreviewPane', () => {
@@ -362,6 +414,39 @@ describe('setupPreviewPane', () => {
       expect(frame.contentDocument?.body.innerHTML).toContain('color:gray');
       expect(frame.contentDocument?.body.innerHTML).toContain('新しいページ');
       expect(frame.contentDocument?.body.innerHTML).not.toContain('古いページ');
+    } finally {
+      globalThis.fetch = originalFetch;
+      pane.dispose();
+      wrapper.remove();
+    }
+  });
+
+  it('非同期で挿入した欠落?リンクも新規タブ化する', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      ({ ok: false, url: 'https://test.seesaawiki.jp/test-wiki/e/add' }) as Response) as unknown as typeof fetch;
+
+    const source = { value: '[[ないページ]]' };
+    const { wrapper, frame } = createPreviewDom();
+    document.body.append(wrapper);
+    const pane = setupPreviewPane({
+      editor: makeEditor(source),
+      rightPane: wrapper,
+      frame,
+      debounceMs: 0,
+      wikiId: 'test-wiki',
+      pageUrl: 'https://test.seesaawiki.jp/test-wiki/e/edit',
+      getWikiPageUrl: (name) => `https://test.seesaawiki.jp/test-wiki/${name}`,
+    });
+    const EventCtor = eventConstructor();
+
+    try {
+      frame.dispatchEvent(new EventCtor('load'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const mark = frame.contentDocument?.querySelector('small a') as HTMLAnchorElement | null;
+      expect(mark).not.toBeNull();
+      expect(mark?.target).toBe('_blank');
+      expect(mark?.rel).toBe('noopener');
     } finally {
       globalThis.fetch = originalFetch;
       pane.dispose();

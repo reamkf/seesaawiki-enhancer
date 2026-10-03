@@ -168,21 +168,45 @@ export function postProcessPreviewDocument(doc: Document): void {
     if (!anchor || !doc.contains(anchor)) return;
     const rawId = (anchor.getAttribute('href') ?? '').slice(1);
     if (!rawId) return;
+    // 脚注の移動先はidではなくname属性で生成されるため、name付きアンカーも探す
+    const decodedId = safeDecodeFragment(rawId);
     const dest =
-      doc.getElementById(rawId) ?? doc.getElementById(safeDecodeFragment(rawId));
+      doc.getElementById(rawId) ??
+      (decodedId !== rawId ? doc.getElementById(decodedId) : null) ??
+      findAnchorByName(doc, rawId) ??
+      (decodedId !== rawId ? findAnchorByName(doc, decodedId) : null);
     if (!dest) return;
     e.preventDefault();
     scrollElementIntoView(doc, dest);
   });
 }
 
+/** name属性で生成されたアンカー(a[name])を探す。脚注の移動先用。 */
+function findAnchorByName(doc: Document, name: string): Element | null {
+  const byName = (
+    doc as Document & {
+      getElementsByName?: (name: string) => HTMLCollectionOf<Element>;
+    }
+  ).getElementsByName?.(name)?.[0];
+  if (byName) return byName;
+  try {
+    const escaped =
+      typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+        ? CSS.escape(name)
+        : name.replace(/["\\]/g, '\\$&');
+    return doc.querySelector(`a[name="${escaped}"]`);
+  } catch {
+    return null;
+  }
+}
+
 /** iframe文書内だけで完結するスクロール。外側ページは動かさない。 */
 export function scrollElementIntoView(doc: Document, dest: Element): void {
   const scroller = doc.scrollingElement ?? doc.documentElement;
   if (!scroller) return;
-  const scrollerTop = scroller.getBoundingClientRect().top;
-  const destTop = dest.getBoundingClientRect().top;
-  scroller.scrollTop += destTop - scrollerTop;
+  // 文書のスクロール要素のrect.topはスクロール分だけ負になるため差し引かない。
+  // destのviewport相対位置をそのまま加算すれば移動先の絶対位置になる。
+  scroller.scrollTop += dest.getBoundingClientRect().top;
 }
 
 function safeDecodeFragment(rawId: string): string {
@@ -450,6 +474,13 @@ function refreshMissingPageMarks(
       const addUrl = buildWikiAddUrl(wikiId, pageUrl, expectedPageName);
       const template = doc.createElement('div');
       template.innerHTML = renderMissingPageHtml(el.innerHTML, addUrl);
+      // 非同期で挿入するためpostProcessPreviewDocumentの対象外。新規タブ化はここで行う。
+      template.querySelectorAll('a[href]').forEach((n) => {
+        const link = n as HTMLAnchorElement;
+        if ((link.getAttribute('href') ?? '').startsWith('#')) return;
+        link.target = '_blank';
+        link.rel = 'noopener';
+      });
       el.replaceWith(...Array.from(template.childNodes));
     });
   });

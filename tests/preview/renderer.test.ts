@@ -207,6 +207,22 @@ describe('renderSeesaawikiToHtml', () => {
     expect(html).toContain('width="80"');
   });
 
+  it('画像のみのリンク先が外部URLならWiki内URLにしない', () => {
+    const html = renderSeesaawikiToHtml(
+      '[[&ref(https://example.com/image.png)>https://example.com/target]]',
+      { getWikiPageUrl: (name) => `https://example.test/${name}` }
+    );
+    expect(html).toContain('<a href="https://example.com/target"');
+    expect(html).toContain('class="outlink"');
+    expect(html).not.toContain('example.test');
+  });
+
+  it('折り畳み内と同名の外側見出しにidが付く', () => {
+    const html = renderSeesaawikiToHtml('#contents\n[+]fold\n*Same\n[END]\n*Same');
+    expect(html).toContain('<a href="#content_1">Same</a>');
+    expect(html).toContain('<h3 id="content_1">Same</h3>');
+  });
+
   it('&alignはdivラッパーで出力する', () => {
     const html = renderSeesaawikiToHtml('&align(center){中央}');
     expect(html).toContain('<div style="text-align:center;">中央</div>');
