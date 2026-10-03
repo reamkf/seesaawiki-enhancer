@@ -948,6 +948,7 @@ function buildTableRows(rowLines: string[], explicit: boolean, ctx: RenderContex
         if (found) {
           found.rowspan += 1;
           c += found.colspan;
+          pendingColspan = 0;
           continue;
         }
         // 結合先が無ければドロップする(実ページ通り)
@@ -1222,6 +1223,20 @@ function renderFlow(lines: string[], ctx: RenderContext, isTop = true, quoteMode
       let depth = 1;
       const inner: string[] = [];
       while (j < lines.length) {
+        // 整形済みブロック内は折りたたみ境界として扱わない(実ページ通り)
+        if (/^=\|[^|]*\|\s*$/.test(lines[j])) {
+          inner.push(lines[j]);
+          j++;
+          while (j < lines.length && !/^\|\|=\s*$/.test(lines[j])) {
+            inner.push(lines[j]);
+            j++;
+          }
+          if (j < lines.length) {
+            inner.push(lines[j]);
+            j++;
+          }
+          continue;
+        }
         if (/^\[(\+|-)\]/.test(lines[j])) {
           depth++;
           inner.push(lines[j]);
