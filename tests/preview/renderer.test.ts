@@ -260,6 +260,12 @@ describe('renderSeesaawikiToHtml', () => {
     expect(html).not.toContain('<td>></td>');
   });
 
+  it('横結合後のセルも^で縦結合できる', () => {
+    const html = renderSeesaawikiToHtml('|>|A|B|\n|x|y|^|');
+    expect(html).toContain('<td colspan="2">A</td>');
+    expect(html).toContain('<td rowspan="2">B</td>');
+  });
+
   it('未存在ページは赤リンク+?で描画する', () => {
     const html = renderSeesaawikiToHtml('[[あるページ]]と[[ないページ]]', {
       getWikiPageUrl: (name) => `https://example.test/${name}`,
@@ -329,6 +335,14 @@ describe('renderSeesaawikiToHtml', () => {
     const final = next.replace('*二つ目', '*二つ目\n本文');
     expect(renderer.render(final)).toBe(renderSeesaawikiToHtml(final, options));
     expect(renderer.getLastStats().reusedBlocks).toBeGreaterThan(0);
+  });
+
+  it('引用内の目次も見出し変更で更新される', () => {
+    const renderer = createIncrementalWikiRenderer();
+    const initial = '*A\n>#contents\n*B\ntext';
+    expect(renderer.render(initial)).toBe(renderSeesaawikiToHtml(initial));
+    const next = '*A\n>#contents\n*C\ntext';
+    expect(renderer.render(next)).toBe(renderSeesaawikiToHtml(next));
   });
 
   it('脚注番号と連続編集を毎回全文レンダーと一致させる', () => {

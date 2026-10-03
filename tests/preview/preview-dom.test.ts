@@ -14,7 +14,7 @@ function makeDoc(): Document {
   doc.body.innerHTML = [
     '<a href="https://example.test/page">外</a>',
     '<a href="#frag">内</a>',
-    '<div class="toggle-title"><a data-swe-toggle="pane1" class="toggle-link-open">開</a></div>',
+    '<div class="toggle-title"><a data-swe-toggle="pane1" class="toggle-link-close">開</a></div>',
     '<div id="pane1" class="toggle-display">中</div>',
   ].join('');
   postProcessPreviewDocument(doc);
@@ -39,10 +39,10 @@ describe('postProcessPreviewDocument', () => {
     const pane = doc.getElementById('pane1') as HTMLElement;
     toggle.dispatchEvent(new EventCtor('click', { bubbles: true }));
     expect(pane.style.display).toBe('none');
-    expect(toggle.classList.contains('toggle-link-close')).toBe(true);
+    expect(toggle.classList.contains('toggle-link-open')).toBe(true);
     toggle.dispatchEvent(new EventCtor('click', { bubbles: true }));
     expect(pane.style.display).toBe('');
-    expect(toggle.classList.contains('toggle-link-open')).toBe(true);
+    expect(toggle.classList.contains('toggle-link-close')).toBe(true);
   });
 });
 
@@ -321,7 +321,7 @@ describe('setupPreviewPane', () => {
       ) as HTMLElement;
       expect(nextPane).toBe(paneElement);
       expect(nextPane.style.display).toBe('');
-      expect(nextToggle.classList.contains('toggle-link-open')).toBe(true);
+      expect(nextToggle.classList.contains('toggle-link-close')).toBe(true);
       expect(link.target).toBe('_blank');
       expect(link.rel).toBe('noopener');
 
@@ -334,7 +334,7 @@ describe('setupPreviewPane', () => {
       ) as HTMLElement;
       expect(finalPane).toBe(paneElement);
       expect(finalPane.style.display).toBe('');
-      expect(finalToggle.classList.contains('toggle-link-open')).toBe(true);
+      expect(finalToggle.classList.contains('toggle-link-close')).toBe(true);
 
       finalToggle.dispatchEvent(new EventCtor('click', { bubbles: true }));
       expect(nextPane.style.display).toBe('none');

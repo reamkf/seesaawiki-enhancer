@@ -116,8 +116,8 @@ function rememberToggleState(toggle: Element, pane: HTMLElement): ToggleState {
 
 function applyToggleState(toggle: Element, pane: HTMLElement, state: ToggleState): void {
   pane.style.display = state.open ? '' : 'none';
-  toggle.classList.toggle('toggle-link-open', state.open);
-  toggle.classList.toggle('toggle-link-close', !state.open);
+  toggle.classList.toggle('toggle-link-open', !state.open);
+  toggle.classList.toggle('toggle-link-close', state.open);
 }
 
 /** プレビュー文書内のリンク・トグルを整える(iframe文書・テスト文書の両対応) */

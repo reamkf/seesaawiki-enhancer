@@ -956,7 +956,7 @@ function buildTableRows(rowLines: string[], explicit: boolean, ctx: RenderContex
         }
         if (found) {
           found.rowspan += 1;
-          c++;
+          c += found.colspan;
           continue;
         }
         // 結合先が無ければドロップする(実ページ通り)
@@ -973,9 +973,10 @@ function buildTableRows(rowLines: string[], explicit: boolean, ctx: RenderContex
         rowspan: 1,
       };
       pendingColspan = 0;
-      grid[r][c] = cell;
+      const colspan = cell.colspan;
+      for (let i = 0; i < colspan; i++) grid[r][c + i] = cell;
       rowCells.push(cell);
-      c++;
+      c += colspan;
     }
     const thead = explicit && outRows.length === 0 && wholeRowHeader;
     outRows.push({ cells: rowCells, thead });
@@ -1650,10 +1651,19 @@ function findTopLevelHeadingLines(lines: string[]): number[] {
   return starts;
 }
 
+function stripQuotePrefix(line: string): string {
+  if (line.startsWith('>')) {
+    const rest = line.replace(/^>+/, '');
+    return rest.startsWith(' ') ? rest.slice(1) : rest;
+  }
+  return line.replace(/^ +/, '');
+}
+
 function isContentsLine(line: string): boolean {
+  const stripped = stripQuotePrefix(line);
   return (
-    /^[&#]?contents(?:\(\d\))?\s*$/i.test(line) ||
-    /^#contents(?:\((1|2)\))?\s*$/.test(line)
+    /^[&#]?contents(?:\(\d\))?\s*$/i.test(stripped) ||
+    /^#contents(?:\((1|2)\))?\s*$/.test(stripped)
   );
 }
 
