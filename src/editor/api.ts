@@ -1,13 +1,10 @@
 // Prototype.jsが上書きしたネイティブメソッドをMonaco読み込み前に復元する。
 // 副作用importのため、必ずmonacoより前に置くこと。
 import '../utils/native-methods.js';
-// @ts-expect-error - monaco-editor subpath exports have no type entry; we re-cast via MonacoNamespace below.
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
-import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker&inline';
-import EditorWorkerUrl from 'monaco-editor/esm/vs/editor/editor.worker?worker&url';
-import 'monaco-editor/esm/vs/editor/editor.all.js';
-import 'monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneGotoLineQuickAccess.js';
-import 'monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneGotoSymbolQuickAccess.js';
+import * as monaco from 'monaco-editor/editor/editor.api';
+import EditorWorker from 'monaco-editor/editor/editor.worker?worker&inline';
+import EditorWorkerUrl from 'monaco-editor/editor/editor.worker?worker&url';
+import 'monaco-editor/editor/editor.main.js';
 import type * as monacoNs from 'monaco-editor';
 import { registerSeesaaWikiLanguage } from './language-register.js';
 import { SeesaaWikiDocumentSymbolProvider } from './symbol-provider.js';

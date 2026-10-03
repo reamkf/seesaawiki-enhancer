@@ -1,9 +1,9 @@
 import { afterAll, describe, expect, it } from 'bun:test';
 import type * as monacoNs from 'monaco-editor';
 // @ts-expect-error - Monaco's internal Monarch modules have no type declarations.
-import { compile } from 'monaco-editor/esm/vs/editor/standalone/common/monarch/monarchCompile.js';
+import { compile } from 'monaco-editor/editor/standalone/common/monarch/monarchCompile.js';
 // @ts-expect-error - Monaco's internal Monarch modules have no type declarations.
-import { MonarchTokenizer } from 'monaco-editor/esm/vs/editor/standalone/common/monarch/monarchLexer.js';
+import { MonarchTokenizer } from 'monaco-editor/editor/standalone/common/monarch/monarchLexer.js';
 import { setupSeesaawikiTokens } from '../../src/editor/language-config.js';
 
 let language!: monacoNs.languages.IMonarchLanguage;
