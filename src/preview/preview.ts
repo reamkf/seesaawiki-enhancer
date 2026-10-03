@@ -211,6 +211,31 @@ export function scrollElementIntoView(doc: Document, dest: Element): void {
   scroller.scrollTop += dest.getBoundingClientRect().top;
 }
 
+export function scrollPreviewToSourceLine(doc: Document, lineNumber: number): void {
+  const scroller = doc.scrollingElement ?? doc.documentElement;
+  const markers = Array.from(doc.querySelectorAll('[data-swe-source-line]'));
+  if (!scroller || markers.length < 2) return;
+
+  let nextIndex = markers.findIndex(
+    (marker) => Number(marker.getAttribute('data-swe-source-line')) > lineNumber
+  );
+  if (nextIndex < 0) nextIndex = markers.length - 1;
+  const start = markers[Math.max(0, nextIndex - 1)];
+  const end = markers[nextIndex];
+  if (!start || !end) return;
+  const startLine = Number(start.getAttribute('data-swe-source-line'));
+  const endLine = Number(end.getAttribute('data-swe-source-line'));
+  const fraction = Math.max(0, Math.min(1, (lineNumber - startLine) / (endLine - startLine)));
+  const top = start.getBoundingClientRect().top;
+  const bottom = end.getBoundingClientRect().top;
+  const cursorTop = top + (bottom - top) * fraction;
+  const viewportHeight = scroller.clientHeight || doc.defaultView?.innerHeight || 0;
+  if (viewportHeight <= 0) return;
+  const visibleBottom = viewportHeight - Math.min(32, viewportHeight / 2);
+  if (cursorTop < 0) scroller.scrollTop += cursorTop;
+  else if (cursorTop >= visibleBottom) scroller.scrollTop += cursorTop - visibleBottom;
+}
+
 function safeDecodeFragment(rawId: string): string {
   try {
     return decodeURIComponent(rawId);
@@ -508,6 +533,13 @@ export function setupPreviewPane({
   let latestBodyHtml = '';
   let savedScroll: ScrollPosition = { top: 0, left: 0 };
 
+  const syncCursor = (): void => {
+    if (!documentReady) return;
+    const lineNumber = editor.getPosition()?.lineNumber;
+    const doc = frameDocument(frame);
+    if (lineNumber && doc) scrollPreviewToSourceLine(doc, lineNumber);
+  };
+
   const processInitialFrame = (): void => {
     if (disposed) return;
     const doc = frameDocument(frame);
@@ -517,6 +549,7 @@ export function setupPreviewPane({
     postProcessPreviewDocument(doc);
     refreshMissingPageMarks(doc, wikiId, pageUrl);
     setScrollPosition(doc, savedScroll);
+    syncCursor();
   };
 
   const writeFrame = (bodyHtml: string): void => {
@@ -534,13 +567,14 @@ export function setupPreviewPane({
     patchPreviewBody(doc, bodyHtml);
     postProcessPreviewDocument(doc);
     refreshMissingPageMarks(doc, wikiId, pageUrl);
+    syncCursor();
   };
 
   const update = (): void => {
     const model = editor.getModel();
     if (!model) return;
     try {
-      const html = wikiRenderer.render(model.getValue());
+      const html = wikiRenderer.render(model.getValue(), true);
       writeFrame(html);
     } catch (error) {
       console.error('プレビューの更新に失敗しました:', error);
@@ -549,6 +583,7 @@ export function setupPreviewPane({
 
   const debounced = debounce(update, debounceMs);
   const disposable = editor.onDidChangeModelContent(() => debounced.run());
+  const cursorDisposable = editor.onDidChangeCursorPosition(() => syncCursor());
 
   update();
 
@@ -558,6 +593,7 @@ export function setupPreviewPane({
       disposed = true;
       debounced.dispose();
       disposable.dispose();
+      cursorDisposable.dispose();
     },
   };
 }

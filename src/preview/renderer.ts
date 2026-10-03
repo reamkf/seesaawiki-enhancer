@@ -1938,16 +1938,25 @@ function renderIncrementalBlock(
 function composeIncrementalBody(
   blocks: IncrementalBlock[],
   rendered: CachedIncrementalBlock[],
-  ctx: RenderContext
+  ctx: RenderContext,
+  sourceMarkers: boolean
 ): string {
   const fragments: string[] = [];
+  let lineNumber = 1;
   blocks.forEach((block, index) => {
     if (block.kind === 'section' && index > 0 && blocks[index - 1]?.kind === 'section') {
       const previous = fragments[fragments.length - 1];
       if (previous !== undefined) fragments[fragments.length - 1] = chompTrailingBr(previous);
     }
+    if (sourceMarkers) {
+      fragments.push(`<span data-swe-source-line="${lineNumber}" style="position:absolute;width:0;height:0;overflow:hidden"></span>`);
+    }
     fragments.push(rendered[index]?.html ?? '');
+    lineNumber += block.lines.length;
   });
+  if (sourceMarkers) {
+    fragments.push(`<span data-swe-source-line="${lineNumber}" style="position:absolute;width:0;height:0;overflow:hidden"></span>`);
+  }
   return appendFootnotes(fragments.join(''), ctx);
 }
 
@@ -1962,7 +1971,7 @@ export class IncrementalWikiRenderer {
 
   public constructor(private readonly options: PreviewRenderOptions = {}) {}
 
-  public render(source: string): string {
+  public render(source: string, sourceMarkers = false): string {
     const lines = normalizedWikiLines(source);
     const ctx = createRenderContext(this.options);
     scanHeadings(lines, ctx);
@@ -2015,7 +2024,7 @@ export class IncrementalWikiRenderer {
             ? { fallbackReason: 'all-blocks-invalidated' }
             : {}),
     };
-    return composeIncrementalBody(blocks, rendered, ctx);
+    return composeIncrementalBody(blocks, rendered, ctx, sourceMarkers);
   }
 
   public getLastStats(): IncrementalRenderStats {

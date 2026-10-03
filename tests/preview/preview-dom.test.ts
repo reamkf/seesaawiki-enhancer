@@ -4,6 +4,7 @@ import {
   getScrollPosition,
   postProcessPreviewDocument,
   setScrollPosition,
+  scrollPreviewToSourceLine,
   setupPreviewPane,
   type SetupPreviewPaneArgs,
 } from '../../src/preview/preview.js';
@@ -95,6 +96,29 @@ describe('scroll position', () => {
     expect(getScrollPosition(null)).toEqual({ top: 0, left: 0 });
     expect(getScrollPosition(undefined)).toEqual({ top: 0, left: 0 });
     expect(() => setScrollPosition(null, { top: 10, left: 10 })).not.toThrow();
+  });
+
+  it('カーソル位置が表示範囲内なら維持し、範囲外なら収める', () => {
+    const doc = makeScrollableDoc();
+    doc.body.innerHTML = '<span data-swe-source-line="1"></span><span data-swe-source-line="5"></span><span data-swe-source-line="9"></span>';
+    const markers = doc.querySelectorAll('[data-swe-source-line]');
+    const markerTops = [20, 220, 620];
+    markerTops.forEach((_, index) => {
+      markers[index].getBoundingClientRect = () => ({ top: markerTops[index] }) as DOMRect;
+    });
+    Object.defineProperty(doc.documentElement, 'clientHeight', { value: 200 });
+    doc.documentElement.scrollTop = 100;
+    scrollPreviewToSourceLine(doc, 3);
+    expect(doc.documentElement.scrollTop).toBe(100);
+    markerTops.splice(0, markerTops.length, 70, 270, 670);
+    scrollPreviewToSourceLine(doc, 3);
+    expect(doc.documentElement.scrollTop).toBe(102);
+    markerTops.splice(0, markerTops.length, 20, 220, 620);
+    scrollPreviewToSourceLine(doc, 7);
+    expect(doc.documentElement.scrollTop).toBe(354);
+    markerTops.splice(0, markerTops.length, -80, 120, 520);
+    scrollPreviewToSourceLine(doc, 1);
+    expect(doc.documentElement.scrollTop).toBe(274);
   });
 });
 
@@ -240,7 +264,9 @@ describe('setupPreviewPane', () => {
   function makeEditor(source: { value: string }): SetupPreviewPaneArgs['editor'] {
     return {
       getModel: () => ({ getValue: () => source.value }),
+      getPosition: () => null,
       onDidChangeModelContent: () => ({ dispose: () => undefined }),
+      onDidChangeCursorPosition: () => ({ dispose: () => undefined }),
     } as unknown as SetupPreviewPaneArgs['editor'];
   }
 
@@ -251,6 +277,42 @@ describe('setupPreviewPane', () => {
       init?: Record<string, unknown>
     ) => Event;
   }
+
+  it('カーソル移動で対応するプレビュー位置へ追従する', () => {
+    const source = { value: '一行目\n二行目\n三行目' };
+    let cursorLine = 1;
+    let cursorChanged = (): void => undefined;
+    const editor = {
+      ...makeEditor(source),
+      getPosition: () => ({ lineNumber: cursorLine, column: 1 }),
+      onDidChangeCursorPosition: (listener: () => void) => {
+        cursorChanged = listener;
+        return { dispose: () => undefined };
+      },
+    } as SetupPreviewPaneArgs['editor'];
+    const { wrapper, frame } = createPreviewDom();
+    document.body.append(wrapper);
+    const pane = setupPreviewPane({ editor, rightPane: wrapper, frame });
+    try {
+      frame.dispatchEvent(new (eventConstructor())('load'));
+      const doc = frame.contentDocument!;
+      const markers = doc.querySelectorAll('[data-swe-source-line]');
+      expect(markers).toHaveLength(4);
+      Object.defineProperty(doc.documentElement, 'clientHeight', { value: 200 });
+      [0, 100, 250, 400].forEach((top, index) => {
+        markers[index].getBoundingClientRect = () => ({ top }) as DOMRect;
+      });
+      cursorLine = 2;
+      cursorChanged();
+      expect(doc.documentElement.scrollTop).toBe(0);
+      cursorLine = 3;
+      cursorChanged();
+      expect(doc.documentElement.scrollTop).toBe(82);
+    } finally {
+      pane.dispose();
+      wrapper.remove();
+    }
+  });
 
   it('初回load前の変更は最新内容に収束し、iframeを再利用する', () => {
     const source = { value: '初期本文' };
