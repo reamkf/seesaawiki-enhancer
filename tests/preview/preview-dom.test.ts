@@ -154,12 +154,12 @@ describe('ページ内リンク', () => {
     expect(scroller.scrollTop).toBe(350);
   });
 
-  it('対象が無い#リンクはそのままにする', () => {
+  it('対象が無い#リンクも遷移させない', () => {
     const { doc, EventCtor } = makeAnchorDoc();
     const link = doc.querySelector('a[href="#missing"]') as HTMLAnchorElement;
     const event = new EventCtor('click', { bubbles: true, cancelable: true });
     link.dispatchEvent(event);
-    expect(event.defaultPrevented).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
   });
 
   it('修飾キー付きクリックはそのままにする', () => {

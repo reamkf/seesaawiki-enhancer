@@ -48,6 +48,7 @@ interface RenderContext {
   blockNum: number;
   regionNum: number;
   inToggle: number;
+  inQuote: number;
   fallbackSeq: number;
 }
 
@@ -253,6 +254,7 @@ export function renderInline(src: string, ctx?: Partial<RenderContext>): string 
     blockNum: ctx?.blockNum ?? 0,
     regionNum: ctx?.regionNum ?? 0,
     inToggle: ctx?.inToggle ?? 0,
+    inQuote: ctx?.inQuote ?? 0,
     fallbackSeq: ctx?.fallbackSeq ?? 0,
   };
   let out = '';
@@ -600,32 +602,21 @@ function tryRenderCommand(
       const parsed = parseParenArgs(src, pos);
       if (!parsed) return null;
       let p = parsed.end;
-      let sizeW: string | null = null;
-      let sizeH: string | null = null;
       if (src[p] === '{') {
         const brace = matchBrace(src, p);
         if (brace) {
-          const parts = brace.inner.split(',').map((s) => s.trim());
-          const w = parts[0] ? parseDimension(parts[0]) : null;
-          const h = parts[1] ? parseDimension(parts[1]) : null;
-          if (w && 'px' in w) sizeW = w.px;
-          if (h && 'px' in h) sizeH = h.px;
           p = brace.end;
         }
       }
       const mediaUrl = parsed.args.split(',')[0]?.trim() ?? '';
+      // 外枠iframeのsandboxにallow-scriptsがなく子にも継承されるため、
+      // JS必須のYouTubeプレーヤーは動作しない。スクリプト禁止を維持し、
+      // 他の外部埋め込みと同様にリンク代替表示にする。
+      let href = sanitizeHref(mediaUrl) ?? '#';
       if (name === 'youtube') {
         const id = extractYouTubeId(mediaUrl);
-        if (id) {
-          const w = sizeW ?? '560';
-          const h = sizeH ?? '315';
-          return {
-            html: `<div class="link_youtube">\n<iframe width="${escapeAttr(w)}" height="${escapeAttr(h)}" src="https://www.youtube.com/embed/${escapeAttr(id)}" allowfullscreen></iframe>\n</div>`,
-            end: p,
-          };
-        }
+        if (id) href = `https://www.youtube.com/watch?v=${id}`;
       }
-      const href = sanitizeHref(mediaUrl) ?? '#';
       return {
         html: `<div class="swe-preview-embed"><a href="${escapeAttr(href)}" target="_blank" rel="noopener">${escapeHtmlBasic(`${name}:${mediaUrl}`)}</a></div>`,
         end: p,
@@ -1410,7 +1401,9 @@ function renderFlow(lines: string[], ctx: RenderContext, isTop = true, quoteMode
       const bid = ++ctx.blockNum;
       // 本文直後の引用は直前の<br />を1つ吸収する(実ページ通り)
       if (prevKind === 'text') chompOneBr();
+      ctx.inQuote++;
       let quoteHtml = renderFlow(inner, ctx, false, true);
+      ctx.inQuote--;
       // 引用末尾の<br />を1つ吸収する(実ページ通り)
       quoteHtml = chompTrailingBr(quoteHtml);
       html += `<blockquote id="content_block_${bid}">\n${quoteHtml}</blockquote>\n`;
@@ -1511,6 +1504,9 @@ function scanHeadings(lines: string[], ctx: RenderContext): void {
 
 function takeHeadingId(ctx: RenderContext, level: 1 | 2 | 3, raw: string): string {
   if (ctx.inToggle > 0) return '';
+  // 引用内見出しは事前走査の対象外のため、描画側でもキューを消費しない。
+  // 消費すると同名の外側見出しがフォールバックIDになり目次が引用内を指す。
+  if (ctx.inQuote > 0) return '';
   const key = `${level} ${raw}`;
   const list = ctx.headingIds.get(key);
   if (list && list.length > 0) {
@@ -1554,6 +1550,7 @@ function createRenderContext(options: PreviewRenderOptions): RenderContext {
     blockNum: 0,
     regionNum: 0,
     inToggle: 0,
+    inQuote: 0,
     fallbackSeq: 0,
   };
 }

@@ -110,9 +110,10 @@ describe('renderSeesaawikiToHtml', () => {
     const video = renderSeesaawikiToHtml('&video(https://example.com/a.mp4)');
     expect(video).toContain('<video');
     const yt = renderSeesaawikiToHtml('&youtube(https://www.youtube.com/watch?v=dQw4w9WgXcQ)');
-    expect(yt).toContain('<div class="link_youtube">');
-    expect(yt).toContain('youtube.com/embed/dQw4w9WgXcQ');
-    expect(yt).toContain('width="560" height="315"');
+    // sandboxにallow-scriptsがなく子iframeにも継承されるためiframe化しない
+    expect(yt).toContain('swe-preview-embed');
+    expect(yt).toContain('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    expect(yt).not.toContain('<iframe');
   });
 
   it('画像サイズ指定をwidth/height属性に反映する', () => {
@@ -152,8 +153,10 @@ describe('renderSeesaawikiToHtml', () => {
     const yt = renderSeesaawikiToHtml(
       '&youtube(https://www.youtube.com/watch?v=dQw4w9WgXcQ){200,162}'
     );
-    expect(yt).toContain('width="200"');
-    expect(yt).toContain('height="162"');
+    // YouTubeはリンク代替のためサイズ属性を持たず、指定分は消費される
+    expect(yt).toContain('swe-preview-embed');
+    expect(yt).not.toContain('<iframe');
+    expect(yt).not.toContain('{200,162}');
   });
 
   it('HTMLをエスケープしjavascript:リンクを無効化する', () => {

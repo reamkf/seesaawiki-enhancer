@@ -166,6 +166,9 @@ export function postProcessPreviewDocument(doc: Document): void {
     }
     const anchor = target?.closest?.('a[href^="#"]') as HTMLAnchorElement | null;
     if (!anchor || !doc.contains(anchor)) return;
+    // srcdocの#リンクは既定で親ページURL基準に解決され、対象の有無にかかわらず
+    // iframeが遷移してプレビューDOMを失うため、通常クリックは常に抑止する。
+    e.preventDefault();
     const rawId = (anchor.getAttribute('href') ?? '').slice(1);
     if (!rawId) return;
     // 脚注の移動先はidではなくname属性で生成されるため、name付きアンカーも探す
@@ -176,7 +179,6 @@ export function postProcessPreviewDocument(doc: Document): void {
       findAnchorByName(doc, rawId) ??
       (decodedId !== rawId ? findAnchorByName(doc, decodedId) : null);
     if (!dest) return;
-    e.preventDefault();
     scrollElementIntoView(doc, dest);
   });
 }
