@@ -1,5 +1,5 @@
-import { WikiPageType } from '../constants.js';
-import { convertCharRef, encodeEUCJP } from './encoding.js';
+import { WikiPageType } from '../constants';
+import { convertCharRef, encodeEUCJP } from './encoding';
 
 export function getWikiPageType(url: string): WikiPageType | null {
   const parsedUrl = new URL(url);

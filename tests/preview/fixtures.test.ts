@@ -4,10 +4,10 @@ import { describe, it, expect } from 'bun:test';
 import {
   createIncrementalWikiRenderer,
   renderSeesaawikiToHtml,
-} from '../../src/preview/renderer.js';
-import { makeGetWikiPageUrl } from '../../src/utils/url.js';
-import { encodeEUCJP } from '../../src/utils/encoding.js';
-import { normalizePreviewHtml } from './normalize.js';
+} from '../../src/preview/renderer';
+import { makeGetWikiPageUrl } from '../../src/utils/url';
+import { encodeEUCJP } from '../../src/utils/encoding';
+import { normalizePreviewHtml } from './normalize';
 
 const WIKI_ID = 'kemono_friends3_5ch';
 const getWikiPageUrl = makeGetWikiPageUrl(WIKI_ID);

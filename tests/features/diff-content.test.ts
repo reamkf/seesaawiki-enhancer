@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { decodeHTMLEntities } from '../../src/utils/encoding.js';
-import { extractDiffContent } from '../../src/features/diff-content.js';
+import { decodeHTMLEntities } from '../../src/utils/encoding';
+import { extractDiffContent } from '../../src/features/diff-content';
 
 const decodeWithGeneratedClosingSpans = (value: string) => {
   const decoded = decodeHTMLEntities(value);

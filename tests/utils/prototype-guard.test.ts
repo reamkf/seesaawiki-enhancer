@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'bun:test';
-import { withoutPrototypePollution } from '../../src/utils/prototype-guard.js';
+import { withoutPrototypePollution } from '../../src/utils/prototype-guard';
 
 type ArrayWithInclude = Array<unknown> & { include?: (...args: unknown[]) => unknown };
 

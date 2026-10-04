@@ -1,5 +1,5 @@
 import Encoding from 'encoding-japanese';
-import { nonEscapedCharSet } from '../nonEscapedChars.js';
+import { nonEscapedCharSet } from '../nonEscapedChars';
 
 export function convertCharRef(s: string): string {
   return s

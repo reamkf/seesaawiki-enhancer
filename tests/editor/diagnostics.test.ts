@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { computeSeesaawikiDiagnostics } from '../../src/editor/diagnostics.js';
+import { computeSeesaawikiDiagnostics } from '../../src/editor/diagnostics';
 
 const diag = (text: string) =>
   computeSeesaawikiDiagnostics(text.split('\n'));

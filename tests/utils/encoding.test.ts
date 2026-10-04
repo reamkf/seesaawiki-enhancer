@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { convertCharRef, decodeHTMLEntities, encodeEUCJP } from '../../src/utils/encoding.js';
+import { convertCharRef, decodeHTMLEntities, encodeEUCJP } from '../../src/utils/encoding';
 
 describe('convertCharRef', () => {
   it('leaves ASCII characters as-is (they are in the non-escaped set)', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { escapeHTML } from '../../src/editor/helpers.js';
+import { escapeHTML } from '../../src/editor/helpers';
 
 describe('escapeHTML', () => {
   it('converts ASCII characters to numeric character references', () => {

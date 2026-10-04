@@ -7,7 +7,7 @@ import {
   scrollPreviewToSourceLine,
   setupPreviewPane,
   type SetupPreviewPaneArgs,
-} from '../../src/preview/preview.js';
+} from '../../src/preview/preview';
 
 function makeDoc(): Document {
   const happyWindow = (globalThis as unknown as { window: Record<string, unknown> }).window;

@@ -3,14 +3,14 @@ import {
   setupSeesaawikiLanguageConfig,
   setupSeesaawikiTokens,
   setupSeesaawikiTheme,
-} from './language-config.js';
-import { SeesaaWikiDocumentSymbolProvider } from './symbol-provider.js';
-import { SeesaaWikiFoldingRangeProvider } from './folding-range-provider.js';
-import { setupSeesaawikiDiagnostics } from './diagnostics.js';
-import { setupSeesaawikiColorProvider } from './color-provider.js';
-import { setupSeesaawikiLinkProvider } from './link-provider.js';
-import { setupSeesaawikiHoverProvider } from './hover-provider.js';
-import { setupSeesaawikiCompletionProvider } from './completion-provider.js';
+} from './language-config';
+import { SeesaaWikiDocumentSymbolProvider } from './symbol-provider';
+import { SeesaaWikiFoldingRangeProvider } from './folding-range-provider';
+import { setupSeesaawikiDiagnostics } from './diagnostics';
+import { setupSeesaawikiColorProvider } from './color-provider';
+import { setupSeesaawikiLinkProvider } from './link-provider';
+import { setupSeesaawikiHoverProvider } from './hover-provider';
+import { setupSeesaawikiCompletionProvider } from './completion-provider';
 
 type MonacoNamespace = typeof monacoNs;
 

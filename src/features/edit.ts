@@ -1,11 +1,11 @@
 import type * as monacoNs from 'monaco-editor';
-import { addCSS } from '../utils/dom.js';
-import { api, type SeesaawikiEditorApi } from '../editor/api.js';
-import { editStyles } from '../editor/styles.js';
-import { previewStyles } from '../preview/styles.js';
-import { createPreviewDom, setupPreviewPane } from '../preview/preview.js';
-import type { GetWikiPageUrlFn } from '../utils/url.js';
-import type { DecodeHTMLEntitiesFn } from '../utils/encoding.js';
+import { addCSS } from '../utils/dom';
+import { api, type SeesaawikiEditorApi } from '../editor/api';
+import { editStyles } from '../editor/styles';
+import { previewStyles } from '../preview/styles';
+import { createPreviewDom, setupPreviewPane } from '../preview/preview';
+import type { GetWikiPageUrlFn } from '../utils/url';
+import type { DecodeHTMLEntitiesFn } from '../utils/encoding';
 
 interface SeesaaItemSearch {
   hide(self: unknown): void;

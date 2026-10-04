@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { computeSeesaawikiFoldingRanges } from '../../src/editor/folding-range-provider.js';
+import { computeSeesaawikiFoldingRanges } from '../../src/editor/folding-range-provider';
 
 const fold = (text: string) =>
   computeSeesaawikiFoldingRanges(text.split('\n'));

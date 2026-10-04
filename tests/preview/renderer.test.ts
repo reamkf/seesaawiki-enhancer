@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import {
   createIncrementalWikiRenderer,
   renderSeesaawikiToHtml,
-} from '../../src/preview/renderer.js';
+} from '../../src/preview/renderer';
 
 describe('renderSeesaawikiToHtml', () => {
   it('見出しをh3/h4/h5に変換する', () => {

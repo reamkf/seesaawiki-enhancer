@@ -1,18 +1,18 @@
 // Prototype.jsが上書きしたネイティブメソッドをMonaco読み込み前に復元する。
 // 副作用importのため、必ずmonacoより前に置くこと。
-import '../utils/native-methods.js';
+import '../utils/native-methods';
 import * as monaco from 'monaco-editor/editor/editor.api';
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker&inline';
 import EditorWorkerUrl from 'monaco-editor/editor/editor.worker?worker&url';
 import 'monaco-editor/editor/editor.main.js';
 import type * as monacoNs from 'monaco-editor';
-import { registerSeesaaWikiLanguage } from './language-register.js';
-import { SeesaaWikiDocumentSymbolProvider } from './symbol-provider.js';
-import { createEditor, type CreateEditorOptions } from './editor.js';
-import { createSeesaawikiDiffEditor } from './diff-editor.js';
-import { wrapSelectedText, insertAtBeginningOfLine } from './helpers.js';
-import { context, type EditorContext } from './context.js';
-import { withoutPrototypePollution } from '../utils/prototype-guard.js';
+import { registerSeesaaWikiLanguage } from './language-register';
+import { SeesaaWikiDocumentSymbolProvider } from './symbol-provider';
+import { createEditor, type CreateEditorOptions } from './editor';
+import { createSeesaawikiDiffEditor } from './diff-editor';
+import { wrapSelectedText, insertAtBeginningOfLine } from './helpers';
+import { context, type EditorContext } from './context';
+import { withoutPrototypePollution } from '../utils/prototype-guard';
 
 type MonacoNamespace = typeof monacoNs;
 

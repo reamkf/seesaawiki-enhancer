@@ -1,5 +1,5 @@
 import type * as monacoNs from 'monaco-editor';
-import { context } from './context.js';
+import { context } from './context';
 
 type MonacoNamespace = typeof monacoNs;
 

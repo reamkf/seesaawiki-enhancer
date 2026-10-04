@@ -4,7 +4,7 @@ import type * as monacoNs from 'monaco-editor';
 import { compile } from 'monaco-editor/editor/standalone/common/monarch/monarchCompile.js';
 // @ts-expect-error - Monaco's internal Monarch modules have no type declarations.
 import { MonarchTokenizer } from 'monaco-editor/editor/standalone/common/monarch/monarchLexer.js';
-import { setupSeesaawikiTokens } from '../../src/editor/language-config.js';
+import { setupSeesaawikiTokens } from '../../src/editor/language-config';
 
 let language!: monacoNs.languages.IMonarchLanguage;
 setupSeesaawikiTokens({

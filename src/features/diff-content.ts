@@ -1,4 +1,4 @@
-import type { DecodeHTMLEntitiesFn } from '../utils/encoding.js';
+import type { DecodeHTMLEntitiesFn } from '../utils/encoding';
 
 const lineAddMarker = '';
 const lineDeleteMarker = '';

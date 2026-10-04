@@ -1,5 +1,5 @@
-import type { GetWikiPageUrlFn } from '../utils/url.js';
-import type { DecodeHTMLEntitiesFn } from '../utils/encoding.js';
+import type { GetWikiPageUrlFn } from '../utils/url';
+import type { DecodeHTMLEntitiesFn } from '../utils/encoding';
 
 // 外部から注入される依存をエディタ関連モジュールで参照するためのモジュールスコープ
 export interface EditorContext {

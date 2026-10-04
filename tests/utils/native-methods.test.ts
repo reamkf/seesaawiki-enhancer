@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { specReduce, specFrom } from '../../src/utils/native-methods.js';
+import { specReduce, specFrom } from '../../src/utils/native-methods';
 
 describe('specReduce (Array.prototype.reduce replacement)', () => {
   it('reduces with a callback and initial value', () => {

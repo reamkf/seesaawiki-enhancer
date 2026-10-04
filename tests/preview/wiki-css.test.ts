@@ -5,7 +5,7 @@ import {
   getPreviewStylesheets,
   LIGHTBOX_CSS_URL,
   previewStylesheetsFromDocument,
-} from '../../src/preview/wiki-css.js';
+} from '../../src/preview/wiki-css';
 
 afterEach(() => {
   document.querySelectorAll('link[rel="stylesheet"]').forEach((el) => el.remove());

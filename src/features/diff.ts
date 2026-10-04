@@ -1,9 +1,9 @@
-import { addCSS } from '../utils/dom.js';
-import { api } from '../editor/api.js';
-import { diffStyles } from '../editor/styles.js';
-import { extractDiffContent } from './diff-content.js';
-import type { DecodeHTMLEntitiesFn } from '../utils/encoding.js';
-import type { GetWikiPageUrlFn } from '../utils/url.js';
+import { addCSS } from '../utils/dom';
+import { api } from '../editor/api';
+import { diffStyles } from '../editor/styles';
+import { extractDiffContent } from './diff-content';
+import type { DecodeHTMLEntitiesFn } from '../utils/encoding';
+import type { GetWikiPageUrlFn } from '../utils/url';
 
 export interface SetupDiffPageDeps {
   decodeHTMLEntities: DecodeHTMLEntitiesFn;

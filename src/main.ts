@@ -1,9 +1,9 @@
-import { WikiPageType } from './constants.js';
-import { getWikiPageType, getWikiId, makeGetWikiPageUrl } from './utils/url.js';
-import { decodeHTMLEntities } from './utils/encoding.js';
-import { setupEditPage } from './features/edit.js';
-import { setupDiffPage } from './features/diff.js';
-import { setupDevErrorBridge } from './dev/errorBridge.js';
+import { WikiPageType } from './constants';
+import { getWikiPageType, getWikiId, makeGetWikiPageUrl } from './utils/url';
+import { decodeHTMLEntities } from './utils/encoding';
+import { setupEditPage } from './features/edit';
+import { setupDiffPage } from './features/diff';
+import { setupDevErrorBridge } from './dev/errorBridge';
 
 setupDevErrorBridge();
 

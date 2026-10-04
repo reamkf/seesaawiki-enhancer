@@ -2,13 +2,13 @@ import type * as monacoNs from 'monaco-editor';
 import {
   createIncrementalWikiRenderer,
   renderMissingPageHtml,
-} from './renderer.js';
+} from './renderer';
 import {
   buildPreviewHtml,
   getPreviewStylesheets,
   wikiTopPageUrl,
-} from './wiki-css.js';
-import { encodeEUCJP } from '../utils/encoding.js';
+} from './wiki-css';
+import { encodeEUCJP } from '../utils/encoding';
 
 export const PREVIEW_DEBOUNCE_MS = 400;
 

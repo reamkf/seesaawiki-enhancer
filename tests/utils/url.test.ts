@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import { getWikiPageType, getWikiId, makeGetWikiPageUrl } from '../../src/utils/url.js';
-import { WikiPageType } from '../../src/constants.js';
+import { getWikiPageType, getWikiId, makeGetWikiPageUrl } from '../../src/utils/url';
+import { WikiPageType } from '../../src/constants';
 
 describe('getWikiPageType', () => {
   it('detects PAGE for /d/ paths', () => {

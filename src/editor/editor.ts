@@ -4,8 +4,8 @@ import {
   escapeHTML,
   transformSelections,
   compareSelectionsByPosition,
-} from './helpers.js';
-import { context } from './context.js';
+} from './helpers';
+import { context } from './context';
 
 type MonacoNamespace = typeof monacoNs;
 type Editor = monacoNs.editor.IStandaloneCodeEditor;
