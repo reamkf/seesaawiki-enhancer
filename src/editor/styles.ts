@@ -9,8 +9,8 @@ export const editStyles = `
     font-size: 14px;
   }
   .swe-outline-container {
-    width: 250px;
-    min-width: 250px;
+    flex: 0 0 min(var(--swe-outline-width, 250px), max(0px, calc(100% - 252px)));
+    min-width: 0;
     height: 100%;
     overflow-y: auto;
     border-right: 1px solid #333;
@@ -18,6 +18,27 @@ export const editStyles = `
     background-color: #252526;
     display: flex;
     flex-direction: column;
+  }
+  .swe-pane-divider {
+    flex: 0 0 6px;
+    background: #333;
+    cursor: col-resize;
+    touch-action: none;
+  }
+  .swe-pane-divider:hover,
+  .swe-pane-divider:focus-visible,
+  .swe-resizing > .swe-pane-divider {
+    background: #007acc;
+  }
+  .swe-pane-divider:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+  }
+  .swe-resizing iframe {
+    pointer-events: none;
+  }
+  .swe-resizing {
+    user-select: none;
   }
   .swe-outline-label {
     padding: 10px 10px 5px;

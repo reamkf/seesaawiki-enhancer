@@ -7,11 +7,11 @@ export const previewStyles = `
     position: relative;
   }
   .swe-monaco-container {
-    flex: 1 1 50%;
+    flex: 0 0 min(var(--swe-editor-width, 50%), max(0px, calc(100% - 126px)));
     min-width: 0;
   }
   .swe-preview-wrapper {
-    flex: 1 1 50%;
+    flex: 1 1 0;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -83,11 +83,12 @@ export const previewStyles = `
     margin: 0.4em 0;
   }
   /* 非表示時はラッパーごと消し、再表示用のフローティングボタンを残す */
-  .swe-edit-container.swe-hide-preview .swe-preview-wrapper {
+  .swe-edit-container.swe-hide-preview .swe-preview-wrapper,
+  .swe-edit-container.swe-hide-preview .swe-main-split > .swe-pane-divider {
     display: none;
   }
   .swe-edit-container.swe-hide-preview .swe-monaco-container {
-    flex-basis: 100%;
+    flex: 1 1 auto;
   }
   /* 開くボタンはペイン内の非表示ボタンと同スタイルで右上に配置。
      minimapと縦スクロールバーに重ならないよう右端から逃がす。 */

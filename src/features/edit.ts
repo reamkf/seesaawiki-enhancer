@@ -4,6 +4,7 @@ import { api, type SeesaawikiEditorApi } from '../editor/api';
 import { editStyles } from '../editor/styles';
 import { previewStyles } from '../preview/styles';
 import { createPreviewDom, setupPreviewPane } from '../preview/preview';
+import { setupPaneResize } from './pane-resize';
 import type { GetWikiPageUrlFn } from '../utils/url';
 import type { DecodeHTMLEntitiesFn } from '../utils/encoding';
 
@@ -468,6 +469,18 @@ function initMonacoEditor({
   const mainSplit = document.createElement('div');
   mainSplit.className = 'swe-main-split';
 
+  const createDivider = (label: string): HTMLElement => {
+    const divider = document.createElement('div');
+    divider.className = 'swe-pane-divider';
+    divider.setAttribute('role', 'separator');
+    divider.setAttribute('aria-orientation', 'vertical');
+    divider.setAttribute('aria-label', label);
+    divider.tabIndex = 0;
+    return divider;
+  };
+  const outlineDivider = createDivider('アウトラインの幅');
+  const previewDivider = createDivider('エディターとプレビューの幅');
+
   let editorRef: monacoNs.editor.IStandaloneCodeEditor | null = null;
   const {
     wrapper: previewWrapper,
@@ -476,9 +489,9 @@ function initMonacoEditor({
   } = createPreviewDom(() => {
     editorRef?.layout();
   });
-  mainSplit.append(container, previewWrapper, previewFab);
+  mainSplit.append(container, previewDivider, previewWrapper, previewFab);
 
-  root.append(outlineContainer, mainSplit);
+  root.append(outlineContainer, outlineDivider, mainSplit);
 
   const wideAreaButton = document.getElementById('wide_area_button');
   if (wideAreaButton) {
@@ -492,6 +505,23 @@ function initMonacoEditor({
   }
 
   textarea.parentNode!.insertBefore(root, textarea);
+
+  setupPaneResize({
+    parent: root,
+    pane: outlineContainer,
+    handle: outlineDivider,
+    property: '--swe-outline-width',
+    minPane: 120,
+    minRemaining: 246,
+  });
+  setupPaneResize({
+    parent: mainSplit,
+    pane: container,
+    handle: previewDivider,
+    property: '--swe-editor-width',
+    minPane: 120,
+    minRemaining: 120,
+  });
 
   api.setContext({ getWikiPageUrl, decodeHTMLEntities });
 
