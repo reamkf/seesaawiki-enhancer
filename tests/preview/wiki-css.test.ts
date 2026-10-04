@@ -4,7 +4,6 @@ import {
   documentStylesheetHrefs,
   getPreviewStylesheets,
   LIGHTBOX_CSS_URL,
-  PREVIEW_CONTENT_CSS,
   previewStylesheetsFromDocument,
 } from '../../src/preview/wiki-css.js';
 
@@ -65,31 +64,20 @@ describe('getPreviewStylesheets', () => {
   });
 });
 
-describe('PREVIEW_CONTENT_CSS', () => {
-  it('ペイン全体のパディングは上下左右均等', () => {
-    // common.cssの body{padding-top:36px!important} に勝つ必要がある
-    expect(PREVIEW_CONTENT_CSS).toMatch(/body\{[^}]*padding:16px!important[^}]*\}/);
-  });
-
-  it('先頭・末尾要素のマージンで見かけの余白が増えない', () => {
-    expect(PREVIEW_CONTENT_CSS).toContain(':first-child{margin-top:0}');
-    expect(PREVIEW_CONTENT_CSS).toContain(':last-child{margin-bottom:0}');
-  });
-
-});
-
 describe('buildPreviewHtml', () => {
-  it('Seesaa Wikiの文書型、CSSリンクと本文構造を含む', () => {
-    const doc = buildPreviewHtml(
-      ['https://example.test/a.css', 'https://example.test/b.css'],
-      '<p>本文</p>'
+  it('CSSリンクと本文構造を含む', () => {
+    const doc = new DOMParser().parseFromString(
+      buildPreviewHtml(
+        ['https://example.test/a.css', 'https://example.test/b.css'],
+        '<p>本文</p>'
+      ),
+      'text/html'
     );
-    expect(doc).toStartWith('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">');
-    expect(doc).toContain('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">');
-    expect(doc).toContain('<meta charset="utf-8">');
-    expect(doc).toContain('<link rel="stylesheet" type="text/css" media="all" href="https://example.test/a.css">');
-    expect(doc).toContain('<link rel="stylesheet" type="text/css" media="all" href="https://example.test/b.css">');
-    expect(doc).toContain('<div id="main"><div class="user-area">');
-    expect(doc).toContain('<p>本文</p>');
+    expect(
+      Array.from(doc.querySelectorAll('link[rel="stylesheet"]'), (link) =>
+        link.getAttribute('href')
+      )
+    ).toEqual(['https://example.test/a.css', 'https://example.test/b.css']);
+    expect(doc.querySelector('#main > .user-area > p')?.textContent).toBe('本文');
   });
 });

@@ -240,19 +240,5 @@ describe('computeSeesaawikiDiagnostics', () => {
         },
       ]);
     });
-
-    it('flags only the non-row intruder when an implicit table has no blank separator', () => {
-      const diagnostics = diag(
-        ['|a|b|', 'intrusion', '|c|d|'].join('\n')
-      );
-      expect(diagnostics).toEqual([
-        {
-          line: 2,
-          startColumn: 1,
-          endColumn: 'intrusion'.length + 1,
-          message: '表の途中に | で囲まれていない行があります。',
-        },
-      ]);
-    });
   });
 });

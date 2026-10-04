@@ -95,12 +95,6 @@ describe('getWikiId', () => {
 });
 
 describe('makeGetWikiPageUrl', () => {
-  it('returns a function that builds a page URL', () => {
-    const getUrl = makeGetWikiPageUrl('example');
-    const url = getUrl('SomePage');
-    expect(url.startsWith('https://seesaawiki.jp/example/d/')).toBe(true);
-  });
-
   it('leaves ASCII page names mostly as-is (like real wiki URLs)', () => {
     const getUrl = makeGetWikiPageUrl('example');
     expect(getUrl('Foo')).toBe('https://seesaawiki.jp/example/d/Foo');

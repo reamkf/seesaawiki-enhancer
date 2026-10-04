@@ -22,7 +22,7 @@ describe('escapeHTML', () => {
   });
 
   it('handles Japanese characters using code points', () => {
-    expect(escapeHTML('あ')).toBe(`&#${'あ'.charCodeAt(0)};`);
+    expect(escapeHTML('あ')).toBe('&#12354;');
   });
 
   it('returns empty string for empty input', () => {

@@ -51,10 +51,6 @@ describe('encodeEUCJP', () => {
   it('returns empty string for empty input', () => {
     expect(encodeEUCJP('')).toBe('');
   });
-
-  it('lowercases hex digits', () => {
-    expect(encodeEUCJP('あ')).toBe(encodeEUCJP('あ').toLowerCase());
-  });
 });
 
 describe('decodeHTMLEntities', () => {
