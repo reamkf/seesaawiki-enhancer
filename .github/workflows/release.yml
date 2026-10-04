@@ -6,6 +6,8 @@ on:
       - 'v*'
 
 permissions:
+  actions: read
+  checks: read
   contents: write
 
 jobs:
@@ -32,6 +34,23 @@ jobs:
           echo "Tag version ($VERSION) does not match package.json version ($PKG_VERSION)" >&2
           exit 1
         fi
+
+    - name: Wait for tests on this commit
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        for attempt in {1..30}; do
+          RUN_ID=$(gh run list --workflow test.yml --commit "$GITHUB_SHA" --event push --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -n "$RUN_ID" ]; then
+            break
+          fi
+          sleep 10
+        done
+        if [ -z "$RUN_ID" ]; then
+          echo "No test workflow run found for $GITHUB_SHA" >&2
+          exit 1
+        fi
+        timeout 20m gh run watch "$RUN_ID" --exit-status --compact --interval 10
 
     - name: Build userscript
       run: bun run build
