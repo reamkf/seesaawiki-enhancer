@@ -314,6 +314,23 @@ describe('setupPreviewPane', () => {
     }
   });
 
+  it('Seesaa Wikiと同じ文書型でiframeを初期化する', () => {
+    const { wrapper, frame } = createPreviewDom();
+    document.body.append(wrapper);
+    const pane = setupPreviewPane({
+      editor: makeEditor({ value: '本文' }),
+      rightPane: wrapper,
+      frame,
+    });
+    try {
+      expect(frame.srcdoc).toBe('');
+      expect(frame.contentDocument?.doctype?.publicId).toBe('-//W3C//DTD XHTML 1.0 Transitional//EN');
+    } finally {
+      pane.dispose();
+      wrapper.remove();
+    }
+  });
+
   it('初回load前の変更は最新内容に収束し、iframeを再利用する', () => {
     const source = { value: '初期本文' };
     const { wrapper, frame } = createPreviewDom();

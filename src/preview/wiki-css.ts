@@ -61,13 +61,13 @@ export const PREVIEW_CONTENT_CSS = [
 ].join('\n');
 
 /** iframe文書全体を組み立てる(ピュア関数) */
-export function buildPreviewSrcdoc(stylesheets: string[], bodyHtml: string): string {
+export function buildPreviewHtml(stylesheets: string[], bodyHtml: string): string {
   const links = stylesheets
     .map((href) => `<link rel="stylesheet" type="text/css" media="all" href="${href}">`)
     .join('\n');
   return [
-    '<!DOCTYPE html>',
-    '<html>',
+    '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">',
+    '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">',
     '<head>',
     '<meta charset="utf-8">',
     links,

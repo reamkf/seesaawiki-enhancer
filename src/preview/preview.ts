@@ -4,7 +4,7 @@ import {
   renderMissingPageHtml,
 } from './renderer.js';
 import {
-  buildPreviewSrcdoc,
+  buildPreviewHtml,
   getPreviewStylesheets,
   wikiTopPageUrl,
 } from './wiki-css.js';
@@ -166,7 +166,7 @@ export function postProcessPreviewDocument(doc: Document): void {
     }
     const anchor = target?.closest?.('a[href^="#"]') as HTMLAnchorElement | null;
     if (!anchor || !doc.contains(anchor)) return;
-    // srcdocの#リンクは既定で親ページURL基準に解決され、対象の有無にかかわらず
+    // iframeの#リンクは既定で親ページURL基準に解決され、対象の有無にかかわらず
     // iframeが遷移してプレビューDOMを失うため、通常クリックは常に抑止する。
     e.preventDefault();
     const rawId = (anchor.getAttribute('href') ?? '').slice(1);
@@ -555,10 +555,15 @@ export function setupPreviewPane({
   const writeFrame = (bodyHtml: string): void => {
     latestBodyHtml = bodyHtml;
     if (!initialLoadStarted) {
+      const doc = frameDocument(frame);
+      if (!doc) return;
       initialLoadStarted = true;
-      savedScroll = getScrollPosition(frameDocument(frame));
+      savedScroll = getScrollPosition(doc);
       frame.addEventListener('load', processInitialFrame, { once: true });
-      frame.srcdoc = buildPreviewSrcdoc(stylesheets, bodyHtml);
+      // srcdocは常に標準モードになるため、Seesaa Wikiと同じ限定互換モードで描画する。
+      doc.open();
+      doc.write(buildPreviewHtml(stylesheets, bodyHtml));
+      doc.close();
       return;
     }
     if (!documentReady) return;
