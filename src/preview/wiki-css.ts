@@ -65,6 +65,8 @@ export function buildPreviewHtml(stylesheets: string[], bodyHtml: string): strin
   const links = stylesheets
     .map((href) => `<link rel="stylesheet" type="text/css" media="all" href="${href}">`)
     .join('\n');
+  // 閲覧ページと同じ祖先構造(#container > #wiki-container)にし、
+  // 継承で決まるスタイル(text-align等)の表示を閲覧時と一致させる
   return [
     '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">',
     '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">',
@@ -74,9 +76,9 @@ export function buildPreviewHtml(stylesheets: string[], bodyHtml: string): strin
     `<style>${PREVIEW_CONTENT_CSS}</style>`,
     '</head>',
     '<body>',
-    '<div id="main"><div class="user-area">',
+    '<div id="container"><div id="wiki-container"><div id="main"><div class="user-area">',
     bodyHtml,
-    '</div></div>',
+    '</div></div></div></div>',
     '</body>',
     '</html>',
   ].join('\n');

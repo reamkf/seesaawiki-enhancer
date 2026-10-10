@@ -80,4 +80,16 @@ describe('buildPreviewHtml', () => {
     ).toEqual(['https://example.test/a.css', 'https://example.test/b.css']);
     expect(doc.querySelector('#main > .user-area > p')?.textContent).toBe('本文');
   });
+
+  it('閲覧ページと同じ祖先構造で本文を包む', () => {
+    const doc = new DOMParser().parseFromString(
+      buildPreviewHtml(['https://example.test/a.css'], '<p>本文</p>'),
+      'text/html'
+    );
+    expect(
+      doc.querySelector(
+        '#container > #wiki-container > #main > .user-area > p'
+      )?.textContent
+    ).toBe('本文');
+  });
 });
