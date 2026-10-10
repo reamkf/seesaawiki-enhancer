@@ -882,8 +882,8 @@ interface SplitCell {
 const CELL_PREFIX_RE =
   /^(left|center|right|top|middle|bottom|color\([^)]*\)|bgcolor\([^)]*\)|size\([^)]*\)|w\([^)]*\)|h\([^)]*\)):/;
 
-const BARE_CELL_TOKEN_RE =
-  /^(left|center|right|top|middle|bottom|color\([^)]*\)|bgcolor\([^)]*\)|size\([^)]*\)|w\([^)]*\)|h\([^)]*\))$/;
+const CELL_TOKEN_RE =
+  /^(left|center|right|top|middle|bottom|color\([^)]*\)|bgcolor\([^)]*\)|size\([^)]*\)|w\([^)]*\)|h\([^)]*\))/;
 
 function splitCell(raw: string): SplitCell {
   let s = raw.trim();
@@ -904,70 +904,97 @@ function splitCell(raw: string): SplitCell {
   }
   let format = '';
   for (;;) {
-    const m = s.match(CELL_PREFIX_RE);
+    const m = s.match(CELL_TOKEN_RE);
     if (!m) break;
-    format += m[0];
-    s = s.slice(m[0].length);
+    const token = m[1];
+    const rest = s.slice(token.length);
+    if (rest.startsWith(':')) {
+      format += `${token}:`;
+      s = rest.slice(1);
+      continue;
+    }
+    if (rest === '') {
+      // 末尾の単独トークン(|left| 等)も書式とみなす
+      format += `${token}:`;
+      s = '';
+      break;
+    }
+    // コロン無しでトークンが連続する場合(w(110px)left 等)のみ書式とみなす。
+    // 内容語の接頭辞(leftovers 等)を誤認しないよう、後続が書式トークンでなければ抜ける。
+    if (CELL_TOKEN_RE.test(rest)) {
+      format += `${token}:`;
+      s = rest;
+      continue;
+    }
+    break;
   }
-  // 末尾に残った単独トークン(|left| 等)も書式とみなす
-  const bare = s.match(BARE_CELL_TOKEN_RE);
-  if (bare && s !== '') {
-    format += `${bare[1]}:`;
-    s = '';
+  // 書式の後の !/~ はヘッダーマーカー(内容開始)とみなす(bgcolor(...):!内容 等)。
+  // 後続は内容であり書式としては扱わない。書式指定行では内容部は無視される。
+  if (!header && (s.startsWith('~') || s.startsWith('!'))) {
+    header = true;
+    marker = s[0] as '~' | '!';
+    s = s.slice(1);
   }
   return { header, marker, format, rowFormat, content: s };
 }
 
 function isDirectiveRowLine(line: string): boolean {
-  const { cells, isFormatRow } = splitTableRow(line);
-  if (!isFormatRow) return false;
-  return cells.map((c) => splitCell(c)).every((s) => s.content === '');
+  // 末尾 |c で終わる行は書式指定行(描画せず列既定書式のみ更新)。実ページ通り。
+  return splitTableRow(line).isFormatRow;
 }
 
 function cellStyleFromFormat(format: string): string {
+  // 書式の出現順を保って出力する(実ページ通り。例: w(110px)left → width,text-align)。
+  const map = new Map<string, string>();
   let rest = format;
-  let bgcolor = '';
-  let color = '';
-  let fontSize = '';
-  let align = '';
-  let valign = '';
-  let width = '';
-  let height = '';
   for (;;) {
     const m = rest.match(CELL_PREFIX_RE);
     if (!m) break;
     const prefix = m[1];
     rest = rest.slice(m[0].length);
     if (prefix === 'left' || prefix === 'center' || prefix === 'right') {
-      align = prefix;
+      map.set('text-align', prefix);
     } else if (prefix === 'top' || prefix === 'middle' || prefix === 'bottom') {
-      valign = prefix;
+      map.set('vertical-align', prefix);
     } else if (prefix.startsWith('color(')) {
       const v = prefix.slice(6, -1).trim();
-      if (v) color = v;
+      if (v) map.set('color', v);
     } else if (prefix.startsWith('bgcolor(')) {
       const v = prefix.slice(8, -1).trim();
-      if (v) bgcolor = v;
+      if (v) map.set('background-color', v);
     } else if (prefix.startsWith('size(')) {
       const v = prefix.slice(5, -1).trim();
-      if (v) fontSize = toFontSize(v);
+      if (v) map.set('font-size', toFontSize(v));
     } else if (prefix.startsWith('w(')) {
       const v = prefix.slice(2, -1).trim();
-      if (v) width = /^\d+$/.test(v) ? `${v}px` : v;
+      if (v) map.set('width', /^\d+$/.test(v) ? `${v}px` : v);
     } else if (prefix.startsWith('h(')) {
       const v = prefix.slice(2, -1).trim();
-      if (v) height = /^\d+$/.test(v) ? `${v}px` : v;
+      if (v) map.set('height', /^\d+$/.test(v) ? `${v}px` : v);
     }
   }
   let style = '';
-  if (bgcolor) style += `background-color:${bgcolor};`;
-  if (color) style += `color:${color};`;
-  if (fontSize) style += `font-size:${fontSize};`;
-  if (align) style += `text-align:${align};`;
-  if (valign) style += `vertical-align:${valign};`;
-  if (width) style += `width:${width};`;
-  if (height) style += `height:${height};`;
+  for (const [prop, value] of map) style += `${prop}:${value};`;
   return style;
+}
+
+function mergeCellStyles(...styles: string[]): string {
+  const map = new Map<string, string>();
+  for (const style of styles) {
+    for (const decl of style.split(';')) {
+      const t = decl.trim();
+      if (!t) continue;
+      const idx = t.indexOf(':');
+      if (idx === -1) continue;
+      const prop = t.slice(0, idx).trim();
+      const value = t.slice(idx + 1).trim();
+      if (!prop || !value) continue;
+      map.set(prop, value);
+    }
+  }
+  let out = '';
+  for (const [prop, value] of map) out += `${prop}:${value};`;
+  return out;
 }
 
 interface TableCell {
@@ -1014,7 +1041,7 @@ function buildTableRows(rowLines: string[], explicit: boolean, ctx: RenderContex
   rowLines.forEach((line) => {
     const { cells, isFormatRow } = splitTableRow(line);
     const splits = cells.map((c) => splitCell(c));
-    if (isFormatRow && splits.every((s) => s.content === '')) {
+    if (isFormatRow) {
       // 書式指定行: 描画せず、列ごとの既定書式として保持する
       splits.forEach((s, idx) => {
         colFormats[idx] = s.format;
@@ -1023,12 +1050,12 @@ function buildTableRows(rowLines: string[], explicit: boolean, ctx: RenderContex
     }
     const r = outRows.length;
     while (grid.length <= r) grid.push([]);
-    // 先頭セルが'~'なら行全体をヘッダにする(実ページ通り。'!'は単独セルのみ)
+    // 先頭セルが'~'なら行全体をヘッダにする(実ページ通り。'!'は単独セルのみ)。
+    // 内容が空の r[...]:~ も行ヘッダにする。
     const first = splits[0];
     const wholeRowHeader =
       first !== undefined &&
       first.marker === '~' &&
-      first.content !== '' &&
       first.content !== '>' &&
       first.content !== '^';
     const rowFormat = splits.map((s) => s.rowFormat).join('');
@@ -1060,9 +1087,14 @@ function buildTableRows(rowLines: string[], explicit: boolean, ctx: RenderContex
         // 結合先が無ければドロップする(実ページ通り)
         continue;
       }
-      // セル書式・行書式・列書式の順に連結する(実ページのstyle順)
-      const style =
-        cellStyleFromFormat(split.format) + rowStyle + cellStyleFromFormat(colFormats[c] ?? '');
+      // セル書式・行書式・列書式の順に連結する(実ページのstyle順)。
+      // '>' で右結合したセルは結合範囲の末尾列の列書式を使う(実ページ通り)。
+      // 同一プロパティの重複は後勝ちで1つにまとめる。
+      const style = mergeCellStyles(
+        cellStyleFromFormat(split.format),
+        rowStyle,
+        cellStyleFromFormat(colFormats[c + pendingColspan] ?? '')
+      );
       const cell: TableCell = {
         header: wholeRowHeader || split.header,
         style,

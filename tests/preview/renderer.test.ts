@@ -304,6 +304,48 @@ describe('renderSeesaawikiToHtml', () => {
     expect(html).toContain('<td rowspan="2">B</td>');
   });
 
+  it('コロン無し連結の列書式(w(110px)left)を解釈する', () => {
+    const html = renderSeesaawikiToHtml(
+      '|bgcolor(#b0b0b0):w(110px)left|w(80px)center|c\n|!a|b|'
+    );
+    expect(html).toContain(
+      '<th style="background-color:#b0b0b0;width:110px;text-align:left;">a</th>'
+    );
+    expect(html).toContain('<td style="width:80px;text-align:center;">b</td>');
+    expect(html).not.toContain('w(110px)left');
+    expect(html).not.toContain('w(80px)center</td>');
+  });
+
+  it('書式指定行の!付きセルは列書式のみ残して非表示にする', () => {
+    const html = renderSeesaawikiToHtml('|bgcolor(#b0b0b0):!left|left|c\n|!x|y|');
+    expect(html).not.toContain('!left');
+    expect(html).toContain('<th style="background-color:#b0b0b0;">x</th>');
+    expect(html).toContain('<td style="text-align:left;">y</td>');
+  });
+
+  it('内容が空のr[...]:~行は行全体をヘッダにする', () => {
+    const html = renderSeesaawikiToHtml(
+      '|bgcolor(#b0b0b0):w(110px)left|w(80px)center|c\n|r[bgcolor(#b0b0b0)]:~|t|'
+    );
+    expect(html).toContain(
+      '<th style="background-color:#b0b0b0;width:110px;text-align:left;"></th>'
+    );
+    expect(html).toContain(
+      '<th style="background-color:#b0b0b0;width:80px;text-align:center;">t</th>'
+    );
+    expect(html).not.toContain('<td');
+  });
+
+  it('右結合セルは結合範囲末尾列の列書式を使う', () => {
+    const html = renderSeesaawikiToHtml(
+      '|bgcolor(#b0b0b0):left|center|c\n|>|!bgcolor(#b0b0b0):&size(18){x}|'
+    );
+    expect(html).toContain(
+      '<th colspan="2" style="background-color:#b0b0b0;text-align:center;">'
+    );
+    expect(html).not.toContain('background-color:#b0b0b0;background-color');
+  });
+
   it('未存在ページは赤リンク+?で描画する', () => {
     const html = renderSeesaawikiToHtml('[[あるページ]]と[[ないページ]]', {
       getWikiPageUrl: (name) => `https://example.test/${name}`,
